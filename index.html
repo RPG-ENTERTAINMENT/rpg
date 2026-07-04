@@ -757,10 +757,8 @@ const ser=c=>({id:c.id,name:c.name,role:c.role||'',status:c.status,task:c.task||
   tx:c.tx!=null?Math.round(c.tx):null,ty:c.ty!=null?Math.round(c.ty):null});
 function bodyObj(){ return {idc,list:employees.map(ser),log,savedAt:Date.now(),editor:clientId}; }
 
-function localSave(){
+function localSave(){    // 端末には保存しない（GitHubが唯一の保存先）。変更時刻だけ記録
   lastChange=Date.now();
-  try{ localStorage.setItem(K_EMP, JSON.stringify({idc,list:employees.map(ser)})); }catch(e){}
-  try{ localStorage.setItem(K_LOG, JSON.stringify(log)); }catch(e){}
 }
 function saveEmployees(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ localSave(); if(roomId){ dirty=true; pushNow(); } ghPushSoon(); },400); }
 function saveLog(){ localSave(); if(roomId){ dirty=true; pushNow(); } ghPushSoon(); }
@@ -1014,7 +1012,7 @@ function importSnapshot(o){
   employees.forEach(c=>c.tagEl&&c.tagEl.remove()); employees=[]; selected=null;
   (o.list||[]).forEach(s=>addEmployee({...s,silent:true}));
   if(o.log) log=mergeLogs(log,o.log);
-  deselect(); updateHud(); localSave(); if(roomId) pushNow();
+  deselect(); updateHud(); localSave(); if(roomId) pushNow(); ghPushSoon();
 }
 function loadCode(str){
   try{ let s=(str||'').trim(); const enc = s.includes('d=') ? s.split('d=').pop() : s;
@@ -1040,27 +1038,26 @@ function exportHtml(){
   }catch(e){ toast('書き出しに失敗しました'); }
 }
 
-document.getElementById('saveBtn').onclick=()=>{ localSave(); if(roomId) pushNow(); sfx('save'); toast(roomId?'共有サーバーにセーブしました':'この端末にセーブしました'); };
+document.getElementById('saveBtn').onclick=()=>{ lastChange=Date.now(); if(roomId) pushNow(); if(ghCfg) ghCommit(); sfx('save'); toast(ghCfg?'GitHubに保存しました':(roomId?'共有サーバーにセーブしました':'メモリ上のみ（保存先未設定）')); };
 
 /* ---------- 起動時の読み込み ---------- */
 async function loadAll(){
   let ok=false;
-  // ⓪ 書き出したHTMLに埋め込まれたデータ（サーバー不要・単体で共有）
-  if(window.__PRELOAD__){ try{ const o=JSON.parse(ub64u(window.__PRELOAD__));
-      if(o&&o.list){ o.list.forEach(s=>addEmployee({...s,silent:true})); if(o.log) log=mergeLogs(log,o.log); ok=employees.length>0; } }catch(e){} }
-  // ① リンクにデータが埋め込まれている場合（サーバー不要の共有）
-  const dm=(location.hash||'').match(/[#&]d=([^&]+)/);
-  if(!ok && dm){ try{ const o=JSON.parse(ub64u(dm[1]));
-      if(o&&o.list){ o.list.forEach(s=>addEmployee({...s,silent:true})); if(o.log) log=mergeLogs(log,o.log); ok=employees.length>0; } }catch(e){}
-    try{ history.replaceState(null,'',location.pathname); }catch(e){}
-  }
-  // ② GitHub連携があれば最優先で読み込む
+  // ① GitHub連携があれば最優先で読み込む（端末には保存しない）
   if(!ok && ghCfg){
     try{ const o=await ghFetch(); if(o&&o.list){ ghOK=true; idc=o.idc||1; appliedAt=o.savedAt||0;
       o.list.forEach(s=>addEmployee({...s,silent:true})); log=mergeLogs(log,o.log||[]); ok=employees.length>0; }
     }catch(e){ ghOK=false; }
   }
-  // ルーム決定：URL#room= が最優先、次に前回のルーム（スナップショット読込時は無効）
+  // ② 書き出したHTML / 共有リンクに埋め込まれたデータ（サーバー不要の共有）
+  if(!ok && window.__PRELOAD__){ try{ const o=JSON.parse(ub64u(window.__PRELOAD__));
+      if(o&&o.list){ o.list.forEach(s=>addEmployee({...s,silent:true})); if(o.log) log=mergeLogs(log,o.log); ok=employees.length>0; } }catch(e){} }
+  const dm=(location.hash||'').match(/[#&]d=([^&]+)/);
+  if(!ok && dm){ try{ const o=JSON.parse(ub64u(dm[1]));
+      if(o&&o.list){ o.list.forEach(s=>addEmployee({...s,silent:true})); if(o.log) log=mergeLogs(log,o.log); ok=employees.length>0; } }catch(e){}
+  }
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  // ③ 簡易サーバーのルーム
   const hashRoom=extractRoom(location.hash);
   roomId = ok ? null : ((location.hash.indexOf('room=')>=0 && hashRoom) ? hashRoom : (localStorage.getItem(K_ROOM)||null));
   if(!ok && roomId){
@@ -1069,10 +1066,8 @@ async function loadAll(){
       try{ localStorage.setItem(K_ROOM,roomId); location.hash='room='+roomId; }catch(e){}
     }catch(e){ sharedOK=false; }
   }
-  if(!ok){ try{ const v=localStorage.getItem(K_EMP); if(v){ const o=JSON.parse(v);
-      idc=o.idc||1; (o.list||[]).forEach(s=>addEmployee({...s,silent:true})); ok=employees.length>0; } }catch(e){} }
-  try{ const v=localStorage.getItem(K_LOG); if(v) log=mergeLogs(log,JSON.parse(v)); }catch(e){}
-  if(!ok){ seed(); localSave(); if(roomId) pushNow(); if(ghCfg) ghCommit(); } else { localSave(); }
+  // ④ どこにも無ければサンプルを表示（GitHub連携中なら初回としてGitHubへ作成）
+  if(!ok){ seed(); if(roomId) pushNow(); if(ghCfg){ lastChange=Date.now(); ghCommit(); } }
   markShared(); updateHud();
 }
 function seed(){
@@ -1101,7 +1096,7 @@ function restore(){
       idc=(o.emp&&o.emp.idc)||1;
       ((o.emp&&o.emp.list)||[]).forEach(s=>addEmployee({...s,silent:true}));
       log=mergeLogs(log, o.log||[]);
-      deselect(); updateHud(); localSave(); if(roomId) pushNow(); closeModal(); toast('復元しました');
+      deselect(); updateHud(); localSave(); if(roomId) pushNow(); ghPushSoon(); closeModal(); toast('復元しました');
     }catch(e){ toast('ファイルを読めませんでした'); } };
     rd.readAsText(f);
   };
@@ -1113,13 +1108,13 @@ buildMap(); tickClock(); setInterval(tickClock,1000*30);
 loadAll().then(()=>{ requestAnimationFrame(loop); if(roomId) pollShared(); if(ghCfg) ghPull(); });
 addEventListener('resize',positionTags);
 
-/* オートセーブ＋同期 */
-setInterval(()=>{ if(employees.length){ localSave(); if(roomId){ dirty=true; } } }, 5000);
+/* 同期（端末には保存しない。GitHubが唯一の保存先） */
+setInterval(()=>{ if(roomId && employees.length) dirty=true; }, 5000);
 setInterval(pollShared, 4000);
-setInterval(()=>{ if(ghCfg && !ghBusy) ghPull(); }, 5000);   // 他の人の変更を取り込む（5秒ごと）
-setInterval(ghTick, 10000);   // 10秒ごとに記録＆取得（保険）
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ localSave(); if(roomId)pushNow(); if(ghCfg)ghCommit(); } else { pollShared(); if(ghCfg)ghPull(); } });
-addEventListener('pagehide',()=>{ localSave(); if(roomId)pushNow(); if(ghCfg)ghCommit(); });
+setInterval(()=>{ if(ghCfg && !ghBusy) ghPull(); }, 5000);   // 5秒ごとにGitHubから読み込む
+setInterval(ghTick, 10000);   // 変更があれば記録（保険）
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(roomId)pushNow(); if(ghCfg)ghCommit(); } else { pollShared(); if(ghCfg)ghPull(); } });
+addEventListener('pagehide',()=>{ if(roomId)pushNow(); if(ghCfg)ghCommit(); });
 </script>
 </body>
 </html>
