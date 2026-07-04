@@ -754,8 +754,10 @@ function localSave(){
   try{ localStorage.setItem(K_EMP, JSON.stringify({idc,list:employees.map(ser)})); }catch(e){}
   try{ localStorage.setItem(K_LOG, JSON.stringify(log)); }catch(e){}
 }
-function saveEmployees(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ localSave(); if(roomId){ dirty=true; pushNow(); } },400); }
-function saveLog(){ localSave(); if(roomId){ dirty=true; pushNow(); } }
+function saveEmployees(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ localSave(); if(roomId){ dirty=true; pushNow(); } ghPushSoon(); },400); }
+function saveLog(){ localSave(); if(roomId){ dirty=true; pushNow(); } ghPushSoon(); }
+let ghPushT=null;
+function ghPushSoon(){ if(!ghCfg) return; clearTimeout(ghPushT); ghPushT=setTimeout(()=>{ if(ghCfg && lastChange>lastGhAt) ghCommit(); }, 1500); }
 function mergeLogs(a,b){
   const m=new Map();
   [...(a||[]),...(b||[])].forEach(l=>{ if(l&&l.ts) m.set(l.ts+'|'+l.name+'|'+l.status,l); });
@@ -952,8 +954,8 @@ function shareModal(){
     <div class="modal-actions" style="margin-bottom:12px"><button class="mini" id="sLoad" style="background:#f5b04a;color:#fff;border-color:#e08a2a;box-shadow:0 2px 0 #e08a2a;flex:1;justify-content:center">読み込む</button></div>
 
     <hr style="border:none;border-top:1px solid #b98a2a55;margin:6px 0 10px">
-    <p style="font-size:12px;line-height:1.7;margin:0 0 6px"><b>② GitHubに自動記録（10秒ごと）</b><br>
-      <span style="font-size:11px">リポジトリを設定すると、10秒ごとにJSONへ保存します。同じ設定の端末どうしで共有・同期もできます。</span>
+    <p style="font-size:12px;line-height:1.7;margin:0 0 6px"><b>② GitHubで社員とリアルタイム共有</b><br>
+      <span style="font-size:11px">同じリポジトリを設定すると、誰かが変更するたびに<b>数秒で自動保存＆全員に反映</b>されます（手動保存は不要）。</span>
       <span style="font-size:10px;color:${ghCfg?'#2f8f45':'#a5701a'}">${ghCfg?('● 連携中: '+esc(ghCfg.owner)+'/'+esc(ghCfg.repo)):'○ 未設定'}</span></p>
     <div class="modal-actions" style="margin-bottom:12px">
       <button class="mini" id="gSet" style="flex:1;justify-content:center;background:#333;color:#fff;border-color:#000;box-shadow:0 2px 0 #000">${ghCfg?'GitHub設定を変更':'GitHubに接続する'}</button>
@@ -1106,7 +1108,8 @@ addEventListener('resize',positionTags);
 /* オートセーブ＋同期 */
 setInterval(()=>{ if(employees.length){ localSave(); if(roomId){ dirty=true; } } }, 5000);
 setInterval(pollShared, 4000);
-setInterval(ghTick, 10000);   // ← GitHubへ10秒ごとに記録＆取得
+setInterval(()=>{ if(ghCfg && !ghBusy) ghPull(); }, 5000);   // 他の人の変更を取り込む（5秒ごと）
+setInterval(ghTick, 10000);   // 10秒ごとに記録＆取得（保険）
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ localSave(); if(roomId)pushNow(); if(ghCfg)ghCommit(); } else { pollShared(); if(ghCfg)ghPull(); } });
 addEventListener('pagehide',()=>{ localSave(); if(roomId)pushNow(); if(ghCfg)ghCommit(); });
 </script>
