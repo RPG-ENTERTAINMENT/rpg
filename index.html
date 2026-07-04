@@ -219,7 +219,6 @@
 
   <!-- bottom bar -->
   <div id="bar">
-    <button class="bbtn save" id="saveBtn">💾 セーブ</button>
     <button class="bbtn add" id="addBtn">＋ 追加</button>
     <button class="bbtn log" id="logBtn">記録</button>
     <div id="counts"></div>
@@ -667,23 +666,17 @@ function editTask(c){
 document.getElementById('menuBtn').onclick=()=>{
   openModal(`<h2>メニュー</h2>
     <div class="field" style="display:flex;flex-direction:column;gap:8px">
-      <button class="mini" id="m0" style="justify-content:center;background:#4aa3d8;color:#fff;border-color:#2f7bb0;box-shadow:0 2px 0 #2f7bb0">🌐 みんなで共有（サーバー）</button>
+      <button class="mini" id="m0" style="justify-content:center;background:#333;color:#fff;border-color:#000;box-shadow:0 2px 0 #000">🔗 GitHub同期の設定</button>
       <button class="mini" id="m1" style="justify-content:center">記録を見る / CSV書き出し</button>
-      <button class="mini" id="mB" style="justify-content:center">バックアップを保存（.json）</button>
-      <button class="mini" id="mH" style="justify-content:center">この状態をHTMLで保存</button>
-      <button class="mini" id="mR" style="justify-content:center">バックアップから復元</button>
       <button class="mini" id="m2" style="justify-content:center">全員を「外」に集合</button>
       <button class="mini del" id="m3" style="margin:0;justify-content:center">記録を全消去</button>
     </div>
     <p style="font-size:10px;opacity:.7;line-height:1.6;margin:10px 2px 0">
-      「みんなで共有」でルームを作り、コード／リンクを送ると、他の人のスマホと同じキャラを共有できます（ログイン不要）。データはこの端末にも自動保存されます。</p>
+      データはGitHubに自動保存され、同じリポジトリを設定した社員と共有・同期されます（この端末には保存しません）。</p>
     <div class="modal-actions"><button class="mini" id="mC">閉じる</button></div>`);
   card.querySelector('#mC').onclick=closeModal;
-  card.querySelector('#m0').onclick=shareModal;
+  card.querySelector('#m0').onclick=ghSettings;
   card.querySelector('#m1').onclick=showLog;
-  card.querySelector('#mB').onclick=backup;
-  card.querySelector('#mH').onclick=exportHtml;
-  card.querySelector('#mR').onclick=restore;
   card.querySelector('#m2').onclick=()=>{ gatherAll('outside'); closeModal(); toast('全員が外へ向かいます'); };
   card.querySelector('#m3').onclick=()=>{ log=[]; saveLog(); closeModal(); toast('記録を消去しました'); };
 };
@@ -818,8 +811,8 @@ function ghSettings(){
       <button class="mini" id="gCancel">やめる</button>
       <button class="mini" id="gSave" style="background:#57c46a;color:#fff;border-color:#2f8f45;box-shadow:0 2px 0 #2f8f45">保存して接続</button>
     </div>`);
-  card.querySelector('#gCancel').onclick=shareModal;
-  if(ghCfg) card.querySelector('#gOff').onclick=()=>{ ghCfg=null; saveGhCfg(); ghOK=false; markShared(); toast('GitHub連携を解除しました'); shareModal(); };
+  card.querySelector('#gCancel').onclick=closeModal;
+  if(ghCfg) card.querySelector('#gOff').onclick=()=>{ ghCfg=null; saveGhCfg(); ghOK=false; markShared(); toast('GitHub連携を解除しました'); closeModal(); };
   card.querySelector('#gSave').onclick=async()=>{
     const n={owner:v('gO'),repo:v('gR'),branch:v('gB')||'main',path:v('gP')||'office-town.json',token:v('gT')};
     if(!n.owner||!n.repo||!n.token){ toast('オーナー / リポジトリ / トークンは必須です'); return; }
@@ -828,7 +821,7 @@ function ghSettings(){
       if(o&&o.list){ employees.forEach(x=>x.tagEl&&x.tagEl.remove()); employees=[]; selected=null; deselect();
         idc=o.idc||1; appliedAt=o.savedAt||0; o.list.forEach(s=>addEmployee({...s,silent:true})); log=mergeLogs(log,o.log||[]); updateHud(); }
       else { await ghCommit(); }                 // 無ければ現在の内容で新規作成
-      ghOK=true; markShared(); toast('GitHubに接続しました（10秒ごとに記録）'); shareModal();
+      ghOK=true; markShared(); toast('GitHubに接続しました（自動保存されます）'); closeModal();
     }catch(e){ ghOK=false; markShared(); toast('接続失敗：リポジトリ名・権限・トークンを確認'); }
   };
 }
@@ -927,7 +920,7 @@ function markShared(){ const b=document.getElementById('syncIc'); if(!b)return;
   const active = roomId || ghCfg;
   const ok = ghCfg ? ghOK : sharedOK;
   b.style.background = active ? (ok?'#3fbf6a':'#ffd23f') : '#8f9bb3'; }
-document.getElementById('shareBtn').addEventListener('click',()=>{ ensureAudio(); sfx('click'); shareModal(); });
+document.getElementById('shareBtn').addEventListener('click',()=>{ ensureAudio(); sfx('click'); ghSettings(); });
 
 /* --- share UI --- */
 function shareModal(){
@@ -1038,7 +1031,7 @@ function exportHtml(){
   }catch(e){ toast('書き出しに失敗しました'); }
 }
 
-document.getElementById('saveBtn').onclick=()=>{ lastChange=Date.now(); if(roomId) pushNow(); if(ghCfg) ghCommit(); sfx('save'); toast(ghCfg?'GitHubに保存しました':(roomId?'共有サーバーにセーブしました':'メモリ上のみ（保存先未設定）')); };
+/* セーブは廃止：変更は自動でGitHubへ保存されます */
 
 /* ---------- 起動時の読み込み ---------- */
 async function loadAll(){
@@ -1049,25 +1042,9 @@ async function loadAll(){
       o.list.forEach(s=>addEmployee({...s,silent:true})); log=mergeLogs(log,o.log||[]); ok=employees.length>0; }
     }catch(e){ ghOK=false; }
   }
-  // ② 書き出したHTML / 共有リンクに埋め込まれたデータ（サーバー不要の共有）
-  if(!ok && window.__PRELOAD__){ try{ const o=JSON.parse(ub64u(window.__PRELOAD__));
-      if(o&&o.list){ o.list.forEach(s=>addEmployee({...s,silent:true})); if(o.log) log=mergeLogs(log,o.log); ok=employees.length>0; } }catch(e){} }
-  const dm=(location.hash||'').match(/[#&]d=([^&]+)/);
-  if(!ok && dm){ try{ const o=JSON.parse(ub64u(dm[1]));
-      if(o&&o.list){ o.list.forEach(s=>addEmployee({...s,silent:true})); if(o.log) log=mergeLogs(log,o.log); ok=employees.length>0; } }catch(e){}
-  }
-  try{ history.replaceState(null,'',location.pathname); }catch(e){}
-  // ③ 簡易サーバーのルーム
-  const hashRoom=extractRoom(location.hash);
-  roomId = ok ? null : ((location.hash.indexOf('room=')>=0 && hashRoom) ? hashRoom : (localStorage.getItem(K_ROOM)||null));
-  if(!ok && roomId){
-    try{ const o=await serverGet(roomId); if(o){ sharedOK=true; idc=o.idc||1; appliedAt=o.savedAt||0;
-      (o.list||[]).forEach(s=>addEmployee({...s,silent:true})); log=mergeLogs(log,o.log||[]); ok=employees.length>0; }
-      try{ localStorage.setItem(K_ROOM,roomId); location.hash='room='+roomId; }catch(e){}
-    }catch(e){ sharedOK=false; }
-  }
-  // ④ どこにも無ければサンプルを表示（GitHub連携中なら初回としてGitHubへ作成）
-  if(!ok){ seed(); if(roomId) pushNow(); if(ghCfg){ lastChange=Date.now(); ghCommit(); } }
+  roomId=null;
+  // どこにも無ければサンプルを表示（GitHub連携中なら初回としてGitHubへ作成）
+  if(!ok){ seed(); if(ghCfg){ lastChange=Date.now(); ghCommit(); } }
   markShared(); updateHud();
 }
 function seed(){
@@ -1105,16 +1082,14 @@ function restore(){
 
 /* ---------- boot ---------- */
 buildMap(); tickClock(); setInterval(tickClock,1000*30);
-loadAll().then(()=>{ requestAnimationFrame(loop); if(roomId) pollShared(); if(ghCfg) ghPull(); });
+loadAll().then(()=>{ requestAnimationFrame(loop); if(ghCfg) ghPull(); });
 addEventListener('resize',positionTags);
 
-/* 同期（端末には保存しない。GitHubが唯一の保存先） */
-setInterval(()=>{ if(roomId && employees.length) dirty=true; }, 5000);
-setInterval(pollShared, 4000);
+/* GitHub 同期（端末には保存しない。GitHubが唯一の保存先） */
 setInterval(()=>{ if(ghCfg && !ghBusy) ghPull(); }, 5000);   // 5秒ごとにGitHubから読み込む
-setInterval(ghTick, 10000);   // 変更があれば記録（保険）
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(roomId)pushNow(); if(ghCfg)ghCommit(); } else { pollShared(); if(ghCfg)ghPull(); } });
-addEventListener('pagehide',()=>{ if(roomId)pushNow(); if(ghCfg)ghCommit(); });
+setInterval(ghTick, 10000);                                   // 変更があれば自動記録（保険）
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(ghCfg)ghCommit(); } else { if(ghCfg)ghPull(); } });
+addEventListener('pagehide',()=>{ if(ghCfg)ghCommit(); });
 </script>
 </body>
 </html>
