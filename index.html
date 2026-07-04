@@ -211,7 +211,7 @@
     </div>
     <div id="statusRow"></div>
     <div class="row2">
-      <button class="mini" id="taskBtn">作業を変える</button>
+      <button class="mini" id="taskBtn">名前・作業を変える</button>
       <button class="mini" id="closeBtn">閉じる</button>
       <button class="mini del" id="delBtn">削除</button>
     </div>
@@ -644,15 +644,23 @@ function confirmDelete(c){
     if(selected===c)deselect(); saveEmployees(); updateHud(); sfx('delete'); closeModal(); };
 }
 function editTask(c){
-  openModal(`<h2>作業内容</h2>
-    <div class="field"><label>${esc(c.name)} は何をしている？</label>
-      <textarea id="tV" rows="2" maxlength="40">${esc(c.task)}</textarea></div>
+  openModal(`<h2>編集</h2>
+    <div class="field"><label>名前</label><input id="eName" maxlength="8" value="${esc(c.name)}"></div>
+    <div class="field"><label>役職</label><input id="eRole" maxlength="12" value="${esc(c.role||'')}" placeholder="例）部長"></div>
+    <div class="field"><label>いまの作業</label><textarea id="eTask" rows="2" maxlength="40">${esc(c.task)}</textarea></div>
     <div class="modal-actions"><button class="mini" id="tNo">やめる</button>
       <button class="mini" id="tOk" style="background:#f5b04a;color:#fff;border-color:#e08a2a;box-shadow:0 2px 0 #e08a2a">決定</button></div>`);
-  const ta=card.querySelector('#tV'); ta.focus();
+  const nm=card.querySelector('#eName'); nm.focus();
   card.querySelector('#tNo').onclick=closeModal;
-  card.querySelector('#tOk').onclick=()=>{ c.task=ta.value.trim();
-    document.getElementById('pTask').textContent=c.task?('作業: '+c.task):''; refreshTag(c); saveEmployees(); closeModal(); };
+  card.querySelector('#tOk').onclick=()=>{
+    c.name=(nm.value||'').trim()||c.name;
+    c.role=(card.querySelector('#eRole').value||'').trim();
+    c.task=(card.querySelector('#eTask').value||'').trim();
+    document.getElementById('pName').textContent=c.name;
+    document.getElementById('pRole').textContent=c.role||'';
+    document.getElementById('pTask').textContent=c.task?('作業: '+c.task):'';
+    refreshTag(c); saveEmployees(); closeModal(); toast('保存しました');
+  };
 }
 
 /* ---------- menu ---------- */
