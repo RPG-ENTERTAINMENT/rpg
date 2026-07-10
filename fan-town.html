@@ -52,12 +52,12 @@
   }
   @media (min-aspect-ratio:9/16){ #app{ height:100dvh; } }
   canvas#map{
-    position:absolute; left:0; right:0; top:104px; bottom:54px;
-    width:100%; height:calc(100% - 104px - 54px);
+    position:absolute; left:0; right:0; top:calc(104px + env(safe-area-inset-top,0px)); bottom:54px;
+    width:100%; height:calc(100% - 104px - 54px - env(safe-area-inset-top,0px));
     image-rendering:pixelated; image-rendering:crisp-edges; display:block;
     touch-action:none;
   }
-  #topBand{ position:absolute; top:0; left:0; right:0; height:104px; z-index:19;
+  #topBand{ position:absolute; top:0; left:0; right:0; height:calc(104px + env(safe-area-inset-top,0px)); z-index:19;
     background:linear-gradient(#3a2c56,#241b3a); border-bottom:2px solid #ffd23f;
     box-shadow:0 2px 0 #0006; }
   #tags{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:14; }
@@ -102,7 +102,7 @@
   /* ---------- title banner ---------- */
   #titlebar{ position:absolute; top:0; left:0; right:0; z-index:21; text-align:center;
     font-family:'DotGothic16'; font-size:11px; letter-spacing:1px; color:#fff3cf;
-    padding:5px 6px; background:linear-gradient(#3a2c56,#241b3a);
+    padding:calc(5px + env(safe-area-inset-top,0px)) 6px 5px; background:linear-gradient(#3a2c56,#241b3a);
     border-bottom:2px solid #ffd23f; box-shadow:0 2px 0 #0006; text-shadow:1px 1px 0 #000;
     pointer-events:none; }
 
@@ -210,7 +210,7 @@
   .todorow .tdel{ width:26px;height:26px;flex:0 0 auto;border-radius:7px;border:2px solid #d86a6a;background:#fff;color:#d86a6a;cursor:pointer; }
 
   /* ---------- area nav & zoom ---------- */
-  #areaNav{ position:absolute; top:30px; left:6px; right:6px; z-index:23;
+  #areaNav{ position:absolute; top:calc(30px + env(safe-area-inset-top,0px)); left:6px; right:6px; z-index:23;
     display:flex; gap:4px; }
   .destbtn{ flex:1; font-family:'DotGothic16'; font-size:10px; color:#fff3cf; cursor:pointer;
     padding:6px 1px; background:linear-gradient(#3a2c56,#241b3a); border:2px solid #16455a;
@@ -226,7 +226,7 @@
   .navbtn:disabled{ opacity:.35; }
   .navbtn .ic{ width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
     font-size:9px; color:#fff; }
-  #zoomCol{ position:absolute; right:7px; top:110px; z-index:23; display:flex; flex-direction:column; gap:6px; }
+  #zoomCol{ position:absolute; right:7px; top:calc(110px + env(safe-area-inset-top,0px)); z-index:23; display:flex; flex-direction:column; gap:6px; }
   .bbtn.tool{ padding:6px 8px; display:flex; align-items:center; justify-content:center; }
   .bbtn.tool .ic{ width:18px; height:18px; font-size:12px; display:flex; align-items:center; justify-content:center;
     border-radius:5px; color:#fff; }
@@ -241,12 +241,12 @@
     0%,100%{ transform:translateX(-50%) scale(1);    box-shadow:0 5px 0 #0007, 0 0 16px #ff4a6a99, inset 0 2px 0 #ffffff40; }
     50%    { transform:translateX(-50%) scale(1.06); box-shadow:0 5px 0 #0007, 0 0 34px #ff4a6aee, inset 0 2px 0 #ffffff40; }
   }
-  #notice{ position:absolute; top:120px; left:10px; right:10px; z-index:35; display:none;
+  #notice{ position:absolute; top:calc(120px + env(safe-area-inset-top,0px)); left:10px; right:10px; z-index:35; display:none;
     background:linear-gradient(#ff9f43,#e07a1a); border:3px solid #20182e; border-radius:12px;
     color:#fff; text-shadow:1px 1px 0 #0007; font-size:13px; line-height:1.6; padding:10px 12px;
     box-shadow:0 4px 0 #0006; animation:noticeIn .4s ease-out; }
   @keyframes noticeIn{ from{ transform:translateY(-16px); opacity:0; } to{ transform:none; opacity:1; } }
-  #hitobar{ position:absolute; top:66px; left:6px; right:6px; z-index:23; display:flex; gap:4px; }
+  #hitobar{ position:absolute; top:calc(66px + env(safe-area-inset-top,0px)); left:6px; right:6px; z-index:23; display:flex; gap:4px; }
   #hitobar input{ flex:1; min-width:0; font-family:'DotGothic16'; font-size:13px; color:#3a2c14;
     background:#fff; border:2px solid #b98a2a; border-radius:9px; padding:7px 10px; }
   #hitobar input:disabled{ opacity:.6; }
