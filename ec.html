@@ -160,6 +160,11 @@
       <input type="text" id="f_namae">
     </div>
 
+    <div class="field">
+      <label>メールアドレス</label>
+      <input type="text" id="f_email">
+    </div>
+
     <div class="chk-row">
       <label class="chk"><input type="checkbox" id="f_ippan"> 一般</label>
       <label class="chk"><input type="checkbox" id="f_vip"> VIP</label>
@@ -188,7 +193,20 @@
     <h2><span class="no">03</span> スプレッドシートへ送信</h2>
 
     <div class="field">
-      <label>シートのタブ名 (例: 2026.7月定期ﾌｧﾝﾐ)</label>
+      <label>スプレッドシートのリンク</label>
+      <input type="text" id="f_ssurl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+    </div>
+
+    <div class="field">
+      <label>列の形式</label>
+      <select id="f_target">
+        <option value="fanmi">① 担当/一般/VIP/ご飯会/ドリンク 形式(月例ファンミ用)</option>
+        <option value="ticket">② 名前/メール/入金 形式(単発イベント用)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>シートのタブ名 (例: 2026.7月定期ﾌｧﾝﾐ / RPG忘年会2025)</label>
       <input type="text" id="f_sheetname" placeholder="タブ名を入力">
     </div>
     <div class="field">
@@ -211,34 +229,64 @@
         <li>発行された URL (.../exec) をコピーし、上の欄に貼り付けて保存</li>
       </ol>
       <button class="copy-btn" id="copyCode">コードをコピー</button>
-      <pre id="gsCode">function doPost(e) {
-  var SS_ID = '1gnioiJx6KHy0YnsG1Bg5DS5BRGUfx7IKzNmwltiNgxs';
+      <pre id="gsCode">// 列の形式ごとの設定(スプレッドシートIDはリクエストで都度指定)
+var FORMATS = {
+  fanmi: {
+    startRow: 5,
+    nameCol: 5 // 名前が入る列(E)。この列が空の最初の行に書き込む
+  },
+  ticket: {
+    startRow: 5,
+    nameCol: 6 // 名前が入る列(F)。この列が空の最初の行に書き込む
+  }
+};
+
+function doPost(e) {
   var data = JSON.parse(e.postData.contents);
-  var ss = SpreadsheetApp.openById(SS_ID);
+  var conf = FORMATS[data.format];
+  if (!conf) {
+    return ContentService.createTextOutput(JSON.stringify({success:false,error:'不明な列の形式: '+data.format}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  if (!data.spreadsheetId) {
+    return ContentService.createTextOutput(JSON.stringify({success:false,error:'spreadsheetIdが指定されていません'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var ss = SpreadsheetApp.openById(data.spreadsheetId);
   var sheet = ss.getSheetByName(data.sheetName);
   if (!sheet) {
     return ContentService.createTextOutput(JSON.stringify({success:false,error:'シートが見つかりません: '+data.sheetName}))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // E列(購入者名)が空の最初の行を、5行目から探す
-  var startRow = 5;
-  var lastRow = Math.max(sheet.getLastRow(), startRow) + 1;
+  // 名前の列が空の最初の行を探す
+  var lastRow = Math.max(sheet.getLastRow(), conf.startRow) + 1;
   var targetRow = -1;
-  for (var r = startRow; r <= lastRow; r++) {
-    var v = sheet.getRange(r, 5).getValue(); // E列
+  for (var r = conf.startRow; r <= lastRow; r++) {
+    var v = sheet.getRange(r, conf.nameCol).getValue();
     if (!v) { targetRow = r; break; }
   }
 
-  sheet.getRange(targetRow, 1).setValue(data.tantou || '');      // A 担当
-  sheet.getRange(targetRow, 5).setValue(data.namae || '');       // E 購入者名
-  sheet.getRange(targetRow, 6).setValue('様');                   // F
-  sheet.getRange(targetRow, 7).setValue(data.ippan ? 1 : '');    // G 一般
-  sheet.getRange(targetRow, 8).setValue(data.vip ? 1 : '');      // H VIP
-  sheet.getRange(targetRow, 9).setValue(data.gohankai ? 1 : ''); // I ご飯会参加
-  sheet.getRange(targetRow, 10).setValue(data.allergy || '');    // J アレルギー
-  sheet.getRange(targetRow, 11).setValue(data.drink || '');      // K ドリンク
-  sheet.getRange(targetRow, 13).setValue(data.kingaku || 0);     // M 小計金額
+  if (data.format === 'fanmi') {
+    // A担当 E名前 F様 G一般 H VIP I ご飯会 Jアレルギー Kドリンク M金額
+    sheet.getRange(targetRow, 1).setValue(data.tantou || '');
+    sheet.getRange(targetRow, 5).setValue(data.namae || '');
+    sheet.getRange(targetRow, 6).setValue('様');
+    sheet.getRange(targetRow, 7).setValue(data.ippan ? 1 : '');
+    sheet.getRange(targetRow, 8).setValue(data.vip ? 1 : '');
+    sheet.getRange(targetRow, 9).setValue(data.gohankai ? 1 : '');
+    sheet.getRange(targetRow, 10).setValue(data.allergy || '');
+    sheet.getRange(targetRow, 11).setValue(data.drink || '');
+    sheet.getRange(targetRow, 13).setValue(data.kingaku || 0);
+  } else if (data.format === 'ticket') {
+    // F名前 G様 Hメール I入金 M金額
+    sheet.getRange(targetRow, 6).setValue(data.namae || '');
+    sheet.getRange(targetRow, 7).setValue('様');
+    sheet.getRange(targetRow, 8).setValue(data.email || '');
+    sheet.getRange(targetRow, 9).setValue(1); // 入金済みとして1を入れる
+    sheet.getRange(targetRow, 13).setValue(data.kingaku || 0);
+  }
 
   return ContentService.createTextOutput(JSON.stringify({success:true,row:targetRow}))
     .setMimeType(ContentService.MimeType.JSON);
@@ -248,9 +296,11 @@ function doGet(e) {
   return ContentService.createTextOutput('OK: このWebアプリは稼働しています');
 }</pre>
       <p style="font-size:11px;color:#9aa2a8;">
-        ※ A/E/F/G/H/I/J/K/M列への書き込みは、現在のシート構成から推定したものです。
-        実際の列とズレている場合は、コード内の getRange(targetRow, <b>列番号</b>) の数字を
-        実物のシートに合わせて直してください(A=1, B=2, C=3…の順)。
+        ※ ツール側で入力したリンクからスプレッドシートIDを自動で読み取り、そのIDに書き込みます。
+        列番号は現在のシート構成からの推定値なので、ズレていたら
+        getRange(targetRow, <b>列番号</b>) の数字を直してください(A=1, B=2, C=3…)。
+        新しい列の形式を増やしたい場合は、FORMATSに項目を追加し、doPost内に分岐を足してください。
+        <br><b>重要:</b> Apps Scriptを実行するGoogleアカウントが、書き込み先のスプレッドシートの編集権限を持っている必要があります。
       </p>
     </details>
   </div>
@@ -340,6 +390,7 @@ $('extractBtn').addEventListener('click', async () => {
   "chuumon_id": "注文ID",
   "chuumon_bi": "注文日 (YYYY/MM/DD)",
   "namae": "お届け先の購入者氏名(「様」は含めない)",
+  "email": "お届け先のメールアドレス(Mail:の記載があればそのまま)",
   "talent_mei": "「購入するタレントの名前を明記ください」等の項目に書かれたタレント名(価格表記は除く)",
   "ippan": true/false (一般料金のみで、VIP追加オプションが無ければtrue),
   "vip": true/false (VIPチケット/VIPオプションの購入があればtrue),
@@ -402,6 +453,7 @@ $('extractBtn').addEventListener('click', async () => {
 
     $('f_tantou').value = j.talent_mei || '';
     $('f_namae').value = j.namae || '';
+    $('f_email').value = j.email || '';
     $('f_kingaku').value = j.kingaku || '';
     $('f_ippan').checked = !!j.ippan;
     $('f_vip').checked = !!j.vip;
@@ -423,6 +475,8 @@ $('extractBtn').addEventListener('click', async () => {
         const s = JSON.parse(saved.value);
         if(s.sheetName) $('f_sheetname').value = s.sheetName;
         if(s.webUrl) $('f_weburl').value = s.webUrl;
+        if(s.ssUrl) $('f_ssurl').value = s.ssUrl;
+        if(s.target) $('f_target').value = s.target;
       }
     }catch(e){ /* 未保存でも問題なし */ }
 
@@ -437,16 +491,24 @@ $('extractBtn').addEventListener('click', async () => {
 $('sendBtn').addEventListener('click', async () => {
   const webUrl = $('f_weburl').value.trim();
   const sheetName = $('f_sheetname').value.trim();
-  if(!webUrl || !sheetName){
-    $('sendStatus').textContent = 'Web App URLとシートのタブ名を入力してください。';
+  const ssUrl = $('f_ssurl').value.trim();
+
+  const idMatch = ssUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  const spreadsheetId = idMatch ? idMatch[1] : (/^[a-zA-Z0-9_-]{20,}$/.test(ssUrl) ? ssUrl : null);
+
+  if(!webUrl || !sheetName || !spreadsheetId){
+    $('sendStatus').textContent = 'Web App URL・スプレッドシートのリンク・シートのタブ名をすべて入力してください。';
     $('sendStatus').className = 'status err';
     return;
   }
 
   const payload = {
+    spreadsheetId: spreadsheetId,
+    format: $('f_target').value,
     sheetName: sheetName,
     tantou: $('f_tantou').value.trim(),
     namae: $('f_namae').value.trim(),
+    email: $('f_email').value.trim(),
     ippan: $('f_ippan').checked,
     vip: $('f_vip').checked,
     gohankai: $('f_gohankai').checked,
@@ -471,7 +533,7 @@ $('sendBtn').addEventListener('click', async () => {
     $('sendStatus').className = 'status ok';
 
     try{
-      await window.storage.set('nouhinsho-settings', JSON.stringify({sheetName, webUrl}), false);
+      await window.storage.set('nouhinsho-settings', JSON.stringify({sheetName, webUrl, ssUrl, target: payload.format}), false);
     }catch(e){}
 
   }catch(err){
@@ -500,6 +562,8 @@ $('copyCode').addEventListener('click', async () => {
       const s = JSON.parse(saved.value);
       if(s.sheetName) $('f_sheetname').value = s.sheetName;
       if(s.webUrl) $('f_weburl').value = s.webUrl;
+      if(s.ssUrl) $('f_ssurl').value = s.ssUrl;
+      if(s.target) $('f_target').value = s.target;
     }
   }catch(e){}
 })();
