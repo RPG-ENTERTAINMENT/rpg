@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>納品書取込 | RPGアカデミー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eceee7;
+    --card:#fdfdfb;
+    --ink:#22303f;
+    --ink-soft:#5a6a78;
+    --line:#d8d9d1;
+    --hanko:#a83a32;
+    --hanko-dim:#a83a3222;
+    --ok:#2f6f4f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) 40px env(safe-area-inset-left);}
+
+  header{padding:28px 20px 16px;text-align:center;}
+  header h1{
+    font-family:'Shippori Mincho',serif;font-weight:700;
+    font-size:22px;letter-spacing:.08em;margin:0;color:var(--ink);
+  }
+  header p{margin:6px 0 0;font-size:12px;color:var(--ink-soft);letter-spacing:.05em;}
+
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:2px;
+    padding:20px;margin-bottom:16px;position:relative;
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 10px);
+  }
+  .card h2{
+    font-family:'Shippori Mincho',serif;font-size:15px;font-weight:700;
+    margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px;
+  }
+  .card h2 .no{color:var(--hanko);font-size:12px;font-weight:500;}
+
+  /* file input */
+  .shoot-row{display:flex;gap:10px;}
+  .shoot-btn{
+    flex:1;padding:14px 10px;border:1.5px solid var(--ink);border-radius:2px;
+    background:var(--card);color:var(--ink);font-size:13px;font-weight:700;
+    text-align:center;cursor:pointer;font-family:inherit;
+  }
+  .shoot-btn:active{background:var(--ink);color:#fff;}
+  input[type=file]{display:none;}
+
+  #preview{margin-top:14px;text-align:center;display:none;}
+  #preview img{max-width:100%;max-height:260px;border:1px solid var(--line);border-radius:2px;}
+
+  .primary-btn{
+    width:100%;padding:15px;margin-top:14px;border:none;border-radius:2px;
+    background:var(--ink);color:#fff;font-size:14px;font-weight:700;
+    letter-spacing:.05em;font-family:inherit;cursor:pointer;
+  }
+  .primary-btn:disabled{background:#b7bec4;}
+  .primary-btn.send{background:var(--hanko);}
+
+  .status{font-size:12px;color:var(--ink-soft);margin-top:10px;text-align:center;min-height:16px;}
+  .status.err{color:#a83a32;}
+  .status.ok{color:var(--ok);}
+
+  /* stamp signature element */
+  .stamp{
+    position:absolute;top:14px;right:16px;width:56px;height:56px;
+    border:2.5px solid var(--hanko);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Shippori Mincho',serif;font-weight:700;color:var(--hanko);
+    font-size:12px;letter-spacing:.05em;line-height:1.3;text-align:center;
+    opacity:0;transform:scale(2.4) rotate(-18deg);
+    transition:opacity .18s ease, transform .32s cubic-bezier(.2,1.6,.4,1);
+    background:var(--hanko-dim);pointer-events:none;
+  }
+  .stamp.show{opacity:.92;transform:scale(1) rotate(-8deg);}
+
+  /* form fields */
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;letter-spacing:.03em;}
+  .field input[type=text], .field input[type=number], .field select{
+    width:100%;padding:10px 10px;border:1px solid var(--line);border-radius:2px;
+    font-size:15px;font-family:inherit;background:#fff;color:var(--ink);
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--ink);outline-offset:-1px;}
+  .row2{display:flex;gap:10px;}
+  .row2 .field{flex:1;}
+
+  .chk-row{display:flex;gap:16px;flex-wrap:wrap;margin:4px 0 14px;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13.5px;}
+  .chk input{width:18px;height:18px;accent-color:var(--hanko);}
+
+  details{margin-top:4px;}
+  summary{font-size:12.5px;color:var(--ink-soft);cursor:pointer;padding:4px 0;}
+  .setup pre{
+    background:#1c2530;color:#dbe4ea;font-size:10.5px;line-height:1.55;
+    padding:14px;border-radius:2px;overflow-x:auto;white-space:pre;margin:10px 0;
+  }
+  .setup ol{font-size:12.5px;color:var(--ink-soft);padding-left:18px;line-height:1.7;}
+  .copy-btn{
+    font-size:11.5px;padding:6px 12px;border:1px solid var(--ink);background:#fff;
+    border-radius:2px;cursor:pointer;font-family:inherit;
+  }
+  footer{text-align:center;font-size:10.5px;color:#9aa2a8;margin-top:20px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>納 品 書 取 込</h1>
+  <p>RPGアカデミー ｜ チケット購入者台帳ツール</p>
+</header>
+
+<div class="wrap">
+
+  <!-- STEP1: 画像取込 -->
+  <div class="card">
+    <h2><span class="no">01</span> 納品書を読み込む</h2>
+    <div class="shoot-row">
+      <label class="shoot-btn" for="camInput">📷 撮影する</label>
+      <label class="shoot-btn" for="fileInput">🖼 写真を選ぶ</label>
+    </div>
+    <input type="file" id="camInput" accept="image/*" capture="environment">
+    <input type="file" id="fileInput" accept="image/*">
+    <div id="preview"><img id="previewImg" alt="preview"></div>
+    <button class="primary-btn" id="extractBtn" disabled>AIで項目を読み取る</button>
+    <button class="primary-btn" id="testBtn" style="background:#5a6a78;margin-top:8px;">🔧 接続テスト(画像なし)</button>
+    <div class="status" id="extractStatus"></div>
+  </div>
+
+  <!-- STEP2: 内容確認 -->
+  <div class="card" id="formCard" style="display:none;">
+    <div class="stamp" id="stamp">読取<br>完了</div>
+    <h2><span class="no">02</span> 内容を確認・修正</h2>
+
+    <div class="row2">
+      <div class="field">
+        <label>担当(タレント名)</label>
+        <input type="text" id="f_tantou">
+      </div>
+      <div class="field">
+        <label>合計金額(円)</label>
+        <input type="number" id="f_kingaku">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>購入者名</label>
+      <input type="text" id="f_namae">
+    </div>
+
+    <div class="chk-row">
+      <label class="chk"><input type="checkbox" id="f_ippan"> 一般</label>
+      <label class="chk"><input type="checkbox" id="f_vip"> VIP</label>
+      <label class="chk"><input type="checkbox" id="f_gohankai"> ご飯会参加</label>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>ドリンク</label>
+        <input type="text" id="f_drink">
+      </div>
+      <div class="field">
+        <label>アレルギー</label>
+        <input type="text" id="f_allergy">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>注文ID / 注文日(参考)</label>
+      <input type="text" id="f_ref" readonly style="background:#f4f4f2;color:var(--ink-soft);">
+    </div>
+  </div>
+
+  <!-- STEP3: 送信先設定 -->
+  <div class="card" id="sendCard" style="display:none;">
+    <h2><span class="no">03</span> スプレッドシートへ送信</h2>
+
+    <div class="field">
+      <label>シートのタブ名 (例: 2026.7月定期ﾌｧﾝﾐ)</label>
+      <input type="text" id="f_sheetname" placeholder="タブ名を入力">
+    </div>
+    <div class="field">
+      <label>Apps Script Web App URL</label>
+      <input type="text" id="f_weburl" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+
+    <button class="primary-btn send" id="sendBtn">スプレッドシートに送信</button>
+    <div class="status" id="sendStatus"></div>
+
+    <details class="setup">
+      <summary>▸ 初回セットアップ手順(Apps Scriptの作り方)</summary>
+      <ol>
+        <li>対象のGoogleスプレッドシートを開く</li>
+        <li>メニュー「拡張機能」→「Apps Script」を開く</li>
+        <li>デフォルトのコードを全て消し、下のコードを貼り付ける</li>
+        <li>右上「デプロイ」→「新しいデプロイ」</li>
+        <li>種類の選択(歯車)で「ウェブアプリ」を選ぶ</li>
+        <li>「アクセスできるユーザー」を <b>全員</b> にして「デプロイ」</li>
+        <li>発行された URL (.../exec) をコピーし、上の欄に貼り付けて保存</li>
+      </ol>
+      <button class="copy-btn" id="copyCode">コードをコピー</button>
+      <pre id="gsCode">function doPost(e) {
+  var SS_ID = '1gnioiJx6KHy0YnsG1Bg5DS5BRGUfx7IKzNmwltiNgxs';
+  var data = JSON.parse(e.postData.contents);
+  var ss = SpreadsheetApp.openById(SS_ID);
+  var sheet = ss.getSheetByName(data.sheetName);
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify({success:false,error:'シートが見つかりません: '+data.sheetName}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // E列(購入者名)が空の最初の行を、5行目から探す
+  var startRow = 5;
+  var lastRow = Math.max(sheet.getLastRow(), startRow) + 1;
+  var targetRow = -1;
+  for (var r = startRow; r <= lastRow; r++) {
+    var v = sheet.getRange(r, 5).getValue(); // E列
+    if (!v) { targetRow = r; break; }
+  }
+
+  sheet.getRange(targetRow, 1).setValue(data.tantou || '');      // A 担当
+  sheet.getRange(targetRow, 5).setValue(data.namae || '');       // E 購入者名
+  sheet.getRange(targetRow, 6).setValue('様');                   // F
+  sheet.getRange(targetRow, 7).setValue(data.ippan ? 1 : '');    // G 一般
+  sheet.getRange(targetRow, 8).setValue(data.vip ? 1 : '');      // H VIP
+  sheet.getRange(targetRow, 9).setValue(data.gohankai ? 1 : ''); // I ご飯会参加
+  sheet.getRange(targetRow, 10).setValue(data.allergy || '');    // J アレルギー
+  sheet.getRange(targetRow, 11).setValue(data.drink || '');      // K ドリンク
+  sheet.getRange(targetRow, 13).setValue(data.kingaku || 0);     // M 小計金額
+
+  return ContentService.createTextOutput(JSON.stringify({success:true,row:targetRow}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput('OK: このWebアプリは稼働しています');
+}</pre>
+      <p style="font-size:11px;color:#9aa2a8;">
+        ※ A/E/F/G/H/I/J/K/M列への書き込みは、現在のシート構成から推定したものです。
+        実際の列とズレている場合は、コード内の getRange(targetRow, <b>列番号</b>) の数字を
+        実物のシートに合わせて直してください(A=1, B=2, C=3…の順)。
+      </p>
+    </details>
+  </div>
+
+</div>
+
+<footer>RPGエンターテイメント / 内部ツール</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let imageBase64 = null, imageMediaType = null;
+
+function handleFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      // iPhone写真は解像度・容量が大きくAPI送信に失敗しやすいため縮小してJPEG化する
+      const maxDim = 1568;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim){
+        if (w >= h){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      imageMediaType = 'image/jpeg';
+      imageBase64 = dataUrl.split(',')[1];
+      $('previewImg').src = dataUrl;
+      $('preview').style.display = 'block';
+      $('extractBtn').disabled = false;
+      $('extractStatus').textContent = '';
+      $('formCard').style.display = 'none';
+      $('sendCard').style.display = 'none';
+      $('stamp').classList.remove('show');
+    };
+    img.onerror = () => {
+      $('extractStatus').textContent = '画像の読み込みに失敗しました。別の写真でお試しください。';
+      $('extractStatus').className = 'status err';
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+$('camInput').addEventListener('change', e => handleFile(e.target.files[0]));
+$('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+
+$('testBtn').addEventListener('click', async () => {
+  $('extractStatus').textContent = '接続テスト中…';
+  $('extractStatus').className = 'status';
+  try{
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: "「OK」とだけ返してください" }]
+      })
+    });
+    console.log('接続テスト status:', resp.status);
+    const data = await resp.json();
+    console.log('接続テスト raw response:', data);
+    $('extractStatus').textContent = '接続テスト成功: ' + JSON.stringify(data).slice(0,150);
+    $('extractStatus').className = 'status ok';
+  }catch(err){
+    $('extractStatus').textContent = '接続テスト失敗: ' + err.message;
+    $('extractStatus').className = 'status err';
+    console.error('接続テストエラー:', err);
+  }
+});
+
+$('extractBtn').addEventListener('click', async () => {
+  if(!imageBase64) return;
+  $('extractBtn').disabled = true;
+  $('extractStatus').textContent = '読み取り中…';
+  $('extractStatus').className = 'status';
+
+  const prompt = `これは日本語のファンミーティング/チケット購入の「納品書」画像です。
+以下の項目だけを抽出し、必ずJSONオブジェクトのみを出力してください(説明文・コードフェンス不要)。
+
+{
+  "chuumon_id": "注文ID",
+  "chuumon_bi": "注文日 (YYYY/MM/DD)",
+  "namae": "お届け先の購入者氏名(「様」は含めない)",
+  "talent_mei": "「購入するタレントの名前を明記ください」等の項目に書かれたタレント名(価格表記は除く)",
+  "ippan": true/false (一般料金のみで、VIP追加オプションが無ければtrue),
+  "vip": true/false (VIPチケット/VIPオプションの購入があればtrue),
+  "gohankai": true/false (「ご飯会参加します」等、参加の記載があればtrue),
+  "drink": "ドリンク選択の記載内容(番号や記号もそのまま)",
+  "allergy": "アレルギーの記載内容(無ければ空文字)",
+  "kingaku": 合計金額を数値のみで(カンマ・円マーク無し)
+}
+
+不明な項目は空文字またはfalseにしてください。`;
+
+  let resp;
+  try{
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: [
+            {type:"image", source:{type:"base64", media_type: imageMediaType, data: imageBase64}},
+            {type:"text", text: prompt}
+          ]
+        }]
+      })
+    });
+  }catch(fetchErr){
+    $('extractStatus').textContent = '通信に失敗しました: ' + fetchErr.message;
+    $('extractStatus').className = 'status err';
+    console.error('fetch自体が失敗:', fetchErr);
+    $('extractBtn').disabled = false;
+    return;
+  }
+
+  try{
+    const data = await resp.json();
+    console.log('API raw response:', data);
+
+    if (data.error) {
+      throw new Error('API error: ' + (data.error.message || JSON.stringify(data.error)));
+    }
+    if (!data.content) {
+      throw new Error('content が空です: ' + JSON.stringify(data));
+    }
+
+    let text = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('');
+    text = text.replace(/```json|```/g,'').trim();
+
+    // モデルが前後に説明文を付けた場合に備えて、最初の{から最後の}までを取り出す
+    const first = text.indexOf('{');
+    const last = text.lastIndexOf('}');
+    if (first === -1 || last === -1) {
+      throw new Error('JSONが見つかりませんでした。応答: ' + text.slice(0,200));
+    }
+    text = text.slice(first, last+1);
+
+    const j = JSON.parse(text);
+
+    $('f_tantou').value = j.talent_mei || '';
+    $('f_namae').value = j.namae || '';
+    $('f_kingaku').value = j.kingaku || '';
+    $('f_ippan').checked = !!j.ippan;
+    $('f_vip').checked = !!j.vip;
+    $('f_gohankai').checked = !!j.gohankai;
+    $('f_drink').value = j.drink || '';
+    $('f_allergy').value = j.allergy || '';
+    $('f_ref').value = `${j.chuumon_id||''} / ${j.chuumon_bi||''}`;
+
+    $('formCard').style.display = 'block';
+    $('sendCard').style.display = 'block';
+    $('extractStatus').textContent = '読み取りが完了しました。内容をご確認ください。';
+    $('extractStatus').className = 'status ok';
+    requestAnimationFrame(()=> $('stamp').classList.add('show'));
+
+    // 前回の送信先設定を復元
+    try{
+      const saved = await window.storage.get('nouhinsho-settings', false);
+      if(saved && saved.value){
+        const s = JSON.parse(saved.value);
+        if(s.sheetName) $('f_sheetname').value = s.sheetName;
+        if(s.webUrl) $('f_weburl').value = s.webUrl;
+      }
+    }catch(e){ /* 未保存でも問題なし */ }
+
+  }catch(err){
+    $('extractStatus').textContent = '読み取りに失敗しました: ' + err.message;
+    $('extractStatus').className = 'status err';
+    console.error(err);
+  }
+  $('extractBtn').disabled = false;
+});
+
+$('sendBtn').addEventListener('click', async () => {
+  const webUrl = $('f_weburl').value.trim();
+  const sheetName = $('f_sheetname').value.trim();
+  if(!webUrl || !sheetName){
+    $('sendStatus').textContent = 'Web App URLとシートのタブ名を入力してください。';
+    $('sendStatus').className = 'status err';
+    return;
+  }
+
+  const payload = {
+    sheetName: sheetName,
+    tantou: $('f_tantou').value.trim(),
+    namae: $('f_namae').value.trim(),
+    ippan: $('f_ippan').checked,
+    vip: $('f_vip').checked,
+    gohankai: $('f_gohankai').checked,
+    drink: $('f_drink').value.trim(),
+    allergy: $('f_allergy').value.trim(),
+    kingaku: Number($('f_kingaku').value) || 0
+  };
+
+  $('sendBtn').disabled = true;
+  $('sendStatus').textContent = '送信中…';
+  $('sendStatus').className = 'status';
+
+  try{
+    // Apps Script Web Appはpreflightに対応していないため text/plain + no-cors で送信
+    await fetch(webUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+    $('sendStatus').textContent = '送信しました。スプレッドシート側で反映をご確認ください。';
+    $('sendStatus').className = 'status ok';
+
+    try{
+      await window.storage.set('nouhinsho-settings', JSON.stringify({sheetName, webUrl}), false);
+    }catch(e){}
+
+  }catch(err){
+    $('sendStatus').textContent = '送信に失敗しました。URLをご確認ください。';
+    $('sendStatus').className = 'status err';
+    console.error(err);
+  }
+  $('sendBtn').disabled = false;
+});
+
+$('copyCode').addEventListener('click', async () => {
+  try{
+    await navigator.clipboard.writeText($('gsCode').textContent);
+    $('copyCode').textContent = 'コピーしました';
+    setTimeout(()=> $('copyCode').textContent = 'コードをコピー', 1500);
+  }catch(e){
+    alert('コピーできませんでした。手動で選択してください。');
+  }
+});
+
+// 起動時に設定を復元
+(async () => {
+  try{
+    const saved = await window.storage.get('nouhinsho-settings', false);
+    if(saved && saved.value){
+      const s = JSON.parse(saved.value);
+      if(s.sheetName) $('f_sheetname').value = s.sheetName;
+      if(s.webUrl) $('f_weburl').value = s.webUrl;
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
