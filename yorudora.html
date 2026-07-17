@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ヨルドラ | 続きが気になって、朝になる。</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0d;
+    --ink2:#12131a;
+    --card:#181a22;
+    --ivory:#efe9df;
+    --ivory-dim:#a8a29a;
+    --gold:#d4a340;
+    --wine:#c4344e;
+    --line:rgba(239,233,223,0.1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{
+    scroll-behavior:smooth;
+    background:var(--ink);
+    overscroll-behavior-y:none;
+  }
+  body{
+    background:var(--ink);
+    color:var(--ivory);
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  section{background:var(--ink);position:relative;}
+  .serif{font-family:'Shippori Mincho',serif;}
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+
+  /* film grain overlay */
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size:3px 3px;
+    pointer-events:none;
+    z-index:999;
+    opacity:0.5;
+  }
+
+  /* header */
+  header{
+    position:fixed;top:0;left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 20px;
+    z-index:100;
+    background:linear-gradient(to bottom, rgba(10,10,13,0.9), transparent);
+  }
+  .logo{
+    font-family:'Shippori Mincho',serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:0.06em;
+    color:var(--ivory);
+  }
+  .logo span{color:var(--gold);}
+  .cta-mini{
+    font-size:12px;
+    padding:8px 16px;
+    border:1px solid var(--gold);
+    border-radius:999px;
+    color:var(--gold);
+    letter-spacing:0.05em;
+  }
+
+  /* hero */
+  .hero{
+    min-height:100svh;
+    display:flex;flex-direction:column;
+    justify-content:flex-end;
+    position:relative;
+    padding:100px 20px 40px;
+    background:
+      radial-gradient(120% 60% at 50% 0%, rgba(196,52,78,0.18), transparent 60%),
+      linear-gradient(180deg, var(--ink) 0%, #0d0e13 60%, var(--ink) 100%);
+    overflow:hidden;
+  }
+  .deck{
+    position:relative;
+    height:300px;
+    margin:0 auto 36px;
+    width:100%;
+    max-width:380px;
+  }
+  .phone-card{
+    position:absolute;
+    width:150px;height:266px;
+    top:0;left:50%;
+    border-radius:16px;
+    border:1px solid rgba(239,233,223,0.15);
+    box-shadow:0 20px 50px rgba(0,0,0,0.6);
+    display:flex;flex-direction:column;
+    justify-content:flex-end;
+    padding:14px;
+    transition:transform .6s cubic-bezier(.2,.8,.2,1);
+    animation:rise .8s cubic-bezier(.2,.8,.2,1) backwards;
+  }
+  .phone-card .tag{
+    font-size:9px;letter-spacing:.1em;color:var(--gold);
+    margin-bottom:6px;font-weight:700;
+  }
+  .phone-card .ttl{
+    font-family:'Shippori Mincho',serif;
+    font-size:14px;line-height:1.5;font-weight:700;
+    color:var(--ivory);
+    text-shadow:0 2px 8px rgba(0,0,0,0.8);
+  }
+  .phone-card::before{
+    content:"";
+    position:absolute;inset:0;
+    border-radius:16px;
+    background:linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.75) 100%);
+  }
+  .p1{background:linear-gradient(160deg,#3a1420,#0a0a0d 70%);transform:translateX(-190px) rotate(-9deg);z-index:1;animation-delay:.05s;}
+  .p2{background:linear-gradient(160deg,#2a2410,#0a0a0d 70%);transform:translateX(-95px) rotate(-4deg);z-index:2;animation-delay:.15s;}
+  .p3{background:linear-gradient(160deg,#3a1420,#12131a 70%);transform:translateX(0) rotate(0deg) scale(1.06);z-index:3;animation-delay:.25s;box-shadow:0 25px 60px rgba(196,52,78,0.35);}
+  .p4{background:linear-gradient(160deg,#10202a,#0a0a0d 70%);transform:translateX(95px) rotate(4deg);z-index:2;animation-delay:.15s;}
+  .p5{background:linear-gradient(160deg,#241030,#0a0a0d 70%);transform:translateX(190px) rotate(9deg);z-index:1;animation-delay:.05s;}
+  @keyframes rise{from{opacity:0;transform:translateY(40px) scale(0.9);}to{opacity:1;}}
+
+  .hero h1{
+    font-family:'Shippori Mincho',serif;
+    font-weight:800;
+    font-size:clamp(28px,7vw,40px);
+    line-height:1.45;
+    text-align:center;
+    letter-spacing:0.02em;
+  }
+  .hero h1 em{
+    font-style:normal;color:var(--wine);
+  }
+  .hero p.lead{
+    text-align:center;
+    color:var(--ivory-dim);
+    font-size:14px;
+    margin:14px auto 26px;
+    max-width:320px;
+    line-height:1.8;
+  }
+  .btn-primary{
+    display:block;
+    margin:0 auto;
+    width:min(320px,100%);
+    text-align:center;
+    background:linear-gradient(95deg,var(--gold),#f0c874);
+    color:#1a1206;
+    font-weight:900;
+    font-size:16px;
+    padding:16px;
+    border-radius:14px;
+    box-shadow:0 12px 30px rgba(212,163,64,0.28);
+    letter-spacing:0.02em;
+  }
+  .btn-sub{
+    text-align:center;
+    font-size:12px;
+    color:var(--ivory-dim);
+    margin-top:12px;
+  }
+
+  /* section shell */
+  section{padding:70px 20px;}
+  .eyebrow{
+    font-size:11px;letter-spacing:.2em;color:var(--gold);
+    font-weight:700;margin-bottom:10px;text-align:center;
+  }
+  .sec-title{
+    font-family:'Shippori Mincho',serif;
+    font-size:24px;font-weight:700;
+    text-align:center;margin-bottom:8px;
+  }
+  .sec-sub{
+    text-align:center;color:var(--ivory-dim);
+    font-size:13px;margin-bottom:36px;
+  }
+
+  /* carousel */
+  .carousel{
+    display:flex;gap:14px;overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    padding:8px 4px 20px;
+    margin:0 -20px;padding-left:20px;padding-right:20px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .carousel::-webkit-scrollbar{display:none;}
+  .series{
+    scroll-snap-align:start;
+    flex:0 0 180px;
+    display:block;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+    opacity:0;transform:translateY(20px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .series.show{opacity:1;transform:none;}
+  .series .thumb{
+    height:230px;
+    display:flex;align-items:flex-end;padding:12px;
+    position:relative;
+  }
+  .series .thumb::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.85));
+  }
+  .series .thumb .ep{
+    position:relative;z-index:1;
+    font-size:10px;font-weight:700;color:var(--gold);
+    background:rgba(10,10,13,0.6);
+    padding:3px 8px;border-radius:999px;
+    position:absolute;top:10px;left:10px;
+  }
+  .series .thumb h3{
+    position:relative;z-index:1;
+    font-family:'Shippori Mincho',serif;
+    font-size:15px;line-height:1.5;font-weight:700;
+    text-shadow:0 2px 6px rgba(0,0,0,.8);
+  }
+  .series .meta{
+    padding:10px 12px 14px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .series .meta .genre{font-size:11px;color:var(--ivory-dim);}
+  .series .meta .play{
+    width:26px;height:26px;border-radius:50%;
+    background:var(--wine);
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;
+  }
+  .t1 .thumb{background:linear-gradient(160deg,#3a1420,#181a22 75%);}
+  .t2 .thumb{background:linear-gradient(160deg,#10202a,#181a22 75%);}
+  .t3 .thumb{background:linear-gradient(160deg,#2a2410,#181a22 75%);}
+  .t4 .thumb{background:linear-gradient(160deg,#241030,#181a22 75%);}
+  .t5 .thumb{background:linear-gradient(160deg,#0f2a1c,#181a22 75%);}
+
+  /* cliffhanger meter (signature element) */
+  .meter-wrap{
+    max-width:420px;margin:0 auto;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:24px 22px;
+  }
+  .meter-wrap .row{
+    display:flex;justify-content:space-between;
+    font-size:11px;color:var(--ivory-dim);margin-bottom:8px;
+  }
+  .meter-track{
+    height:6px;border-radius:999px;background:rgba(239,233,223,0.08);
+    overflow:hidden;margin-bottom:6px;position:relative;
+  }
+  .meter-fill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,var(--wine),var(--gold));
+    border-radius:999px;
+    transition:width 1.4s cubic-bezier(.2,.8,.2,1);
+  }
+  .meter-wrap .caption{
+    font-size:12px;color:var(--ivory-dim);text-align:center;margin-top:14px;line-height:1.7;
+  }
+  .meter-wrap .caption strong{color:var(--ivory);}
+
+  /* pricing */
+  .plans{display:grid;gap:14px;max-width:420px;margin:0 auto;}
+  .plan{
+    border:1px solid var(--line);
+    background:var(--card);
+    border-radius:16px;
+    padding:20px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .plan.featured{
+    border-color:var(--gold);
+    background:linear-gradient(135deg, rgba(212,163,64,0.1), var(--card));
+  }
+  .plan .name{font-weight:700;font-size:14px;margin-bottom:4px;}
+  .plan .desc{font-size:11px;color:var(--ivory-dim);}
+  .plan .price{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:700;color:var(--gold);white-space:nowrap;}
+  .plan .price small{font-size:10px;color:var(--ivory-dim);font-family:'Zen Kaku Gothic New',sans-serif;display:block;font-weight:400;}
+  .badge{
+    display:inline-block;font-size:9px;background:var(--wine);color:var(--ivory);
+    padding:2px 8px;border-radius:999px;margin-bottom:6px;letter-spacing:.05em;
+  }
+
+  /* comments */
+  .comments{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:10px;}
+  .comment{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.7;
+    align-self:flex-start;max-width:88%;
+  }
+  .comment.r{align-self:flex-end;background:rgba(196,52,78,0.12);border-color:rgba(196,52,78,0.3);}
+  .comment .who{font-size:11px;color:var(--gold);font-weight:700;margin-bottom:4px;}
+
+  /* faq */
+  .faq{max-width:480px;margin:0 auto;}
+  .faq-item{border-bottom:1px solid var(--line);padding:16px 0;}
+  .faq-item summary{
+    list-style:none;cursor:pointer;font-weight:700;font-size:14px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .faq-item summary::-webkit-details-marker{display:none;}
+  .faq-item summary::after{content:"+";color:var(--gold);font-size:18px;transition:transform .3s;}
+  .faq-item[open] summary::after{transform:rotate(45deg);}
+  .faq-item p{font-size:12.5px;color:var(--ivory-dim);margin-top:10px;line-height:1.8;}
+
+  footer{
+    padding:40px 20px 60px;
+    text-align:center;
+    border-top:1px solid var(--line);
+  }
+  footer .logo{margin-bottom:10px;}
+  footer p{font-size:11px;color:var(--ivory-dim);line-height:1.8;}
+
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease, transform .7s ease;}
+  .reveal.show{opacity:1;transform:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ヨル<span>ドラ</span></div>
+  <a href="#plans" class="cta-mini">今すぐ見る</a>
+</header>
+
+<section class="hero">
+  <div class="deck">
+    <div class="phone-card p1"><div class="tag">逆転</div><div class="ttl">捨てられた令嬢は<br>極道の妻になる</div></div>
+    <div class="phone-card p2" style="background-image:url('poster-revenge.jpeg');background-size:cover;background-position:center 12%;"><div class="tag">復讐</div><div class="ttl">復讐のため嫁いだ先は<br>初恋の御曹司でした</div></div>
+    <div class="phone-card p3" style="background-image:url('poster-fantasy.jpeg');background-size:cover;background-position:center 10%;"><div class="tag">ファンタジー</div><div class="ttl">1分で広がる<br>異世界</div></div>
+    <div class="phone-card p4" style="background-image:url('poster-suspense.jpeg');background-size:cover;background-position:center 10%;"><div class="tag">サスペンス</div><div class="ttl">1分後、<br>衝撃の結末</div></div>
+    <div class="phone-card p5" style="background-image:url('poster-romance.jpeg');background-size:cover;background-position:center 15%;"><div class="tag">恋愛</div><div class="ttl">1分だけの<br>運命の恋</div></div>
+  </div>
+  <h1>続きが気になって、<br><em>朝になる。</em></h1>
+  <p class="lead">1話1分の中毒性。通勤中も、寝る前も、指を止められないショートドラマが見放題。</p>
+  <a href="#plans" class="btn-primary">第1話を無料で見る</a>
+  <p class="btn-sub">登録不要・アプリ不要・今すぐ再生</p>
+</section>
+
+<section id="trailer" style="padding-top:0;">
+  <div class="eyebrow">EPISODE 1</div>
+  <h2 class="sec-title">予告編</h2>
+  <p class="sec-sub">まずは1分で、世界観をチェック</p>
+  <div style="max-width:360px;margin:0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,0.5);position:relative;">
+    <span style="position:absolute;top:12px;left:12px;z-index:2;font-size:10px;font-weight:700;color:var(--gold);background:rgba(10,10,13,0.7);padding:4px 10px;border-radius:999px;">第1話 予告編</span>
+    <video
+      src="ep1-trailer.mp4"
+      controls
+      playsinline
+      preload="metadata"
+      style="display:block;width:100%;height:auto;background:#000;">
+    </video>
+  </div>
+</section>
+
+<section id="titles">
+  <div class="eyebrow">NOW STREAMING</div>
+  <h2 class="sec-title">今、みんなが夜更かしする理由</h2>
+  <p class="sec-sub">全話一気見したくなる、5つの新作</p>
+
+  <div class="carousel">
+    <a class="series t1 reveal" href="drama.html?id=1">
+      <div class="thumb"><span class="ep">全68話</span><h3>捨てられた令嬢は<br>極道の妻になる</h3></div>
+      <div class="meta"><span class="genre">逆転劇 / 溺愛</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t2 reveal" href="drama.html?id=2">
+      <div class="thumb"><span class="ep">全54話</span><h3>離婚届を渡した日、<br>御曹司の花嫁になった</h3></div>
+      <div class="meta"><span class="genre">契約結婚</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t3 reveal" href="drama.html?id=3">
+      <div class="thumb"><span class="ep">全72話</span><h3>契約妻ですが、<br>社長に溺愛されています</h3></div>
+      <div class="meta"><span class="genre">オフィスラブ</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t4 reveal" href="drama.html?id=4">
+      <div class="thumb"><span class="ep">全60話</span><h3>地味子と呼ばれた私、<br>実は財閥の娘でした</h3></div>
+      <div class="meta"><span class="genre">シンデレラ</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t5 reveal" href="drama.html?id=5">
+      <div class="thumb" style="background-image:url('poster-revenge.jpeg');background-size:cover;background-position:center 15%;"><span class="ep">全80話</span><h3>復讐のため嫁いだ先は<br>初恋の御曹司でした</h3></div>
+      <div class="meta"><span class="genre">復讐 / 純愛</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t6 reveal" href="drama.html?id=6">
+      <div class="thumb" style="background-image:url('poster-romance.jpeg');background-size:cover;background-position:center 20%;"><span class="ep">全45話</span><h3>1分だけの<br>運命の恋</h3></div>
+      <div class="meta"><span class="genre">恋愛</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t7 reveal" href="drama.html?id=7">
+      <div class="thumb" style="background-image:url('poster-fantasy.jpeg');background-size:cover;background-position:center 15%;"><span class="ep">全50話</span><h3>1分で広がる<br>異世界</h3></div>
+      <div class="meta"><span class="genre">ファンタジー</span><span class="play">▶</span></div>
+    </a>
+    <a class="series t8 reveal" href="drama.html?id=8">
+      <div class="thumb" style="background-image:url('poster-suspense.jpeg');background-size:cover;background-position:center 15%;"><span class="ep">全40話</span><h3>1分後、<br>衝撃の結末</h3></div>
+      <div class="meta"><span class="genre">サスペンス</span><span class="play">▶</span></div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">HOW IT WORKS</div>
+  <h2 class="sec-title">1話は無料。続きはコインで。</h2>
+  <p class="sec-sub">気になるところで話が変わる、あの感覚。</p>
+  <div class="meter-wrap reveal" id="meterWrap">
+    <div class="row"><span>第9話「まさかの正体」</span><span>76% 視聴済み</span></div>
+    <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+    <div class="row"><span>残り 1話で衝撃の展開</span><span>🔥 現在3,412人が視聴中</span></div>
+    <p class="caption"><strong>コイン12枚</strong>で次の話が解放されます。1コイン ≒ 12円。</p>
+  </div>
+</section>
+
+<section id="plans">
+  <div class="eyebrow">PRICING</div>
+  <h2 class="sec-title">見たい分だけ、好きなだけ</h2>
+  <p class="sec-sub">単話購入も、見放題も選べる</p>
+  <div class="plans">
+    <div class="plan reveal">
+      <div><div class="name">コイン100枚</div><div class="desc">気になる作品をつまみ見したい方に</div></div>
+      <div class="price">¥1,200</div>
+    </div>
+    <div class="plan reveal">
+      <div><div class="name">コイン550枚<span style="color:var(--gold)">+50</span></div><div class="desc">2〜3作品をまとめて見るなら</div></div>
+      <div class="price">¥5,500</div>
+    </div>
+    <div class="plan featured reveal">
+      <div><span class="badge">人気No.1</span><div class="name">月額見放題パス</div><div class="desc">全作品・新作先行配信つき</div></div>
+      <div class="price">¥1,980<small>/月・いつでも解約可</small></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">VOICE</div>
+  <h2 class="sec-title">やめられない、と話題です</h2>
+  <div class="comments">
+    <div class="comment reveal"><div class="who">みかん🍊</div>え!?この展開はずるい…続きが気になりすぎて仕事中に見ちゃった</div>
+    <div class="comment r reveal"><div class="who">ゆず</div>3話で完全に沼です。1分なのに情報量えぐい</div>
+    <div class="comment reveal"><div class="who">はる</div>寝る前に1話だけのつもりが、気づいたら10話見てた…</div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">FAQ</div>
+  <h2 class="sec-title">よくある質問</h2>
+  <div class="faq">
+    <details class="faq-item">
+      <summary>アプリのインストールは必要ですか？</summary>
+      <p>不要です。ブラウザからそのまま視聴できます。iPhone・Androidどちらもご利用いただけます。</p>
+    </details>
+    <details class="faq-item">
+      <summary>コインの有効期限はありますか？</summary>
+      <p>購入したコインは無期限でご利用いただけます。見放題パスは月ごとの自動更新で、いつでも解約可能です。</p>
+    </details>
+    <details class="faq-item">
+      <summary>1話あたりどのくらいの長さですか？</summary>
+      <p>1話あたり約1〜2分です。通勤・休憩などのスキマ時間でも1話ずつ楽しめます。</p>
+    </details>
+    <details class="faq-item">
+      <summary>新作の配信頻度は？</summary>
+      <p>毎週新作を追加しています。見放題パスの方には配信前に先行公開されます。</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="logo">ヨル<span>ドラ</span></div>
+  <p>本サービスはフィクションです。実在の人物・団体とは関係ありません。<br>© 2026 ヨルドラ. All rights reserved.</p>
+</footer>
+
+<script>
+  // scroll reveal
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('show'); } });
+  },{threshold:0.15});
+  document.querySelectorAll('.reveal, .series').forEach(el=>io.observe(el));
+
+  // cliffhanger meter fill on view
+  const meterFill = document.getElementById('meterFill');
+  const meterIo = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ meterFill.style.width = '76%'; meterIo.disconnect(); }
+    });
+  },{threshold:0.4});
+  meterIo.observe(document.getElementById('meterWrap'));
+</script>
+
+</body>
+</html>
