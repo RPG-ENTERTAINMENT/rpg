@@ -203,6 +203,8 @@ body.staff .admin-only{display:none!important}
 .tapbar:active{background:#F3EDF9}
 .tapmark{font-size:9.5px;color:var(--berry);border:1px solid #F3C3D3;background:#FDE9F0;
   border-radius:999px;padding:1px 7px;margin-left:5px;vertical-align:1px;white-space:nowrap}
+.stub .no.tdone{background:var(--berry)!important;color:#fff}
+.stub .no{cursor:pointer}
 .viewer{position:fixed;inset:0;background:rgba(20,10,30,.95);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
 .viewer.on{display:flex}.viewer img{max-width:100%;max-height:88vh;border-radius:8px}
 .empty{text-align:center;color:var(--mute);font-size:13px;padding:26px 10px}
@@ -265,7 +267,7 @@ body.staff .admin-only{display:none!important}
   <section class="view on" id="v-rec">
     <div id="siteHead"></div>
     <div class="search">
-      <input type="text" id="q" placeholder="名前・タレント・注文IDで検索" autocomplete="off">
+      <input type="text" id="q" placeholder="名前・カナ・タレント・注文IDで検索" autocomplete="off">
     </div>
     <div id="siteList"></div>
     <div class="filter" id="evChips" style="display:none"></div>
@@ -304,6 +306,8 @@ body.staff .admin-only{display:none!important}
       <select id="f-ev"></select>
       <label for="f-name">お名前</label>
       <input type="text" id="f-name" placeholder="くしま ともひろ">
+      <label for="f-kana">フリガナ（カタカナ検索用・任意）</label>
+      <input type="text" id="f-kana" placeholder="クシマ トモヒロ">
       <label for="f-sns">SNSのお名前</label>
       <input type="text" id="f-sns" placeholder="ざっきー">
       <label for="f-talent">指名タレント</label>
@@ -405,6 +409,13 @@ body.staff .admin-only{display:none!important}
     </div>
     <div class="card" id="ghCard"></div>
     <div class="card">
+      <h2>AI読み取り（公開版で使う場合）</h2>
+      <label for="ai-key">Anthropic APIキー</label>
+      <input type="password" id="ai-key" placeholder="sk-ant-…" autocomplete="off">
+      <button class="wide ghost" onclick="aiKeySave()">キーを保存</button>
+      <p class="hint">Claudeアプリ内で開いている場合は不要です。GitHubなどのURL版で「請求書を読み取る」等のAI機能を使うときだけ、console.anthropic.com で発行したキーを入れてください（この端末にのみ保存・従量課金）。</p>
+    </div>
+    <div class="card">
       <h2>ログイン</h2>
       <div class="row">
         <div><label for="ac-admin">責任者のパスコード</label><input type="text" id="ac-admin" inputmode="numeric"></div>
@@ -460,6 +471,8 @@ body.staff .admin-only{display:none!important}
 <input type="file" id="siteFile" accept="image/*" style="display:none">
 <input type="file" id="evFile" accept="image/*" style="display:none">
 <input type="file" id="tipFile" accept="image/*" style="display:none">
+<input type="file" id="gCsvFile" accept=".csv,text/csv" style="display:none">
+<input type="date" id="evDateInput" style="position:fixed;left:-9999px;top:0;opacity:0">
 
 <div class="invwrap" id="invwrap"><div class="invbar">
   <button onclick="closeInv()">閉じる</button>
@@ -562,12 +575,12 @@ const tRank=t=>{const v=String(t||'');
   return 2;};
 const tLabel=t=>['VIP','S','通常'][tRank(t)];
 function renderList(){
-  const q=$('#q').value.trim().toLowerCase();
+  const q=qNorm($('#q').value.trim());
   let a=curPeople();
   if(filter==='yet')a=a.filter(p=>!p.in);
   if(filter==='done')a=a.filter(p=>p.in);
   if(filter==='meal')a=a.filter(p=>p.meal);
-  if(q)a=a.filter(p=>(p.name+(p.sns||'')+p.talent+p.order+p.tel+p.mail).toLowerCase().includes(q));
+  if(q)a=a.filter(p=>qNorm(p.name+(p.kana||'')+(p.sns||'')+p.talent+p.order+(p.tel||'')+(p.mail||'')).includes(q));
   a.sort((x,y)=>(x.in-y.in)||(tRank(x.ticket)-tRank(y.ticket))||(x.no-y.no));
   $('#list').innerHTML = a.length ? a.map(card).join('') :
     `<div class="empty">${curPeople().length? '条件に合う人がいません。' : (evFilter&&((DB.manual||[]).some(m=>m.ev===evFilter)||(DB.goods||[]).some(g=>g.ev===evFilter))?'この現場は個別の来場者登録がありません。下に購入・売上の記録があります。':'まだ来場者がいません。<br>「追加」から納品書の内容を入れてください。')}</div>`;
@@ -659,7 +672,7 @@ window.editP=id=>{
   if(!needAdmin())return;
   const p=DB.people.find(x=>x.id===id);if(!p)return;
   editId=id;closeSheet();go('add');
-  const v={'f-name':p.name,'f-sns':p.sns,'f-talent':p.talent,'f-ticket':p.ticket,'f-amount':p.amount,'f-drink':p.drink,
+  const v={'f-name':p.name,'f-kana':p.kana||'','f-sns':p.sns,'f-talent':p.talent,'f-ticket':p.ticket,'f-amount':p.amount,'f-drink':p.drink,
     'f-pay':p.pay,'f-order':p.order,'f-date':p.date,'f-tel':p.tel,'f-mail':p.mail,'f-note':p.note};
   for(const k in v)$('#'+k).value=v[k]??'';
   $('#f-meal').checked=!!p.meal;
@@ -667,7 +680,7 @@ window.editP=id=>{
   window.scrollTo(0,0);
 };
 function clearForm(){
-  ['f-name','f-sns','f-talent','f-amount','f-drink','f-pay','f-order','f-tel','f-mail','f-note','f-date','paste'].forEach(i=>$('#'+i).value='');
+  ['f-name','f-kana','f-sns','f-talent','f-amount','f-drink','f-pay','f-order','f-tel','f-mail','f-note','f-date','paste'].forEach(i=>$('#'+i).value='');
   $('#f-ticket').value='一般チケット';$('#f-meal').checked=false;
   editId=null;$('#btnSave').textContent='リストに追加';$('#btnCancel').style.display='none';
 }
@@ -683,7 +696,7 @@ $('#btnSave').onclick=async()=>{
     const dup=DB.people.find(p=>p.order===oid&&p.id!==editId)||(DB.goods||[]).find(g=>g.order===oid);
     if(dup){toast(`登録済みです（${dup.name} 様）`);return}
   }
-  const d={name,sns:$('#f-sns').value.trim(),talent:$('#f-talent').value.trim(),ticket:$('#f-ticket').value.trim(),
+  const d={name,kana:$('#f-kana').value.trim(),sns:$('#f-sns').value.trim(),talent:$('#f-talent').value.trim(),ticket:$('#f-ticket').value.trim(),
     meal:$('#f-meal').checked,drink:$('#f-drink').value.trim(),amount:Number($('#f-amount').value)||0,
     pay:$('#f-pay').value.trim(),order:$('#f-order').value.trim(),date:$('#f-date').value,
     tel:$('#f-tel').value.trim(),mail:$('#f-mail').value.trim(),note:$('#f-note').value.trim()};
@@ -791,15 +804,24 @@ function renderGoods(){
   $('#goodsBody').innerHTML=`
     <div class="grid">
       <div class="kpi hi"><div class="k">GOODS SALES</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
-      <div class="kpi"><div class="k">ORDERS</div><div class="v">${a.length}</div></div>
+      <div class="kpi" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div><div class="k">ORDERS</div><div class="v">${a.length}</div></div>
+        <button class="admin-only" onclick="gCsvPick()"
+          style="border:1px solid var(--line);background:#F6F2F9;border-radius:10px;padding:9px 10px;
+          font-size:11px;font-weight:700;color:var(--grape);line-height:1.3">BASE<br>CSV読込</button>
+      </div>
     </div>
     <div class="card" style="padding:10px 12px">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
       <div class="bar"><span>未発送</span><b style="font-family:var(--mono)">${a.filter(g=>!g.sent).length}件</b></div>
+      <div class="bar"><span>タレント反映済み <span style="color:var(--berry)">■</span></span>
+        <b style="font-family:var(--mono)">${a.filter(g=>g.tdone).length} / ${a.length}件</b></div>
+      <p class="hint" style="margin:6px 0 0">左の番号をタップすると赤くなり、「タレントに反映済み」の印になります。</p>
     </div>
     ${a.length?a.map(g=>`
       <div class="stub ${g.sent?'done':''}">
-        <div class="no">${g.no}</div><div class="perf"></div>
+        <div class="no ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
+          role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">${g.no}</div><div class="perf"></div>
         <div class="body">
           <div class="txt" onclick="gDetail('${g.id}')">
             <div class="nm">${esc(g.name)}</div>
@@ -1046,7 +1068,21 @@ function talStats(){
   return Object.values(m).sort((a,b)=>((b.sales+b.goods+(b.tip||0))-(a.sales+a.goods+(a.tip||0))));
 }
 function talProf(name){
-  DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];DB.bills=DB.bills||[];DB.payees=DB.payees||[];
+  DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
+  /* 物販シートの商品ラインナップに更新（既存の売上記録には影響しない） */
+  {
+    DB.products=DB.products||[];
+    const oldIds={'p-cheki':1,'p-2shot':1,'p-toreca':1};
+    const hasSales=id=>false; /* 売上はitem文字列で持つため商品削除は安全 */
+    DB.products=DB.products.filter(p=>!oldIds[p.id]);
+    const cur=new Set(DB.products.map(p=>p.name));
+    PROD_DEF.forEach(p=>{
+      const ex=DB.products.find(x=>x.id===p.id||x.name===p.name);
+      if(ex){if(!ex.userEdited)ex.price=p.price;ex.name=p.name}
+      else DB.products.push({...p});
+    });
+  }
+DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   if(!DB.talents[name])DB.talents[name]={addr:'',tel:'',bank:'',invno:'',rate:30,tax:false};
   const p=DB.talents[name];['bkNo','brNo','acNo','acName','bkName','brName'].forEach(k=>{if(p[k]===undefined)p[k]=''});if(!p.acType)p.acType='1';if(p.wht===undefined)p.wht=false;if(p.realName===undefined)p.realName='';
   return DB.talents[name];
@@ -1712,14 +1748,9 @@ const OCR_PROMPT=`この画像は日本語の請求書または領収書です�
 読み取れない項目は空文字（amountは0）にしてください。振込先の銀行名は payee に入れないでください。`;
 async function oOcr(dataUrl){
   const b64=String(dataUrl).split(',')[1];
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:[
+  const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:[
       {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-      {type:'text',text:OCR_PROMPT}]}]})
-  });
-  if(!res.ok)throw new Error('読み取りに失敗しました');
-  const data=await res.json();
+      {type:'text',text:OCR_PROMPT}]}]});
   const txt=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'').trim();
   const m=txt.match(/\{[\s\S]*\}/);
   if(!m)throw new Error('内容を読み取れませんでした');
@@ -1788,13 +1819,9 @@ const siteNorm=n=>{const t=String(n||'').replace(/[\s　]/g,'');return SITE_NM[t
 window.sitePick=()=>$('#siteFile').click();
 async function siteOcr(dataUrl){
   const b64=String(dataUrl).split(',')[1];
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:[
+  const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:[
       {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-      {type:'text',text:SITE_PROMPT}]}]})});
-  if(!res.ok)throw new Error('読み取りに失敗しました');
-  const data=await res.json();
+      {type:'text',text:SITE_PROMPT}]}]});
   const txt=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'').trim();
   const m=txt.match(/\{[\s\S]*\}/);if(!m)throw new Error('内容を読み取れませんでした');
   const r=JSON.parse(m[0]);
@@ -1900,8 +1927,8 @@ function renderSiteCards(){
     const st=evStats(e.id), on=evFilter===e.id;
     const d=(e.date||'').slice(5).replace('-','/');
     return `<div class="sc ${on?'on':''}" onclick="setEvFilter('${on?'':e.id}')">
-      <div class="d">${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
-      <div class="b"><div class="t">${e.img?'<span onclick="event.stopPropagation();evViewImg(\''+e.id+'\')" style="font-size:13px">📷 </span>':''}${esc(e.title)}</div>
+      <div class="d" onclick="event.stopPropagation();evDatePick('${e.id}')" role="button" aria-label="日程を変更">${d?d:'日付'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||'＋'}</span></div>
+      <div class="b"><div class="t"><span onclick="event.stopPropagation();evEdit('${e.id}')" style="text-decoration:underline;text-decoration-color:#D9CCE8;text-underline-offset:3px">${e.img?'<span onclick="event.stopPropagation();evViewImg(\''+e.id+'\')" style="font-size:13px">📷 </span>':''}${esc(e.title)}</span></div>
         <div class="s">${st.n}名${st.inn?` / 受付${st.inn}`:''}${e.venue?' / '+esc(e.venue):''}</div></div>
       <div style="text-align:right">
         <div class="a">${yen(st.amt)}</div>
@@ -2006,12 +2033,20 @@ window.evDelete=async id=>{
 
 /* ===== 当日グッズ販売（現場でのその場売り） ===== */
 const PROD_DEF=[
-  {id:'p-cheki',name:'チェキ',price:1000},
-  {id:'p-cheki-sign',name:'サイン入りチェキ',price:1500},
-  {id:'p-2shot',name:'2ショットチェキ',price:2000},
-  {id:'p-toreca',name:'トレカ',price:500},
+  {id:'p-cheki-nosign',name:'チェキサイン無し',price:1000},
+  {id:'p-cheki-sign',name:'チェキサイン有り',price:2000},
+  {id:'p-cheki-hw',name:'宿題チェキ',price:3000},
+  {id:'p-cheki-big',name:'デカチェキ',price:3000},
+  {id:'p-penlight',name:'ペンライト',price:2000},
+  {id:'p-penlight-sign',name:'サイン付きペンライト',price:4000},
+  {id:'p-badge',name:'缶バッジ',price:500},
+  {id:'p-rancheki',name:'ランチェキ',price:1000},
   {id:'p-tshirt',name:'Tシャツ',price:3500},
-  {id:'p-penlight',name:'ペンライト',price:3000}
+  {id:'p-towel',name:'タオル',price:2000},
+  {id:'p-towel-sign',name:'タオルサインあり',price:3000},
+  {id:'p-chekibook',name:'サイン付きチェキ帳',price:1500},
+  {id:'p-toreca-solo',name:'個人トレカ',price:500},
+  {id:'p-toreca-all',name:'全体トレカ',price:700}
 ];
 let cart={}, cartTal='', cartCus='', posEdit=false, posNew=false;
 const products=()=>{if(!DB.products||!DB.products.length)DB.products=PROD_DEF.map(p=>({...p}));return DB.products};
@@ -2025,7 +2060,7 @@ const talentNames=()=>{
   Object.keys(DB.talents||{}).forEach(t=>s.add(t));
   return [...s].sort();
 };
-window.openPos=()=>{cart={};cartCus='';posEdit=false;posNew=false;renderPos();$('#sheet').classList.add('on')};
+window.openPos=()=>{cart={};cartCus='';posEdit=false;posNew=false;renderGrid();$('#sheet').classList.add('on')};
 window.posQty=(id,d)=>{cart[id]=Math.max(0,(cart[id]||0)+d);if(!cart[id])delete cart[id];renderPos()};
 window.posSet=(f,v)=>{if(f==='tal')cartTal=v;else cartCus=v;renderPos()};
 window.posNewToggle=()=>{posNew=!posNew;renderPos()};
@@ -2045,13 +2080,14 @@ window.posDelProd=async id=>{
   DB.products=products().filter(p=>p.id!==id);delete cart[id];await save();renderPos();
 };
 window.posPrice=async(id,v)=>{
-  const p=products().find(x=>x.id===id);if(!p)return;p.price=Number(v)||0;await save();renderPos();
+  const p=products().find(x=>x.id===id);if(!p)return;p.price=Number(v)||0;p.userEdited=true;await save();if(gridProdOpen)renderGrid();else renderPos();
 };
 function renderPos(){
   const ev=DB.events.find(e=>e.id===posEv())||{title:'—'};
   const today=(DB.goods||[]).filter(g=>g.ev===posEv()&&g.option==='当日物販');
   $('#sheetIn').innerHTML=`
     <h2>当日グッズ販売</h2>
+    <button class="wide" style="margin:4px 0 6px;background:var(--grape)" onclick="renderGrid()">📋 表で入力（物販売上シート）</button>
     <p class="hint" style="margin:0 0 10px">${esc(ev.title)}</p>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -2336,12 +2372,8 @@ window.evReadText=async()=>{
   evTextRead=true;renderEvForm();
   let rows=null;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,
-        messages:[{role:'user',content:TXT_PROMPT+txt}]})});
-    if(!res.ok)throw new Error();
-    const data=await res.json();
+    const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:1500,
+        messages:[{role:'user',content:TXT_PROMPT+txt}]});
     const t=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'');
     const m=t.match(/\{[\s\S]*\}/);
     if(m)rows=(JSON.parse(m[0]).rows||[]);
@@ -2379,13 +2411,9 @@ const TIP_PROMPT=`この画像はライブ配信アプリの投げ銭ランキ�
 window.tipPick=id=>{tipImgTarget=id||null;$('#tipFile').click()};
 async function tipOcr(dataUrl){
   const b64=String(dataUrl).split(',')[1];
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:[
+  const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:[
       {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-      {type:'text',text:TIP_PROMPT}]}]})});
-  if(!res.ok)throw new Error('読み取りに失敗しました');
-  const data=await res.json();
+      {type:'text',text:TIP_PROMPT}]}]});
   const t=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'');
   const m=t.match(/\{[\s\S]*\}/);if(!m)throw new Error('内容を読み取れませんでした');
   const r=JSON.parse(m[0]);
@@ -2846,6 +2874,297 @@ function renderGhCard(){
       <p class="hint">データ保存用リポジトリの Contents（Read and write）権限だけを付けたトークンを使ってください。トークンはこの端末にのみ保存されます。</p>`}`;
 }
 
+/* 検索用の正規化: ひらがな→カタカナ、全角英数→半角、半角カナ→全角、スペース除去、小文字化 */
+function qNorm(str){
+  let out='';
+  for(const ch of String(str||'')){
+    let c=ch, n=c.charCodeAt(0);
+    if(c>='ぁ'&&c<='ゖ')c=String.fromCharCode(n+0x60);          /* ひらがな→カタカナ */
+    else if(n>=0xFF01&&n<=0xFF5E)c=String.fromCharCode(n-0xFEE0); /* 全角英数→半角 */
+    out+=c;
+  }
+  /* 半角カナ→全角カナ（濁点合成込み） */
+  out=out.replace(/[\uFF61-\uFF9F][\uFF9E\uFF9F]?/g,m=>{
+    const base='ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
+    const full='ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン';
+    const i=base.indexOf(m[0]);
+    let c=i>=0?full[i]:m[0];
+    if(m[1]==='\uFF9E')c=String.fromCharCode(c.charCodeAt(0)+1);
+    if(m[1]==='\uFF9F')c=String.fromCharCode(c.charCodeAt(0)+2);
+    return c;
+  });
+  return out.toLowerCase().replace(/[\s　・･]/g,'');
+}
+
+window.gTalDone=async id=>{
+  const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
+  g.tdone=!g.tdone;
+  await save();renderGoods();
+  toast(g.tdone?'タレントに反映済みにしました':'反映済みを解除しました');
+};
+
+/* ===== AI読み取りの共通呼び出し =====
+   Claudeアプリ内: そのまま動く（キー不要）
+   GitHub公開版:   設定でAPIキーを入れると動く */
+const AIKEY={get k(){try{return localStorage.getItem('ai-key')||''}catch(e){return ''}},
+  set k(v){try{v?localStorage.setItem('ai-key',v):localStorage.removeItem('ai-key')}catch(e){}}};
+async function aiCall(body){
+  const headers={'Content-Type':'application/json'};
+  if(AIKEY.k){
+    headers['x-api-key']=AIKEY.k;
+    headers['anthropic-version']='2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access']='true';
+  }
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers,body:JSON.stringify(body)});
+  if(!res.ok)throw new Error('AI読み取りに失敗しました（'+res.status+'）');
+  return res.json();
+}
+window.aiKeySave=()=>{
+  if(!needAdmin())return;
+  AIKEY.k=$('#ai-key').value.trim();
+  toast(AIKEY.k?'APIキーを保存しました':'APIキーを削除しました');
+};
+
+/* ===== 物販売上シート（表形式入力） ===== */
+let gridCnt={}, gridMinus=false, gridTals=null, gridProdOpen=false;
+window.gridProdToggle=()=>{gridProdOpen=!gridProdOpen;renderGrid()};
+window.gridProdAdd=async()=>{
+  const n=$('#gp-name').value.trim(), pr=Number($('#gp-price').value)||0;
+  if(!n){toast('グッズの名前を入れてください');return}
+  if(products().some(p=>p.name===n)){toast('同じ名前のグッズがあります');return}
+  products().push({id:uid(),name:n,price:pr,userEdited:true});
+  await save();renderGrid();toast(`${n} を表に追加しました`);
+};
+window.gridProdDel=async id=>{
+  if(!needAdmin())return;
+  const p=products().find(x=>x.id===id);if(!p)return;
+  if(!await ask(`「${p.name}」を商品リストから削除しますか？\n（過去の売上記録は残ります）`))return;
+  DB.products=products().filter(x=>x.id!==id);
+  Object.values(gridCnt).forEach(m=>delete m[id]);
+  await save();renderGrid();toast('削除しました');
+};
+const FF_TALS=['小山ありす','綾乃舞衣','三毛野みい','星乃ひかり','中島沙也加','瑚桃','心花ひま','白音みなみ'];
+const talShort=t=>({'小山ありす':'ありす','綾乃舞衣':'まい','三毛野みい':'みい','星乃ひかり':'ひかり',
+  '中島沙也加':'さやか','瑚桃':'こもも','心花ひま':'ひま','白音みなみ':'みなみ','うさのみゆ':'みゆ',
+  'へち':'へち','矢澤ないん':'ないん'}[t]||t.slice(-3));
+function gridTalents(){
+  if(gridTals)return gridTals;
+  const set=new Set(FF_TALS);
+  talentNames().forEach(t=>{if(t&&t!=='未指定'&&!/新井/.test(t))set.add(t)});
+  gridTals=[...set];
+  return gridTals;
+}
+const gCell=(t,p)=>((gridCnt[t]||{})[p]||0);
+window.gridTap=(t,pid)=>{
+  gridCnt[t]=gridCnt[t]||{};
+  gridCnt[t][pid]=Math.max(0,(gridCnt[t][pid]||0)+(gridMinus?-1:1));
+  if(!gridCnt[t][pid])delete gridCnt[t][pid];
+  renderGrid();
+};
+window.gridMode=()=>{gridMinus=!gridMinus;renderGrid()};
+window.gridClear=async()=>{
+  if(!await ask('表の入力をすべてクリアしますか？'))return;
+  gridCnt={};renderGrid();
+};
+const gridTalSum=t=>products().reduce((a,p)=>a+gCell(t,p.id)*p.price,0);
+const gridTotal=()=>gridTalents().reduce((a,t)=>a+gridTalSum(t),0);
+function renderGrid(){
+  const box=$('#sheetIn');if(!box)return;
+  const tals=gridTalents();
+  const ev=DB.events.find(e=>e.id===posEv())||{title:'—'};
+  box.innerHTML=`
+    <h2 style="margin-bottom:2px">物販売上シート</h2>
+    <p class="hint" style="margin:0 0 8px">${esc(ev.title)}／マスをタップで＋1${gridMinus?'（−1モード中）':''}</p>
+    <div class="bar" style="border:0;background:var(--grape);border-radius:11px;padding:10px 13px;margin-bottom:8px">
+      <span style="color:#C9B6DE;font-weight:700">合計</span>
+      <b style="font-family:var(--mono);font-size:22px;color:var(--mango)">${yen(gridTotal())}</b></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <button onclick="gridMode()" style="flex:1;border:1px solid ${gridMinus?'var(--berry)':'var(--line)'};
+        background:${gridMinus?'#FDE9F0':'#fff'};color:${gridMinus?'var(--berry)':'var(--ink)'};
+        border-radius:9px;padding:9px;font-size:13px;font-weight:700">−1モード ${gridMinus?'ON':'OFF'}</button>
+      <button onclick="gridClear()" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;font-size:13px">クリア</button>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:11px;background:#fff;overflow:hidden">
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:11px">
+        <tr>
+          <th style="background:var(--grape);color:#fff;padding:7px 5px;text-align:left;width:24%;font-family:var(--mincho);font-size:10.5px">グッズ</th>
+          ${tals.map(t=>`<th style="background:#F0EAF7;padding:6px 1px;font-size:10px;
+            font-family:var(--mincho);border-left:1px solid var(--line);overflow:hidden">${esc(talShort(t))}</th>`).join('')}
+        </tr>
+        ${products().map(p=>`<tr>
+          <td style="background:#FCFAFE;padding:6px 5px;border-top:1px solid var(--line);line-height:1.2">
+            <b style="font-size:10px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</b>
+            <span style="color:var(--mute);font-size:9px">${(p.price/1000).toFixed(p.price%1000?1:0)}千</span></td>
+          ${tals.map(t=>{const n=gCell(t,p.id);
+            return `<td onclick="gridTap('${esc(t).replace(/'/g,"\\'")}','${p.id}')"
+              style="border-top:1px solid var(--line);border-left:1px solid var(--line);text-align:center;
+              padding:9px 0;font-family:var(--mono);font-size:14px;cursor:pointer;
+              ${n?'background:#FDE9F0;color:var(--berry);font-weight:700':'color:#DDD3E8'}">${n||'·'}</td>`}).join('')}
+        </tr>`).join('')}
+        <tr>
+          <td style="background:var(--grape);color:#fff;padding:7px 5px;font-weight:700;font-size:10px">売上計</td>
+          ${tals.map(t=>{const v=gridTalSum(t);
+            return `<td style="border-left:1px solid var(--line);text-align:center;padding:7px 0;
+              font-family:var(--mono);font-size:9.5px;background:#F6F2F9;${v?'color:var(--berry);font-weight:700':''}">${v?(v/1000)+'千':'0'}</td>`}).join('')}
+        </tr>
+      </table>
+    </div>
+    <button class="wide pink" style="font-size:16px;padding:16px" onclick="gridSale()">この表を売上に反映する</button>
+    <button class="wide ghost" onclick="gridProdToggle()">${gridProdOpen?'グッズの追加を閉じる':'＋ グッズを追加・編集'}</button>
+    ${gridProdOpen?`
+      <div class="card" style="margin-top:8px">
+        <div class="row" style="margin-top:0">
+          <div><label for="gp-name">グッズの名前</label><input type="text" id="gp-name" placeholder="アクリルスタンド"></div>
+          <div><label for="gp-price">単価</label><input type="number" id="gp-price" inputmode="numeric" placeholder="2500"></div>
+        </div>
+        <button class="wide" onclick="gridProdAdd()">表に追加する</button>
+        <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px">
+          ${products().map(p=>`<div class="bar">
+            <span style="flex:1;min-width:0"><b style="font-size:13px">${esc(p.name)}</b>
+              <input type="number" value="${p.price}" onchange="posPrice('${p.id}',this.value)"
+                style="width:90px;padding:5px;margin-left:8px;font-size:13px"></span>
+            <button onclick="gridProdDel('${p.id}')"
+              style="border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 9px;font-size:11px;color:var(--berry)">削除</button>
+          </div>`).join('')}
+        </div>
+        <p class="hint">単価の変更・削除は責任者のみ。追加は誰でもできます。</p>
+      </div>`:''}
+    <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
+}
+window.gridSale=async()=>{
+  const rows=gridTalents().map(t=>({t,sum:gridTalSum(t)})).filter(x=>x.sum>0);
+  if(!rows.length){toast('入力がありません');return}
+  const ev=posEv();if(!ev){toast('現場を選んでください');return}
+  DB.goods=DB.goods||[];
+  rows.forEach(({t})=>{
+    const item=products().filter(p=>gCell(t,p.id)).map(p=>`${p.name}×${gCell(t,p.id)}`).join('／');
+    DB.goods.push({id:uid(),ev,no:(DB.goods.filter(g=>g.ev===ev).length)+1,
+      name:'当日物販（シート）',sns:'',talent:t,item,option:'当日物販',
+      amount:gridTalSum(t),pay:'現金',order:'',date:new Date().toISOString().slice(0,10),
+      addr:'',tel:'',mail:'',note:'',sent:true});
+  });
+  const total=gridTotal();
+  gridCnt={};
+  await save();renderAll();renderPos();
+  toast(`${rows.length}名分 ${yen(total)} を売上に反映しました`);
+};
+
+/* ===== グッズ: BASEの注文CSVを読み込み ===== */
+function parseCsvText(text){
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}
+    else if(c==='"')q=true;
+    else if(c===','){row.push(cell);cell=''}
+    else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell=''}
+    else if(c!=='\r')cell+=c;
+  }
+  if(cell||row.length){row.push(cell);rows.push(row)}
+  return rows.filter(r=>r.length>1);
+}
+const TICKET_RE=/定期|会場|ライブ|live|チケット|ファンミ|クラウドファンディング|レンタル|オフ会|撮影会|ファンクラブ/i;
+window.gCsvPick=()=>{if(!needAdmin())return;$('#gCsvFile').click()};
+async function gCsvImport(file){
+  const buf=await file.arrayBuffer();
+  let txt='';try{txt=new TextDecoder('shift_jis').decode(buf)}catch(e){}
+  if(!txt||txt.indexOf('注文ID')<0)txt=new TextDecoder('utf-8').decode(buf);
+  const t=parseCsvText(txt);
+  if(!t.length||t[0].indexOf('注文ID')<0){toast('BASEの注文CSVではないようです');return}
+  const H=t[0],ix=n=>H.indexOf(n),g=(r,n)=>{const i=ix(n);return i<0?'':(r[i]||'')};
+  const orders={};
+  t.slice(1).forEach(r=>{
+    const id=g(r,'注文ID');if(!id)return;
+    const o=orders[id]||(orders[id]={id,d:g(r,'注文日時').slice(0,10),
+      n:(g(r,'氏(請求先)')+' '+g(r,'名(請求先)')).trim(),items:[],opts:{},opt:0,ship:0,
+      pay:g(r,'支払い方法'),tel:g(r,'電話番号(請求先)'),mail:g(r,'メールアドレス(請求先)'),
+      addr:g(r,'都道府県(配送先)')+g(r,'住所(配送先)')+g(r,'住所2(配送先)')});
+    const amt=Number(g(r,'合計金額')||0), nm=g(r,'商品名');
+    o.ship=Math.max(o.ship,Number(g(r,'送料')||0));
+    if(nm.startsWith('商品オプション')){
+      const k=nm.replace(/^商品オプション/,'').replace(/[「」]/g,'').trim(),v=g(r,'バリエーション');
+      if(v)o.opts[k]=v;o.opt+=amt;
+    }else if(/クーポン/.test(nm))o.opt+=amt;
+    else o.items.push({n:nm,t:amt});
+  });
+  const guess=txt2=>{
+    const x=String(txt2||'');
+    if(/さやか|中島沙也加/.test(x))return '中島沙也加';
+    if(/みなみ|白音/.test(x))return '白音みなみ';
+    if(/ひかり|星乃/.test(x))return '星乃ひかり';
+    if(/ひま|心花/.test(x))return '心花ひま';
+    if(/三毛野|みい/.test(x))return '三毛野みい';
+    if(/ありす|小山/.test(x))return '小山ありす';
+    if(/舞衣|綾乃/.test(x))return '綾乃舞衣';
+    if(/こもも|瑚桃/.test(x))return '瑚桃';
+    if(/みゆ|miyu/i.test(x))return 'うさのみゆ';
+    if(/へち/.test(x))return 'へち';
+    if(/ないん|矢澤/.test(x))return '矢澤ないん';
+    return '';
+  };
+  let add=0,skip=0,tk=0;
+  const known=new Set([...(DB.goods||[]).map(x=>x.order),...DB.people.map(x=>x.order)].filter(Boolean));
+  Object.values(orders).forEach(o=>{
+    const goodsItems=o.items.filter(i=>!TICKET_RE.test(i.n));
+    if(!goodsItems.length){tk++;return}
+    if(known.has(o.id)){skip++;return}
+    const total=goodsItems.reduce((a,b)=>a+b.t,0)+o.opt+o.ship;
+    const m=o.d.slice(0,7),mn=Number(m.slice(5))||0;
+    const title=`${mn}月定期FruitFruitファンミ＆ミニライブ`;
+    let ev=DB.events.find(e=>e.title===title);
+    if(!ev){ev={id:uid(),title,date:'',venue:'',month:m};DB.events.push(ev)}
+    const optTal=Object.entries(o.opts).find(([k])=>/タレント|推し|押し/.test(k));
+    const sns=Object.entries(o.opts).find(([k])=>/SNS/.test(k));
+    DB.goods=DB.goods||[];
+    DB.goods.push({id:uid(),ev:ev.id,no:(DB.goods.filter(x=>x.ev===ev.id).length)+1,
+      name:o.n,sns:sns?sns[1]:'',talent:guess((optTal?optTal[1]:'')+goodsItems.map(i=>i.n).join(' ')),
+      item:goodsItems.map(i=>i.n).join('／'),
+      option:Object.entries(o.opts).filter(([k])=>!/SNS|タレント|推し|押し/.test(k)).map(([k,v])=>`${k}: ${v}`).join('／'),
+      amount:total,pay:o.pay,order:o.id,date:o.d,addr:o.addr,tel:o.tel,mail:o.mail,note:'',sent:false});
+    add++;
+  });
+  await save();renderAll();
+  toast(`グッズ${add}件を追加しました（重複${skip}件・チケットのみ${tk}件はスキップ）`);
+}
+
+/* ---- 現場の編集（名前タップ） / 日程変更（日付タップ） ---- */
+window.evDatePick=id=>{
+  if(!needAdmin())return;
+  const ev=DB.events.find(e=>e.id===id);if(!ev)return;
+  const inp=$('#evDateInput');
+  inp.value=ev.date||'';
+  inp.dataset.ev=id;
+  try{inp.showPicker?inp.showPicker():inp.click()}catch(e){inp.click()}
+};
+window.evEdit=id=>{
+  if(!needAdmin()){setEvFilter(evFilter===id?'':id);return}
+  const ev=DB.events.find(e=>e.id===id);if(!ev)return;
+  $('#sheetIn').innerHTML=`<h2>現場を編集</h2>
+    <div class="card" style="margin-top:10px">
+      <label for="ee-title">現場の名前</label>
+      <input type="text" id="ee-title" value="${esc(ev.title)}">
+      <div class="row">
+        <div><label for="ee-date">開催日</label><input type="date" id="ee-date" value="${esc(ev.date||'')}"></div>
+        <div><label for="ee-venue">会場</label><input type="text" id="ee-venue" value="${esc(ev.venue||'')}"></div>
+      </div>
+      <label for="ee-month">集計する月</label>
+      <input type="month" id="ee-month" value="${esc(ev.month||evMonth(ev))}">
+      <button class="wide pink" onclick="evEditSave('${ev.id}')">保存する</button>
+      <button class="wide ghost" onclick="closeSheet()">閉じる</button>
+      <p class="hint">名前を変えても、ひもづく来場者・グッズ・売上はそのまま引き継がれます。</p>
+    </div>`;
+  $('#sheet').classList.add('on');
+};
+window.evEditSave=async id=>{
+  const ev=DB.events.find(e=>e.id===id);if(!ev)return;
+  const t=$('#ee-title').value.trim();
+  if(!t){toast('現場の名前を入れてください');return}
+  ev.title=t;ev.date=$('#ee-date').value||'';ev.venue=$('#ee-venue').value.trim();
+  const m=$('#ee-month').value;if(m){ev.month=m;DB.curM=m}
+  await save();renderAll();fillEvForm();closeSheet();toast('保存しました');
+};
+
 /* nav */
 function go(v){
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
@@ -2867,7 +3186,21 @@ $('#q').oninput=renderList;
 (async()=>{
   const d=await load();
   if(d&&d.events&&Array.isArray(d.people)){DB=d}
-  DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];DB.bills=DB.bills||[];DB.payees=DB.payees||[];
+  DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
+  /* 物販シートの商品ラインナップに更新（既存の売上記録には影響しない） */
+  {
+    DB.products=DB.products||[];
+    const oldIds={'p-cheki':1,'p-2shot':1,'p-toreca':1};
+    const hasSales=id=>false; /* 売上はitem文字列で持つため商品削除は安全 */
+    DB.products=DB.products.filter(p=>!oldIds[p.id]);
+    const cur=new Set(DB.products.map(p=>p.name));
+    PROD_DEF.forEach(p=>{
+      const ex=DB.products.find(x=>x.id===p.id||x.name===p.name);
+      if(ex){if(!ex.userEdited)ex.price=p.price;ex.name=p.name}
+      else DB.products.push({...p});
+    });
+  }
+DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   Object.values(DB.talents).forEach(t=>{if(Number(t.rate)===100)t.rate=30});
   (DB.goods||[]).forEach(g=>{delete g.ship}); /* 送料は管理しない */
   DB.tipRate=DB.tipRate||{};Object.keys(DB.tipRate).forEach(k=>{if(Number(DB.tipRate[k])===1)delete DB.tipRate[k]});
@@ -2914,8 +3247,19 @@ $('#q').oninput=renderList;
      if(seen[k]){const o=seen[k];o.pts=Math.max(o.pts||0,t.pts||0)}else{seen[k]=t;keep.push(t)}});
    DB.tips=keep;}
   await save();
-  bootAuth();renderGhCard();
+  bootAuth();renderGhCard();const ak=$('#ai-key');if(ak)ak.value=AIKEY.k;
   renderAll();fillEvForm();
+  $('#evDateInput').onchange=async e=>{
+    const id=e.target.dataset.ev, v=e.target.value;
+    const ev=DB.events.find(x=>x.id===id);if(!ev)return;
+    ev.date=v||'';
+    if(v){const m=v.slice(0,7);if(ev.month!==m&&await ask(`開催日を ${v} にしました。\n集計する月も ${m.slice(0,4)}年${Number(m.slice(5))}月 に変えますか？`)){ev.month=m;DB.curM=m}}
+    await save();renderAll();fillEvForm();toast('日程を変更しました');
+  };
+  $('#gCsvFile').onchange=async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    try{await gCsvImport(f)}catch(err){toast('読み込みに失敗しました')}
+  };
   $('#tipFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
     let img;try{img=await oResize(f)}catch(err){toast(err.message);return}
@@ -2936,7 +3280,7 @@ $('#q').oninput=renderList;
       }
     }catch(err){
       tipReading=false;renderTip();if(target)tipEdit(target);
-      toast('自動読み取りが使えませんでした。手入力してください');
+      toast(AIKEY.k?'読み取りに失敗しました。写真を撮り直すか手入力してください':'公開版でAI読み取りを使うには、設定でAPIキーを入れてください。今回は手入力をお願いします');
     }
     tipImgTarget=null;
   };
@@ -2946,13 +3290,9 @@ $('#q').oninput=renderList;
     evReading=true;renderEvForm();
     try{
       const b64=evDraftImg.split(',')[1];
-      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:[
+      const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-          {type:'text',text:EV_PROMPT}]}]})});
-      if(!res.ok)throw new Error();
-      const data=await res.json();
+          {type:'text',text:EV_PROMPT}]}]});
       const txt=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'');
       const m=txt.match(/\{[\s\S]*\}/);const r=m?JSON.parse(m[0]):{};
       evReading=false;renderEvForm();
@@ -2982,7 +3322,7 @@ $('#q').oninput=renderList;
     }catch(err){
       siteRead=false;
       siteDraft={name:'',date:new Date().toISOString().slice(0,10),rows:[{talent:'',guests:0,sales:0}]};
-      renderSite();toast('自動読み取りが使えませんでした。手入力してください');
+      renderSite();toast(AIKEY.k?'読み取りに失敗しました。写真を撮り直すか手入力してください':'公開版でAI読み取りを使うには、設定でAPIキーを入れてください。今回は手入力をお願いします');
     }
   };
   $('#outFile').onchange=async e=>{
@@ -2999,7 +3339,7 @@ $('#q').oninput=renderList;
       toast(r.amount?`読み取りました（${yen(r.amount)}）`:'読み取りました');
     }catch(err){
       outRead=false;renderOut();
-      toast('自動読み取りが使えませんでした。手入力してください');
+      toast(AIKEY.k?'読み取りに失敗しました。写真を撮り直すか手入力してください':'公開版でAI読み取りを使うには、設定でAPIキーを入れてください。今回は手入力をお願いします');
     }
   };
   if(n)toast(`${n}件を読み込みました`);
