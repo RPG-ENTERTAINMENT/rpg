@@ -877,7 +877,10 @@ window.gDetail=id=>{
 };
 window.gDel=async id=>{
   if(!await ask('削除します。よろしいですか？'))return;
-  DB.goods=(DB.goods||[]).filter(x=>x.id!==id);await save();closeSheet();renderGoods();renderTal();toast('削除しました');
+  const g=(DB.goods||[]).find(x=>x.id===id);
+  DB.goods=(DB.goods||[]).filter(x=>x.id!==id);
+  if(g&&g.gkey&&DB.grid){const [ev,t]=g.gkey.split('|');if(DB.grid[ev])delete DB.grid[ev][t]}
+  await save();closeSheet();renderAll();toast('削除しました');
 };
 window.gSave=async()=>{
   const name=$('#g-name').value.trim();if(!name){toast('お名前を入れてください');return}
@@ -2163,8 +2166,10 @@ window.posSale=async()=>{
   toast(`${yen(t)} を売上に反映しました`);
 };
 window.posDelSale=async id=>{
-  DB.goods=(DB.goods||[]).filter(g=>g.id!==id);
-  await save();renderAll();renderPos();toast('取り消しました');
+  const g=(DB.goods||[]).find(x=>x.id===id);
+  DB.goods=(DB.goods||[]).filter(x=>x.id!==id);
+  if(g&&g.gkey&&DB.grid){const [ev,t]=g.gkey.split('|');if(DB.grid[ev])delete DB.grid[ev][t]}
+  await save();renderAll();renderGrid();toast('取り消しました');
 };
 
 window.goTop=()=>{
@@ -2927,7 +2932,8 @@ window.aiKeySave=()=>{
 };
 
 /* ===== 物販売上シート（表形式入力） ===== */
-let gridCnt={}, gridMinus=false, gridTals=null, gridProdOpen=false;
+let gridMinus=false, gridTals=null, gridProdOpen=false;
+const gridStore=()=>{DB.grid=DB.grid||{};const ev=posEv();DB.grid[ev]=DB.grid[ev]||{};return DB.grid[ev]};
 window.gridProdToggle=()=>{gridProdOpen=!gridProdOpen;renderGrid()};
 window.gridProdAdd=async()=>{
   const n=$('#gp-name').value.trim(), pr=Number($('#gp-price').value)||0;
@@ -2941,7 +2947,7 @@ window.gridProdDel=async id=>{
   const p=products().find(x=>x.id===id);if(!p)return;
   if(!await ask(`「${p.name}」を商品リストから削除しますか？\n（過去の売上記録は残ります）`))return;
   DB.products=products().filter(x=>x.id!==id);
-  Object.values(gridCnt).forEach(m=>delete m[id]);
+  Object.values((DB.grid||{})[posEv()]||{}).forEach(m=>delete m[id]);
   await save();renderGrid();toast('削除しました');
 };
 const FF_TALS=['小山ありす','綾乃舞衣','三毛野みい','星乃ひかり','中島沙也加','瑚桃','心花ひま','白音みなみ'];
@@ -2955,17 +2961,46 @@ function gridTalents(){
   gridTals=[...set];
   return gridTals;
 }
-const gCell=(t,p)=>((gridCnt[t]||{})[p]||0);
-window.gridTap=(t,pid)=>{
-  gridCnt[t]=gridCnt[t]||{};
-  gridCnt[t][pid]=Math.max(0,(gridCnt[t][pid]||0)+(gridMinus?-1:1));
-  if(!gridCnt[t][pid])delete gridCnt[t][pid];
-  renderGrid();
+const gCell=(t,p)=>(((gridStore())[t]||{})[p]||0);
+window.gridTap=async(t,pid)=>{
+  const g=gridStore();
+  g[t]=g[t]||{};
+  const before=g[t][pid]||0;
+  g[t][pid]=Math.max(0,before+(gridMinus?-1:1));
+  if(g[t][pid]!==before)beep(gridMinus);
+  if(!g[t][pid])delete g[t][pid];
+  if(!Object.keys(g[t]).length)delete g[t];
+  syncGridSale(posEv(),t);
+  await save();
+  renderGrid();renderList();
 };
+/* 表の内容を、その現場のタレント別売上レコード(1件)として常に同期 */
+function syncGridSale(ev,t){
+  DB.goods=DB.goods||[];
+  const key=ev+'|'+t;
+  const g=(DB.grid&&DB.grid[ev]&&DB.grid[ev][t])||{};
+  const items=products().filter(p=>g[p.id]);
+  const amount=items.reduce((a,p)=>a+g[p.id]*p.price,0);
+  let rec=DB.goods.find(x=>x.gkey===key);
+  if(!items.length){
+    if(rec)DB.goods=DB.goods.filter(x=>x.gkey!==key);
+    return;
+  }
+  const item=items.map(p=>`${p.name}×${g[p.id]}`).join('／');
+  if(rec){rec.item=item;rec.amount=amount;rec.date=new Date().toISOString().slice(0,10)}
+  else DB.goods.push({id:uid(),gkey:key,ev,no:(DB.goods.filter(x=>x.ev===ev).length)+1,
+    name:'当日物販（シート）',sns:'',talent:t,item,option:'当日物販',
+    amount,pay:'現金',order:'',date:new Date().toISOString().slice(0,10),
+    addr:'',tel:'',mail:'',note:'',sent:true});
+}
 window.gridMode=()=>{gridMinus=!gridMinus;renderGrid()};
 window.gridClear=async()=>{
-  if(!await ask('表の入力をすべてクリアしますか？'))return;
-  gridCnt={};renderGrid();
+  if(!await ask('この現場のシート入力をすべてクリアしますか？\n（シートから記録した売上も取り消されます）'))return;
+  const ev=posEv();
+  const tals=Object.keys((DB.grid||{})[ev]||{});
+  if(DB.grid)delete DB.grid[ev];
+  tals.forEach(t=>syncGridSale(ev,t));
+  await save();renderGrid();renderAll();
 };
 const gridTalSum=t=>products().reduce((a,p)=>a+gCell(t,p.id)*p.price,0);
 const gridTotal=()=>gridTalents().reduce((a,t)=>a+gridTalSum(t),0);
@@ -3010,7 +3045,7 @@ function renderGrid(){
         </tr>
       </table>
     </div>
-    <button class="wide pink" style="font-size:16px;padding:16px" onclick="gridSale()">この表を売上に反映する</button>
+    <p class="hint" style="text-align:center;margin:10px 0 2px">タップした時点で自動保存・売上に記録されます。<br>画面を閉じても、この現場のシートはこのまま残ります。</p>
     <button class="wide ghost" onclick="gridProdToggle()">${gridProdOpen?'グッズの追加を閉じる':'＋ グッズを追加・編集'}</button>
     ${gridProdOpen?`
       <div class="card" style="margin-top:8px">
@@ -3032,23 +3067,7 @@ function renderGrid(){
       </div>`:''}
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
 }
-window.gridSale=async()=>{
-  const rows=gridTalents().map(t=>({t,sum:gridTalSum(t)})).filter(x=>x.sum>0);
-  if(!rows.length){toast('入力がありません');return}
-  const ev=posEv();if(!ev){toast('現場を選んでください');return}
-  DB.goods=DB.goods||[];
-  rows.forEach(({t})=>{
-    const item=products().filter(p=>gCell(t,p.id)).map(p=>`${p.name}×${gCell(t,p.id)}`).join('／');
-    DB.goods.push({id:uid(),ev,no:(DB.goods.filter(g=>g.ev===ev).length)+1,
-      name:'当日物販（シート）',sns:'',talent:t,item,option:'当日物販',
-      amount:gridTalSum(t),pay:'現金',order:'',date:new Date().toISOString().slice(0,10),
-      addr:'',tel:'',mail:'',note:'',sent:true});
-  });
-  const total=gridTotal();
-  gridCnt={};
-  await save();renderAll();renderPos();
-  toast(`${rows.length}名分 ${yen(total)} を売上に反映しました`);
-};
+
 
 /* ===== グッズ: BASEの注文CSVを読み込み ===== */
 function parseCsvText(text){
@@ -3164,6 +3183,27 @@ window.evEditSave=async id=>{
   const m=$('#ee-month').value;if(m){ev.month=m;DB.curM=m}
   await save();renderAll();fillEvForm();closeSheet();toast('保存しました');
 };
+
+/* ---- シートの効果音（Web Audio・ファイル不要） ---- */
+let sndCtx=null;
+function beep(minus){
+  try{
+    sndCtx=sndCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(sndCtx.state==='suspended')sndCtx.resume();
+    const t=sndCtx.currentTime;
+    const mk=(freq,at,dur,vol)=>{
+      const o=sndCtx.createOscillator(),g=sndCtx.createGain();
+      o.type='sine';o.frequency.setValueAtTime(freq,t+at);
+      g.gain.setValueAtTime(0,t+at);
+      g.gain.linearRampToValueAtTime(vol,t+at+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+at+dur);
+      o.connect(g);g.connect(sndCtx.destination);
+      o.start(t+at);o.stop(t+at+dur+0.02);
+    };
+    if(minus){mk(520,0,0.09,0.18);mk(392,0.07,0.12,0.16)}     /* −1: 下がる音 */
+    else{mk(784,0,0.07,0.18);mk(1175,0.06,0.11,0.2)}          /* ＋1: レジ風ポン */
+  }catch(e){}
+}
 
 /* nav */
 function go(v){
