@@ -109,6 +109,7 @@ main{padding:10px 12px 20px}
   background:#fff;color:var(--berry);font-size:15px;font-weight:700;line-height:1;padding:0
 }
 .stub.done .tick{border-color:var(--lime);background:var(--lime);color:#fff}
+.tick.ent{width:auto;height:auto;border-radius:999px;padding:8px 11px;font-size:12px;white-space:nowrap}
 .empty{
   border:1px dashed var(--line);border-radius:12px;padding:30px 18px;text-align:center;color:var(--mute);font-size:13px
 }
@@ -164,7 +165,7 @@ textarea{font-family:var(--mono);font-size:13px;line-height:1.5}
 .ofil button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;color:var(--mute)}
 .ofil button.on{background:var(--berry);border-color:var(--berry);color:#fff;font-weight:700}
 .sc{display:flex;gap:9px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-bottom:8px;align-items:center}
-.sc.on{border-color:var(--grape);box-shadow:0 0 0 2px rgba(46,26,71,.12)}
+.sc.on{border-color:#5B8DD6;background:#EEF4FC;box-shadow:0 0 0 2px rgba(91,141,214,.18)}
 .sc .d{width:46px;flex:none;text-align:center;font-family:var(--mono);font-size:11px;line-height:1.25;
   color:#fff;background:var(--grape);border-radius:8px;padding:6px 0}
 .sc .b{flex:1;min-width:0}
@@ -407,6 +408,7 @@ body.staff .admin-only{display:none!important}
       <button class="wide ghost" id="btnEvSave">選択中のイベントを更新</button>
       <button class="wide danger" id="btnEvDel">選択中のイベントを削除</button>
     </div>
+    <div class="card" id="teamCard"></div>
     <div class="card" id="ghCard"></div>
     <div class="card">
       <h2>AI読み取り（公開版で使う場合）</h2>
@@ -604,7 +606,7 @@ function card(p){
         <div class="nm">${esc(p.name)}</div>
         <div class="sub">${bits.join('<span style="opacity:.4">/</span>')}</div>
       </div>
-      <button class="tick" onclick="toggle('${p.id}')" aria-label="${p.in?'受付を戻す':'受付する'}">${p.in?'✓':'受'}</button>
+      <button class="tick ent" onclick="toggle('${p.id}')" aria-label="${p.in?'入場前に戻す':'入場済にする'}">${p.in?'入場済':'入場前'}</button>
     </div>
   </div>`;
 }
@@ -824,10 +826,10 @@ function renderGoods(){
           role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">${g.no}</div><div class="perf"></div>
         <div class="body">
           <div class="txt" onclick="gDetail('${g.id}')">
-            <div class="nm">${esc(g.name)}</div>
+            <div class="nm">${esc(g.name)}
+              <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
             <div class="sub"><span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
-              <span>${esc(g.item)}</span><span style="opacity:.4">/</span>
-              <span class="a">${yen(gTotal(g))}</span></div>
+              <span>${esc(g.item)}</span></div>
           </div>
           <button class="tick" onclick="gToggle('${g.id}')" aria-label="${g.sent?'未発送に戻す':'発送済にする'}">${g.sent?'✓':'発'}</button>
         </div>
@@ -1057,7 +1059,7 @@ function talStats(){
   });
   curManual().forEach(mm=>{
     const k=(mm.talent||'未指定').trim()||'未指定';
-    const o=slot(k);o.sales+=Number(mm.sales)||0;o.n+=Number(mm.guests)||0;o.manual=(o.manual||0)+(Number(mm.sales)||0);
+    const o=slot(k);o.sales+=Number(mm.sales)||0;o.n+=Number(mm.guests)||0;o.mg=(o.mg||0)+(Number(mm.guests)||0);o.manual=(o.manual||0)+(Number(mm.sales)||0);
   });
   const rate=tipRate();
   curTips().forEach(tp=>{
@@ -1072,6 +1074,11 @@ function talStats(){
 }
 function talProf(name){
   DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
+  {const t2=(DB.teams||[]).find(t=>t.id==='tm2'||/エンビル|ENVIL/i.test(t.name||''));
+   if(t2&&(!t2.members||!t2.members.length)){
+     t2.name='ENVIL';
+     t2.members=['うか','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ'];
+   }}
   /* 物販シートの商品ラインナップに更新（既存の売上記録には影響しない） */
   {
     DB.products=DB.products||[];
@@ -1093,9 +1100,40 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
 function renderTal(){
   if(curTal)return renderTalDetail(curTal);
   const list=talStats();
+  const _ef=evFilter;evFilter='';
+  const monthAll0=talStats();
+  evFilter=_ef;
+  const tf=window.talTeam||'';
+  const inTeam=n=>!tf||teamOf(tf).members.includes(n);
+  const monthAll=monthAll0.filter(t=>inTeam(t.name));
+  const rk=monthAll.filter(t=>t.name!=='未指定'&&t.n>0).slice().sort((a,b)=>b.n-a.n);
+  const listF=list.filter(t=>inTeam(t.name));
+  const rmax=Math.max(1,...rk.map(t=>t.n));
   $('#talBody').innerHTML=`
+    <div class="chips" style="margin-bottom:4px">
+      <button class="chip ${!tf?'on':''}" onclick="window.talTeam='';renderTal()">全員</button>
+      ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
+        onclick="window.talTeam='${t.id}';renderTal()">${esc(t.name)}</button>`).join('')}
+    </div>
+    ${rk.length?`<div class="card"><h2>${mLabel(DB.curM)} 動員数ランキング（全イベント）</h2>
+      ${rk.map((t,i)=>`<div class="mrowk" style="padding:7px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            <b style="font-family:var(--mono);color:${i<3?'var(--mango)':'var(--mute)'};font-size:${i<3?'15px':'12px'}">${i+1}</b>
+            <b style="font-family:var(--mincho);font-size:15px;margin-left:5px">${esc(t.name)}</b>
+            <span style="color:var(--mute);font-size:10.5px"> チケット${t.rows.length}${t.mg?' / シート'+t.mg:''}</span></span>
+          <span style="text-align:right;white-space:nowrap">
+            <b style="font-family:var(--mono);font-size:16px">${t.n}<span style="font-size:10px;color:var(--mute)">名</span></b>
+            <b style="font-family:var(--mono);font-size:12px;color:var(--berry);margin-left:7px">${yen(t.sales)}</b></span>
+        </div>
+        <div style="height:5px;border-radius:3px;background:#EFE8F5;margin-top:4px;overflow:hidden">
+          <div style="height:100%;width:${t.n/rmax*100}%;background:${i===0?'var(--mango)':'var(--berry)'}"></div></div>
+      </div>`).join('')}
+      <div class="bar" style="border-top:2px solid var(--grape)"><span style="font-weight:700">合計動員 / 金額</span>
+        <b style="font-family:var(--mono)">${rk.reduce((a,b)=>a+b.n,0)}名 / ${yen(rk.reduce((a,b)=>a+b.sales,0))}</b></div>
+    </div>`:''}
     <div class="card"><h2>${mLabel(DB.curM)}${evFilter?'／'+esc((DB.events.find(e=>e.id===evFilter)||{}).title||''):'の売上'}</h2>
-      ${list.length?list.map(t=>`
+      ${listF.length?listF.map(t=>`
         <div class="bar" style="cursor:pointer" onclick="openTal('${esc(t.name).replace(/'/g,"\\'")}')">
           <button class="linebtn admin-only" title="LINEで請求を送る"
             onclick="event.stopPropagation();lineInv('${esc(t.name).replace(/'/g,"\\'")}')">LINE</button>
@@ -2938,6 +2976,24 @@ window.aiKeySave=()=>{
 /* ===== 物販売上シート（表形式入力） ===== */
 let gridMinus=false, gridTals=null, gridProdOpen=false;
 const gridStore=()=>{DB.grid=DB.grid||{};const ev=posEv();DB.grid[ev]=DB.grid[ev]||{};return DB.grid[ev]};
+const gridGStore=()=>{DB.gridG=DB.gridG||{};const ev=posEv();DB.gridG[ev]=DB.gridG[ev]||{};return DB.gridG[ev]};
+const gGuest=t=>(gridGStore()[t]||0);
+window.gridTapG=async t=>{
+  const g=gridGStore();
+  const before=g[t]||0;
+  g[t]=Math.max(0,before+(gridMinus?-1:1));
+  if(!g[t])delete g[t];
+  if(g[t]!==before||before>0&&!gridMinus)beep(gridMinus);
+  /* 動員をイベント売上(直接集計)の動員に同期（売上額は保持） */
+  DB.manual=DB.manual||[];
+  const ev=posEv();
+  let m=DB.manual.find(x=>x.ev===ev&&x.talent===t);
+  const n=g[t]||0;
+  if(m){m.guests=n;if(!m.guests&&!m.sales)DB.manual=DB.manual.filter(x=>x!==m)}
+  else if(n)DB.manual.push({id:uid(),ev,talent:t,guests:n,sales:0});
+  await save();
+  renderGrid();renderList();
+};
 window.gridProdToggle=()=>{gridProdOpen=!gridProdOpen;renderGrid()};
 window.gridProdAdd=async()=>{
   const n=$('#gp-name').value.trim(), pr=Number($('#gp-price').value)||0;
@@ -2957,13 +3013,13 @@ window.gridProdDel=async id=>{
 const FF_TALS=['小山ありす','綾乃舞衣','三毛野みい','星乃ひかり','中島沙也加','瑚桃','心花ひま','白音みなみ'];
 const talShort=t=>({'小山ありす':'ありす','綾乃舞衣':'まい','三毛野みい':'みい','星乃ひかり':'ひかり',
   '中島沙也加':'さやか','瑚桃':'こもも','心花ひま':'ひま','白音みなみ':'みなみ','うさのみゆ':'みゆ',
-  'へち':'へち','矢澤ないん':'ないん'}[t]||t.slice(-3));
+  'へち':'へち','矢澤ないん':'ないん'}[t]||(t.length>4?t.slice(0,4):t));
 function gridTalents(){
-  if(gridTals)return gridTals;
-  const set=new Set(FF_TALS);
-  talentNames().forEach(t=>{if(t&&t!=='未指定'&&!/新井/.test(t))set.add(t)});
-  gridTals=[...set];
-  return gridTals;
+  const m=teamMembers(curTeam);
+  if(m.length)return m;
+  /* メンバー未設定のチームは、どのチームにも属さないタレントを表示 */
+  const assigned=new Set();teams().forEach(t=>t.members.forEach(x=>assigned.add(x)));
+  return talentNames().filter(t=>t&&t!=='未指定'&&!/新井/.test(t)&&!assigned.has(t));
 }
 const gCell=(t,p)=>(((gridStore())[t]||{})[p]||0);
 window.gridTap=async(t,pid)=>{
@@ -3004,6 +3060,10 @@ window.gridClear=async()=>{
   const tals=Object.keys((DB.grid||{})[ev]||{});
   if(DB.grid)delete DB.grid[ev];
   tals.forEach(t=>syncGridSale(ev,t));
+  const gt=Object.keys((DB.gridG||{})[ev]||{});
+  if(DB.gridG)delete DB.gridG[ev];
+  DB.manual=(DB.manual||[]).filter(m=>!(m.ev===ev&&gt.includes(m.talent)&&!m.sales));
+  gt.forEach(t=>{const m=(DB.manual||[]).find(x=>x.ev===ev&&x.talent===t);if(m)m.guests=0});
   await save();renderGrid();renderAll();
 };
 const gridTalSum=t=>products().reduce((a,p)=>a+gCell(t,p.id)*p.price,0);
@@ -3013,8 +3073,17 @@ function renderGrid(){
   const tals=gridTalents();
   const ev=DB.events.find(e=>e.id===posEv())||{title:'—'};
   box.innerHTML=`
-    <h2 style="margin-bottom:2px">物販売上シート</h2>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2 style="margin-bottom:2px">物販売上シート</h2>
+      <button onclick="closeSheet()" aria-label="閉じる"
+        style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;
+        font-size:13px;font-weight:700;color:var(--ink)">閉じる</button>
+    </div>
     <p class="hint" style="margin:0 0 8px">${esc(ev.title)}／マスをタップで＋1${gridMinus?'（−1モード中）':''}</p>
+    <div class="oseg" style="grid-template-columns:repeat(${teams().length},1fr);margin-bottom:8px">
+      ${teams().map(t=>`<button class="${curTeam===t.id?'on':''}" onclick="setTeam('${t.id}')"
+        style="font-size:11px;padding:9px 0">${esc(t.name)}</button>`).join('')}
+    </div>
     <div class="bar" style="border:0;background:var(--grape);border-radius:11px;padding:10px 13px;margin-bottom:8px">
       <span style="color:#C9B6DE;font-weight:700">合計</span>
       <b style="font-family:var(--mono);font-size:22px;color:var(--mango)">${yen(gridTotal())}</b></div>
@@ -3024,15 +3093,15 @@ function renderGrid(){
         border-radius:9px;padding:9px;font-size:13px;font-weight:700">−1モード ${gridMinus?'ON':'OFF'}</button>
       <button onclick="gridClear()" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;font-size:13px">クリア</button>
     </div>
-    <div style="border:1px solid var(--line);border-radius:11px;background:#fff;overflow:hidden">
-      <table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:11px">
+    <div style="border:1px solid var(--line);border-radius:11px;background:#fff;${tals.length>8?'overflow-x:auto;-webkit-overflow-scrolling:touch':'overflow:hidden'}">
+      <table style="border-collapse:collapse;font-size:11px;${tals.length>8?`min-width:${96+tals.length*56}px`:'width:100%;table-layout:fixed'}">
         <tr>
-          <th style="background:var(--grape);color:#fff;padding:7px 5px;text-align:left;width:24%;font-family:var(--mincho);font-size:10.5px">グッズ</th>
+          <th style="background:var(--grape);color:#fff;padding:7px 5px;text-align:left;${tals.length>8?'position:sticky;left:0;z-index:2;min-width:92px':'width:24%'};font-family:var(--mincho);font-size:10.5px">グッズ</th>
           ${tals.map(t=>`<th style="background:#F0EAF7;padding:6px 1px;font-size:10px;
             font-family:var(--mincho);border-left:1px solid var(--line);overflow:hidden">${esc(talShort(t))}</th>`).join('')}
         </tr>
         ${products().map(p=>`<tr>
-          <td style="background:#FCFAFE;padding:6px 5px;border-top:1px solid var(--line);line-height:1.2">
+          <td style="background:#FCFAFE;padding:6px 5px;border-top:1px solid var(--line);line-height:1.2;${tals.length>8?'position:sticky;left:0;z-index:1':''}">
             <b style="font-size:10px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</b>
             <span style="color:var(--mute);font-size:9px">${(p.price/1000).toFixed(p.price%1000?1:0)}千</span></td>
           ${tals.map(t=>{const n=gCell(t,p.id);
@@ -3042,7 +3111,21 @@ function renderGrid(){
               ${n?'background:#FDE9F0;color:var(--berry);font-weight:700':'color:#DDD3E8'}">${n||'·'}</td>`}).join('')}
         </tr>`).join('')}
         <tr>
-          <td style="background:var(--grape);color:#fff;padding:7px 5px;font-weight:700;font-size:10px">売上計</td>
+          <td style="background:#FDE9F0;padding:7px 5px;border-top:2px solid var(--berry);line-height:1.2;${tals.length>8?'position:sticky;left:0;z-index:1':''}">
+            <b style="font-size:10.5px;color:#B21E4E">動員数</b></td>
+          ${tals.map(t=>{const n=gGuest(t);
+            return `<td onclick="gridTapG('${esc(t).replace(/'/g,"\'")}')"
+              style="border-top:2px solid var(--berry);border-left:1px solid var(--line);text-align:center;
+              padding:9px 0;font-family:var(--mono);font-size:14px;cursor:pointer;background:#FDE9F0;
+              ${n?'color:#B21E4E;font-weight:700':'color:#E5B9C8'}">${n||'·'}</td>`}).join('')}
+        </tr>
+        <tr>
+          <th style="background:#F0EAF7;padding:6px 5px;text-align:left;font-family:var(--mincho);font-size:10.5px;border-top:1px solid var(--line);${tals.length>8?'position:sticky;left:0;z-index:1':''}">　</th>
+          ${tals.map(t=>`<th style="background:#F0EAF7;padding:6px 1px;font-size:10px;
+            font-family:var(--mincho);border-left:1px solid var(--line);border-top:1px solid var(--line);overflow:hidden">${esc(talShort(t))}</th>`).join('')}
+        </tr>
+        <tr>
+          <td style="background:var(--grape);color:#fff;padding:7px 5px;font-weight:700;font-size:10px;${tals.length>8?'position:sticky;left:0;z-index:1':''}">売上計</td>
           ${tals.map(t=>{const v=gridTalSum(t);
             return `<td style="border-left:1px solid var(--line);text-align:center;padding:7px 0;
               font-family:var(--mono);font-size:9.5px;background:#F6F2F9;${v?'color:var(--berry);font-weight:700':''}">${v?(v/1000)+'千':'0'}</td>`}).join('')}
@@ -3209,6 +3292,48 @@ function beep(minus){
   }catch(e){}
 }
 
+/* ===== チーム分け（アイドル1〜3チーム / インフルエンサー） ===== */
+function teams(){
+  if(!DB.teams||!DB.teams.length){
+    DB.teams=[
+      {id:'tm1',name:'FruitFruit',members:['小山ありす','綾乃舞衣','三毛野みい','星乃ひかり','中島沙也加','瑚桃','心花ひま','白音みなみ']},
+      {id:'tm2',name:'ENVIL',members:['うか','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ']},
+      {id:'tm3',name:'アイドル3',members:[]},
+      {id:'tmI',name:'インフルエンサー',members:['うさのみゆ','矢澤ないん','へち','ねこみみちゃん']}
+    ];
+  }
+  return DB.teams;
+}
+let curTeam='tm1';
+const teamOf=id=>teams().find(t=>t.id===id)||teams()[0];
+function teamMembers(id){
+  const t=teamOf(id);
+  if(t.members&&t.members.length)return t.members;
+  return [];
+}
+window.setTeam=id=>{curTeam=id;gridTals=null;renderGrid()};
+window.teamSave=async i=>{
+  if(!needAdmin())return;
+  const t=teams()[i];if(!t)return;
+  t.name=$('#tm-name-'+i).value.trim()||t.name;
+  t.members=$('#tm-mem-'+i).value.split(/[、,\n／\/]+/).map(x=>x.trim()).filter(Boolean);
+  gridTals=null;
+  await save();fillTeamCard();renderAll();toast(`${t.name} を保存しました`);
+};
+function fillTeamCard(){
+  const el=$('#teamCard');if(!el)return;
+  el.innerHTML=`<h2>チーム分け</h2>
+    ${teams().map((t,i)=>`
+      <div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;background:#FCFAFE">
+        <label for="tm-name-${i}">チーム名</label>
+        <input type="text" id="tm-name-${i}" value="${esc(t.name)}">
+        <label for="tm-mem-${i}">メンバー（読点・改行区切り）</label>
+        <textarea id="tm-mem-${i}" rows="2">${esc(t.members.join('、'))}</textarea>
+        <button class="wide ghost" style="margin-top:6px" onclick="teamSave(${i})">保存</button>
+      </div>`).join('')}
+    <p class="hint">物販売上シートの切替タブと、タレントページの絞り込みに使われます。</p>`;
+}
+
 /* nav */
 function go(v){
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
@@ -3231,6 +3356,11 @@ $('#q').oninput=renderList;
   const d=await load();
   if(d&&d.events&&Array.isArray(d.people)){DB=d}
   DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
+  {const t2=(DB.teams||[]).find(t=>t.id==='tm2'||/エンビル|ENVIL/i.test(t.name||''));
+   if(t2&&(!t2.members||!t2.members.length)){
+     t2.name='ENVIL';
+     t2.members=['うか','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ'];
+   }}
   /* 物販シートの商品ラインナップに更新（既存の売上記録には影響しない） */
   {
     DB.products=DB.products||[];
@@ -3291,7 +3421,7 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
      if(seen[k]){const o=seen[k];o.pts=Math.max(o.pts||0,t.pts||0)}else{seen[k]=t;keep.push(t)}});
    DB.tips=keep;}
   await save();
-  bootAuth();renderGhCard();const ak=$('#ai-key');if(ak)ak.value=AIKEY.k;
+  bootAuth();renderGhCard();fillTeamCard();const ak=$('#ai-key');if(ak)ak.value=AIKEY.k;
   renderAll();fillEvForm();
   $('#evDateInput').onchange=async e=>{
     const id=e.target.dataset.ev, v=e.target.value;
