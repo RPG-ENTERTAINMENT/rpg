@@ -1930,8 +1930,12 @@ function renderSiteCards(){
     const st=evStats(e.id), on=evFilter===e.id;
     const d=(e.date||'').slice(5).replace('-','/');
     return `<div class="sc ${on?'on':''}" onclick="setEvFilter('${on?'':e.id}')">
-      <div class="d" onclick="event.stopPropagation();evDatePick('${e.id}')" role="button" aria-label="日程を変更">${d?d:'日付'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||'＋'}</span></div>
-      <div class="b"><div class="t"><span onclick="event.stopPropagation();evEdit('${e.id}')" style="text-decoration:underline;text-decoration-color:#D9CCE8;text-underline-offset:3px">${e.img?'<span onclick="event.stopPropagation();evViewImg(\''+e.id+'\')" style="font-size:13px">📷 </span>':''}${esc(e.title)}</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:none">
+        <div class="d">${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
+        <button class="admin-only" onclick="event.stopPropagation();evEdit('${e.id}')"
+          style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 0;width:46px;font-size:10.5px;color:var(--grape);font-weight:700">編集</button>
+      </div>
+      <div class="b"><div class="t">${e.img?'<span onclick="event.stopPropagation();evViewImg(\''+e.id+'\')" style="font-size:13px">📷 </span>':''}${esc(e.title)}</div>
         <div class="s">${st.n}名${st.inn?` / 受付${st.inn}`:''}${e.venue?' / '+esc(e.venue):''}</div></div>
       <div style="text-align:right">
         <div class="a">${yen(st.amt)}</div>
@@ -3157,7 +3161,7 @@ window.evDatePick=id=>{
   try{inp.showPicker?inp.showPicker():inp.click()}catch(e){inp.click()}
 };
 window.evEdit=id=>{
-  if(!needAdmin()){setEvFilter(evFilter===id?'':id);return}
+  if(!needAdmin())return;
   const ev=DB.events.find(e=>e.id===id);if(!ev)return;
   $('#sheetIn').innerHTML=`<h2>現場を編集</h2>
     <div class="card" style="margin-top:10px">
