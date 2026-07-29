@@ -36,14 +36,17 @@ header{
   padding:calc(8px + env(safe-area-inset-top)) 16px 9px;
   position:sticky;top:0;z-index:30;
 }
-.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:#C9B6DE;text-transform:uppercase}
-h1{font-family:var(--mincho);font-size:17px;font-weight:600;margin:1px 0 0;letter-spacing:.02em}
-.evline{display:flex;gap:8px;align-items:center;margin-top:6px}
+.hrow1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--mincho);font-size:17px;font-weight:600;margin:0;letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evline{display:flex;gap:8px;align-items:center;margin-top:7px}
 select.ev{
   flex:1;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);
   border-radius:8px;padding:5px 8px;font-size:12px;font-family:var(--gothic);appearance:none
 }
-.hstat{font-family:var(--mono);font-size:11px;color:#C9B6DE;white-space:nowrap;text-align:right;line-height:1.35}
+.hstat{font-family:var(--mono);font-size:12px;color:#C9B6DE;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.hstat #hAmt{color:#FFB515;font-weight:700}
+.hsep{opacity:.4}
 
 /* tabs */
 nav{
@@ -173,11 +176,7 @@ textarea{font-family:var(--mono);font-size:13px;line-height:1.5}
 .sc .s{font-size:11px;color:var(--mute)}
 .sc .a{font-family:var(--mono);font-size:13px;white-space:nowrap}
 header{position:sticky}
-#btnTop{position:absolute;right:14px;top:calc(10px + env(safe-area-inset-top));
-  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32);color:#fff;
-  border-radius:999px;padding:7px 14px;font-size:12px;font-weight:700;font-family:var(--gothic);
-  backdrop-filter:blur(6px)}
-#btnTop:active{background:rgba(255,255,255,.28)}
+
 .cdlg{position:fixed;inset:0;z-index:95;background:rgba(46,26,71,.55);display:none;align-items:center;justify-content:center;padding:24px}
 .cdlg.on{display:flex}
 .cbox{background:var(--paper);border-radius:15px;padding:18px 16px;width:100%;max-width:330px;text-align:center}
@@ -193,12 +192,11 @@ header{position:sticky}
 .lgbox .wide{background:var(--mango);color:var(--grape)}
 .lgbox .wide.ghost{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff}
 .lghint{margin-top:14px!important;font-size:11.5px;line-height:1.7}
-#roleChip{position:absolute;right:14px;top:calc(46px + env(safe-area-inset-top));
-  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;
-  padding:4px 11px;font-size:11px;font-weight:700;font-family:var(--gothic)}
+#roleChip{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+  color:#fff;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;font-family:var(--gothic)}
 body.staff .admin-only{display:none!important}
-.linebtn{flex:none;background:#06C755;color:#fff;border:0;border-radius:8px;padding:6px 8px;
-  font-size:10px;font-weight:700;font-family:var(--gothic);letter-spacing:.04em;margin-right:9px;align-self:center}
+.linebtn{flex:none;background:#06C755;color:#fff;border:0;border-radius:8px;padding:5px 7px;
+  font-size:9px;font-weight:700;font-family:var(--gothic);letter-spacing:.02em;margin-right:9px;align-self:center;line-height:1.35;white-space:nowrap}
 .linebtn:active{opacity:.75}
 .tapbar{cursor:pointer;border-radius:8px;margin:0 -6px;padding-left:6px;padding-right:6px}
 .tapbar:active{background:#F3EDF9}
@@ -251,15 +249,13 @@ body.staff .admin-only{display:none!important}
 <body>
 
 <header>
-  <div class="hbtns">
-    <button id="btnTop" onclick="goTop()">↑ トップ</button>
+  <div class="hrow1">
+    <h1>タレント経理総合アプリ</h1>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
-  <div class="eyebrow">RPG GOODS &amp; TICKETS</div>
-  <h1>タレント経理総合アプリ</h1>
   <div class="evline">
     <select class="ev" id="evSel"></select>
-    <div class="hstat" id="hStat"><div id="hIn">0 / 0</div><div id="hAmt" style="color:#FFB515;font-size:13px">¥0</div></div>
+    <div class="hstat" id="hStat"><span id="hIn">0 / 0</span><span class="hsep">｜</span><span id="hAmt">¥0</span></div>
   </div>
 </header>
 
@@ -279,27 +275,41 @@ body.staff .admin-only{display:none!important}
       <button data-f="meal">ご飯会</button>
     </div>
     <button class="wide" id="btnPos" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
-      onclick="openPos()">🛍 当日グッズ販売</button>
+      onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
+    <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
     <div id="list"></div>
     <div id="buyList"></div>
   </section>
 
   <!-- 追加 -->
-  <section class="view" id="v-add">
-    <div class="card">
-      <h2>現場の追加</h2>
-      <button class="wide" style="font-size:15px;padding:15px;margin-top:0" onclick="sitePick()">🎤 現場の追加（画像から）</button>
-      <button class="wide ghost" onclick="siteBlank()">手入力で現場を追加</button>
-      <p class="hint">売上表や精算メモの写真から、現場名・開催日・タレント別の売上を読み取ります。内容を確認してから反映できます。</p>
-      <div id="siteBox"></div>
-    </div>
 
-    <div class="card">
-      <h2>納品書から貼り付け</h2>
-      <textarea id="paste" rows="5" placeholder="納品書のテキストを貼り付け → 読み取る"></textarea>
-      <button class="wide ghost" id="btnParse">読み取ってフォームに入れる</button>
-      <p class="hint">お名前・注文ID・注文日・金額・指名タレント・ご飯会・ドリンクを自動で拾います。うまく拾えない項目は下で直せます。</p>
+
+  <!-- グッズ -->
+  <section class="view" id="v-goods"><div id="goodsBody"></div></section>
+
+  <!-- 投げ銭 -->
+  <section class="view" id="v-tip"><div id="tipBody"></div></section>
+
+  <!-- タレント -->
+  <section class="view" id="v-tal"><div id="talBody"></div></section>
+
+  <!-- 集計 -->
+  <section class="view" id="v-sum">
+    <div class="grid">
+      <div class="kpi hi"><div class="k">TOTAL</div><div class="v" id="s-total">0</div></div>
+      <div class="kpi"><div class="k">CHECKED IN</div><div class="v" id="s-in">0</div></div>
+      <div class="kpi"><div class="k">SALES</div><div class="v" id="s-sales">¥0</div></div>
+      <div class="kpi"><div class="k">MEAL</div><div class="v" id="s-meal">0</div></div>
     </div>
+    <div class="card"><h2>チーム別 売上ランキング</h2><div id="s-team"></div></div>
+    <div class="card"><h2>タレント別</h2><div id="s-talent"></div></div>
+    <div class="card"><h2>ドリンク内訳</h2><div id="s-drink"></div></div>
+    <div class="card"><h2>投げ銭ランキング</h2><div id="s-tip"></div></div>
+  </section>
+
+  <!-- 設定 -->
+  <section class="view" id="v-set">
+
 
     <div class="card">
       <h2>来場者を追加</h2>
@@ -365,49 +375,7 @@ body.staff .admin-only{display:none!important}
       <button class="wide" id="btnSave">リストに追加</button>
       <button class="wide ghost" id="btnCancel" style="display:none">編集をやめる</button>
     </div>
-  </section>
-
-  <!-- グッズ -->
-  <section class="view" id="v-goods"><div id="goodsBody"></div></section>
-
-  <!-- 投げ銭 -->
-  <section class="view" id="v-tip"><div id="tipBody"></div></section>
-
-  <!-- タレント -->
-  <section class="view" id="v-tal"><div id="talBody"></div></section>
-
-  <!-- 集計 -->
-  <section class="view" id="v-sum">
-    <div class="grid">
-      <div class="kpi hi"><div class="k">TOTAL</div><div class="v" id="s-total">0</div></div>
-      <div class="kpi"><div class="k">CHECKED IN</div><div class="v" id="s-in">0</div></div>
-      <div class="kpi"><div class="k">SALES</div><div class="v" id="s-sales">¥0</div></div>
-      <div class="kpi"><div class="k">MEAL</div><div class="v" id="s-meal">0</div></div>
-    </div>
-    <div class="card"><h2>タレント別</h2><div id="s-talent"></div></div>
-    <div class="card"><h2>ドリンク内訳</h2><div id="s-drink"></div></div>
-    <div class="card"><h2>投げ銭ランキング</h2><div id="s-tip"></div></div>
-  </section>
-
-  <!-- 設定 -->
-  <section class="view" id="v-set">
-    <div class="card">
-      <h2>イベント</h2>
-      <label for="e-sel">編集するイベント</label>
-      <select id="e-sel"></select>
-      <label for="e-title">イベント名</label>
-      <input type="text" id="e-title" placeholder="8月定期FruitFruitファンミ＆ミニライブ">
-      <div class="row">
-        <div><label for="e-date">開催日</label><input type="date" id="e-date"></div>
-        <div><label for="e-venue">会場</label><input type="text" id="e-venue" placeholder="会場名"></div>
-      </div>
-      <label for="e-month">集計する月</label>
-      <input type="month" id="e-month">
-      <p class="hint">この月でまとめて集計・請求します（例：8月定期は開催が8月なら 2026-08）。</p>
-      <button class="wide dark" id="btnEvAdd">新しいイベントとして作る</button>
-      <button class="wide ghost" id="btnEvSave">選択中のイベントを更新</button>
-      <button class="wide danger" id="btnEvDel">選択中のイベントを削除</button>
-    </div>
+  
     <div class="card" id="teamCard"></div>
     <div class="card" id="ghCard"></div>
     <div class="card">
@@ -445,8 +413,7 @@ body.staff .admin-only{display:none!important}
   <button data-v="tal"><span class="n">タ</span>タレント</button>
   <button data-v="sum"><span class="n">計</span>集計</button>
   <button data-v="out"><span class="n">外</span>外注</button>
-  <button data-v="set"><span class="n">設</span>設定</button>
-  <button data-v="add"><span class="n">＋</span>追加</button>
+  <button data-v="set"><span class="n">設</span>設定・追加</button>
 </nav>
 
 <div class="sheet" id="sheet"><div class="inner" id="sheetIn"></div></div>
@@ -535,7 +502,8 @@ function evMonth(e){
 function months(){return [...new Set(DB.events.map(evMonth).filter(Boolean))].sort()}
 function monthEvents(){return DB.events.filter(e=>evMonth(e)===DB.curM)}
 let evFilter='';
-const inScope=id=>monthEvents().some(e=>e.id===id)&&(!evFilter||id===evFilter);
+const talTabOn=()=>{const v=document.querySelector('.view.on');return !!v&&v.id==='v-tal'};
+const inScope=id=>monthEvents().some(e=>e.id===id)&&(talTabOn()||!evFilter||id===evFilter);
 function targetEv(sel){
   const v=$(sel)&&$(sel).value; if(v)return v;
   const a=monthEvents(); return a.length?a[0].id:null;
@@ -562,10 +530,6 @@ function renderEvents(){
     if(evs.some(e=>e.id===keep))el.value=keep; else if(evFilter)el.value=evFilter;
   });
   renderSiteCards();
-  const es=$('#e-sel');
-  if(es){const k=es.value;
-    es.innerHTML=DB.events.map(e=>`<option value="${e.id}">${mLabel(evMonth(e))}｜${esc(e.title)}</option>`).join('');
-    es.value=DB.events.some(e=>e.id===k)?k:(evs[0]?evs[0].id:DB.events[0].id);}
 }
 window.setEvFilter=id=>{evFilter=id;renderEvents();renderList();renderSum();renderGoods();renderTal()};
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -578,6 +542,15 @@ const tRank=t=>{const v=String(t||'');
 const tLabel=t=>['VIP','S','通常'][tRank(t)];
 function renderList(){
   const q=qNorm($('#q').value.trim());
+  /* 現場を選んでいない・検索もしていないときは、来場者リストを出さない */
+  if(!evFilter&&!q){
+    $('#list').innerHTML='<div class="empty">現場を選ぶと、その現場の来場者が表示されます。<br>お名前で探すときは上の検索をお使いください。</div>';
+    const all0=curPeople();
+    $('#hIn').textContent=`${all0.filter(p=>p.in).length} / ${all0.length}`;
+    $('#hAmt').textContent=yen(all0.reduce((x,y)=>x+(Number(y.amount)||0),0));
+    renderBuys();
+    return;
+  }
   let a=curPeople();
   if(filter==='yet')a=a.filter(p=>!p.in);
   if(filter==='done')a=a.filter(p=>p.in);
@@ -622,6 +595,35 @@ function renderSum(){
     const e=Object.entries(m).sort((x,y)=>y[1]-x[1]);
     return e.length?e.map(([k2,v])=>`<div class="bar"><span>${esc(k2)}</span><b>${v}名</b></div>`).join(''):'<div class="hint">データなし</div>'};
   $('#s-talent').innerHTML=by('talent');
+  /* チーム別 売上ランキング（月全体） */
+  {
+    const _ef=evFilter;evFilter='';
+    const st=talStats();
+    evFilter=_ef;
+    const val=n=>{const t=st.find(x=>x.name===n);return t?t.sales+t.goods+(t.tip||0):0};
+    const rows=teams().map(t=>{
+      const sum=(t.members||[]).reduce((a,m)=>a+val(m),0);
+      const guests=(t.members||[]).reduce((a,m)=>{const x=st.find(y=>y.name===m);return a+(x?x.n:0)},0);
+      return {name:t.name,sum,guests};
+    }).sort((x,y)=>y.sum-x.sum);
+    const others=st.filter(x=>!teams().some(t=>(t.members||[]).includes(x.name)))
+      .reduce((a,b)=>a+b.sales+b.goods+(b.tip||0),0);
+    const max=Math.max(1,...rows.map(r=>r.sum));
+    $('#s-team').innerHTML=rows.map((r,i)=>`
+      <div style="padding:7px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+          <span><b style="font-family:var(--mono);color:${i===0?'var(--mango)':'var(--mute)'};font-size:${i===0?'15px':'12px'}">${i+1}</b>
+            <b style="font-family:var(--mincho);font-size:15px;margin-left:5px">${esc(r.name)}</b>
+            <span style="color:var(--mute);font-size:10.5px"> ${r.guests}名</span></span>
+          <b style="font-family:var(--mono);font-size:15px">${yen(r.sum)}</b>
+        </div>
+        <div style="height:5px;border-radius:3px;background:#EFE8F5;margin-top:4px;overflow:hidden">
+          <div style="height:100%;width:${r.sum/max*100}%;background:${i===0?'var(--mango)':'var(--berry)'}"></div></div>
+      </div>`).join('')
+      +(others?`<div class="bar"><span style="color:var(--mute)">チーム未所属・未指定</span><b style="font-family:var(--mono)">${yen(others)}</b></div>`:'')
+      +`<div class="bar" style="border-top:2px solid var(--grape)"><span style="font-weight:700">合計</span>
+        <b style="font-family:var(--mono)">${yen(rows.reduce((a,b)=>a+b.sum,0)+others)}</b></div>`;
+  }
   const tips=curTips(), tt=tips.reduce((x,y)=>x+y.pts,0);
   $('#s-tip').innerHTML=tips.length
     ? tips.map((t,i)=>`<div class="bar"><span><b style="font-family:var(--mono);color:var(--mute)">${i+1}</b>　${esc(t.talent)}</span>
@@ -673,7 +675,7 @@ window.delP=async id=>{
 window.editP=id=>{
   if(!needAdmin())return;
   const p=DB.people.find(x=>x.id===id);if(!p)return;
-  editId=id;closeSheet();go('add');
+  editId=id;closeSheet();go('set');
   const v={'f-name':p.name,'f-kana':p.kana||'','f-sns':p.sns,'f-talent':p.talent,'f-ticket':p.ticket,'f-amount':p.amount,'f-drink':p.drink,
     'f-pay':p.pay,'f-order':p.order,'f-date':p.date,'f-tel':p.tel,'f-mail':p.mail,'f-note':p.note};
   for(const k in v)$('#'+k).value=v[k]??'';
@@ -682,7 +684,7 @@ window.editP=id=>{
   window.scrollTo(0,0);
 };
 function clearForm(){
-  ['f-name','f-kana','f-sns','f-talent','f-amount','f-drink','f-pay','f-order','f-tel','f-mail','f-note','f-date','paste'].forEach(i=>$('#'+i).value='');
+  ['f-name','f-kana','f-sns','f-talent','f-amount','f-drink','f-pay','f-order','f-tel','f-mail','f-note','f-date'].forEach(i=>{const el=$('#'+i);if(el)el.value=''});
   $('#f-ticket').value='一般チケット';$('#f-meal').checked=false;
   editId=null;$('#btnSave').textContent='リストに追加';$('#btnCancel').style.display='none';
 }
@@ -707,58 +709,10 @@ $('#btnSave').onclick=async()=>{
   await save();clearForm();renderAll();go('rec');
 };
 
-/* 納品書テキストの読み取り */
-$('#btnParse').onclick=()=>{
-  const t=$('#paste').value;
-  if(!t.trim()){toast('納品書のテキストを貼り付けてください');return}
-  const pick=(re)=>{const m=t.match(re);return m?m[1].trim():''};
-  const nm=pick(/お届け先[：:]\s*\n?\s*(.+?)\s*様/)||pick(/^(.+?)\s*様$/m);
-  if(nm)$('#f-name').value=nm;
-  const sns=pick(/SNSの名前.*?[：:]\s*([^\s(（¥]+)/);if(sns)$('#f-sns').value=sns;
-  let tal=pick(/タレントの名前.*?[：:]\s*([^\s(（¥]+)/);
-  if(tal){tal=tal.replace(/^(fruitfruit|Fruit\s*Fruit)[・\s]*/i,'').replace(/さん$/,'');$('#f-talent').value=tal}
-  $('#f-ticket').value=/VIP/.test(t)?'VIPチケット':(/[SＳ]席/.test(t)?'S席チケット':'一般チケット');
-  $('#f-meal').checked=/ご飯会参加します|ご飯会[：:]\s*参加/.test(t);
-  const dr=pick(/ドリンクを選んでください。?\s*[：:]\s*([^\s(（¥]+)/);if(dr)$('#f-drink').value=dr;
-  const am=pick(/(?:購入金額|合計金額)\s*[：:]?\s*¥?([\d,]+)/);if(am)$('#f-amount').value=am.replace(/,/g,'');
-  const pay=pick(/決済方法\s*[：:]\s*(.+)/);if(pay)$('#f-pay').value=pay;
-  const oid=pick(/注文ID\s*[：:]\s*([A-Z0-9]+)/i);if(oid)$('#f-order').value=oid;
-  const od=pick(/注文日\s*[：:]\s*(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/)?'':null;
-  const odm=t.match(/注文日\s*[：:]\s*(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
-  if(odm)$('#f-date').value=`${odm[1]}-${String(odm[2]).padStart(2,'0')}-${String(odm[3]).padStart(2,'0')}`;
-  const tel=pick(/Tel\s*[：:]\s*([\d-]+)/);if(tel&&!/03-5738/.test(tel))$('#f-tel').value=tel;
-  const ml=pick(/Mail\s*[：:]\s*([^\s]+@[^\s]+)/);if(ml&&!/never\.ending/.test(ml))$('#f-mail').value=ml;
-  const oid2=$('#f-order').value.trim();
-  const dup2=oid2&&(DB.people.find(p=>p.order===oid2)||(DB.goods||[]).find(g=>g.order===oid2));
-  toast(dup2?`この注文は登録済みです（${dup2.name} 様）`:'読み取りました。内容を確認してください');
-};
 
 /* イベント */
 $('#evSel').onchange=async e=>{DB.curM=e.target.value;evFilter='';await save();renderAll();fillEvForm()};
-$('#e-sel').onchange=()=>fillEvForm(true);
-$('#btnEvAdd').onclick=async()=>{
-  const t=$('#e-title').value.trim();if(!t){toast('イベント名を入れてください');return}
-  const ev={id:uid(),title:t,date:$('#e-date').value,venue:$('#e-venue').value.trim(),
-    month:$('#e-month').value||DB.curM};
-  DB.events.push(ev);DB.curM=ev.month;evFilter='';await save();renderAll();fillEvForm();toast('イベントを作りました');
-};
-$('#btnEvSave').onclick=async()=>{
-  const ev=DB.events.find(e=>e.id===$('#e-sel').value);if(!ev)return;
-  ev.title=$('#e-title').value.trim()||ev.title;ev.date=$('#e-date').value;
-  ev.venue=$('#e-venue').value.trim();ev.month=$('#e-month').value||evMonth(ev);
-  DB.curM=ev.month;await save();renderAll();fillEvForm();toast('更新しました');
-};
-$('#btnEvDel').onclick=async()=>{
-  await evDelete($('#e-sel').value);
-};
-
-function fillEvForm(keep){
-  const es=$('#e-sel');if(!es)return;
-  if(!keep)renderEvents();
-  const ev=DB.events.find(e=>e.id===es.value)||DB.events[0];if(!ev)return;
-  $('#e-title').value=ev.title;$('#e-date').value=ev.date||'';
-  $('#e-venue').value=ev.venue||'';$('#e-month').value=evMonth(ev);
-}
+function fillEvForm(){renderEvents()}
 
 /* 書き出し */
 function csv(){
@@ -801,18 +755,22 @@ const curGoods=()=>(DB.goods||[]).filter(g=>inScope(g.ev));
 const gTotal=g=>(Number(g.amount)||0);
 
 function renderGoods(){
-  const a=curGoods().sort((x,y)=>(x.sent-y.sent)||(x.no-y.no));
+  const tf=window.goodsTeam||'';
+  const inTeam=n=>!tf||teamOf(tf).members.includes(n);
+  const a=curGoods().filter(g=>inTeam(g.talent)).sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
   const item=a.reduce((s,g)=>s+(Number(g.amount)||0),0);
   $('#goodsBody').innerHTML=`
-    <div class="grid">
-      <div class="kpi hi"><div class="k">GOODS SALES</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
-      <div class="kpi" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div><div class="k">ORDERS</div><div class="v">${a.length}</div></div>
-        <button class="admin-only" onclick="gCsvPick()"
-          style="border:1px solid var(--line);background:#F6F2F9;border-radius:10px;padding:9px 10px;
-          font-size:11px;font-weight:700;color:var(--grape);line-height:1.3">BASE<br>CSV読込</button>
-      </div>
+    <div class="chips" style="margin-bottom:8px">
+      <button class="chip ${!tf?'on':''}" onclick="window.goodsTeam='';renderGoods()">全員</button>
+      ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
+        onclick="window.goodsTeam='${t.id}';renderGoods()">${esc(t.name)}</button>`).join('')}
     </div>
+    <div class="grid">
+      <div class="kpi hi"><div class="k">GOODS SALES${tf?"　"+esc(teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
+      <div class="kpi"><div class="k">ORDERS</div><div class="v">${a.length}</div></div>
+    </div>
+    <button class="wide admin-only" style="margin:0 0 6px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
+      onclick="gCsvPick()">📥 BASEのCSVから反映</button>
     <div class="card" style="padding:10px 12px">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
       <div class="bar"><span>未発送</span><b style="font-family:var(--mono)">${a.filter(g=>!g.sent).length}件</b></div>
@@ -827,6 +785,7 @@ function renderGoods(){
         <div class="body">
           <div class="txt" onclick="gDetail('${g.id}')">
             <div class="nm">${esc(g.name)}
+              ${g.date?`<span style="font-family:var(--mono);font-size:10.5px;color:var(--mute);font-weight:400;margin-left:6px">${esc(String(g.date).slice(5).replace('-','/'))}</span>`:''}
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
             <div class="sub"><span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
@@ -865,7 +824,13 @@ window.gToggle=async id=>{
 };
 window.gDetail=id=>{
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
-  $('#sheetIn').innerHTML=`<h2>${esc(g.name)} 様</h2>
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2>${esc(g.name)} 様</h2>
+      <button onclick="closeSheet()" aria-label="閉じる"
+        style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;
+        font-size:13px;font-weight:700;color:var(--ink)">閉じる</button>
+    </div>
     <div class="card" style="margin-top:12px">
     ${[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],
        ['金額',yen(g.amount)],['決済',g.pay],
@@ -873,9 +838,24 @@ window.gDetail=id=>{
        ['発送',g.sent?'済':'未']].filter(r=>r[1]!==''&&r[1]!=null)
       .map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span><b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
     </div>
+    ${isAdmin()?`<div class="card">
+      <label for="gt-tal">タレントを変更</label>
+      <select id="gt-tal">
+        <option value="">（未指定）</option>
+        ${talentNames().map(t=>`<option value="${esc(t)}" ${g.talent===t?'selected':''}>${esc(t)}</option>`).join('')}
+      </select>
+      <button class="wide ghost" onclick="gSetTal('${g.id}')">タレントを保存</button>
+    </div>`:''}
     <button class="wide danger" onclick="gDel('${g.id}')">この注文を削除</button>
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
+};
+window.gSetTal=async id=>{
+  if(!needAdmin())return;
+  const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
+  g.talent=$('#gt-tal').value;
+  await save();renderAll();closeSheet();
+  toast(g.talent?`${g.talent} に変更しました`:'未指定にしました');
 };
 window.gDel=async id=>{
   if(!await ask('削除します。よろしいですか？'))return;
@@ -963,11 +943,18 @@ const TIPRATE=0.6; /* ランキング1pt = ¥0.6 */
 const tipRate=()=>{const v=Number((DB.tipRate||{})[DB.curM]);return v>0?v:TIPRATE};
 
 function renderTip(){
-  const a=curTips(), total=a.reduce((s,t)=>s+t.pts,0), rate=tipRate();
+  const tf=window.tipTeam||'';
+  const inTeam=n=>!tf||teamOf(tf).members.includes(n);
+  const a=curTips().filter(t=>inTeam(t.talent)), total=a.reduce((s,t)=>s+t.pts,0), rate=tipRate();
   const asof=a.find(t=>t.asof);
   $('#tipBody').innerHTML=`
+    <div class="chips" style="margin-bottom:8px">
+      <button class="chip ${!tf?'on':''}" onclick="window.tipTeam='';renderTip()">全員</button>
+      ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
+        onclick="window.tipTeam='${t.id}';renderTip()">${esc(t.name)}</button>`).join('')}
+    </div>
     <div class="grid">
-      <div class="kpi hi"><div class="k">${mLabel(DB.curM)} TOTAL PT</div>
+      <div class="kpi hi"><div class="k">${mLabel(DB.curM)}${tf?"　"+esc(teamOf(tf).name):""} TOTAL PT</div>
         <div class="v" style="font-size:21px">${total.toLocaleString('ja-JP')}</div></div>
       <div class="kpi"><div class="k">円換算（1pt=${rate}）</div>
         <div class="v" style="font-size:19px">${yen(Math.round(total*rate))}</div></div>
@@ -975,6 +962,7 @@ function renderTip(){
     ${asof?`<p class="hint" style="margin:-6px 0 10px">集計日：${esc(asof.asof)}</p>`:''}
     <button class="wide" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
       onclick="tipPick()" ${tipReading?'disabled':''}>${tipReading?'読み取り中…':'📷 ランキング画像から反映'}</button>
+    <button class="wide ghost" style="margin:6px 0 12px" onclick="tipTextOpen()">📝 文章から反映</button>
     ${a.length?a.map((t,i)=>{
       const w=total?Math.max(3,Math.round(t.pts/a[0].pts*100)):0;
       return `<div class="stub">
@@ -1073,27 +1061,12 @@ function talStats(){
   return Object.values(m).sort((a,b)=>((b.sales+b.goods+(b.tip||0))-(a.sales+a.goods+(a.tip||0))));
 }
 function talProf(name){
-  DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
-  {const t2=(DB.teams||[]).find(t=>t.id==='tm2'||/エンビル|ENVIL/i.test(t.name||''));
-   if(t2&&(!t2.members||!t2.members.length)){
-     t2.name='ENVIL';
-     t2.members=['うか','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ'];
-   }}
-  /* 物販シートの商品ラインナップに更新（既存の売上記録には影響しない） */
-  {
-    DB.products=DB.products||[];
-    const oldIds={'p-cheki':1,'p-2shot':1,'p-toreca':1};
-    const hasSales=id=>false; /* 売上はitem文字列で持つため商品削除は安全 */
-    DB.products=DB.products.filter(p=>!oldIds[p.id]);
-    const cur=new Set(DB.products.map(p=>p.name));
-    PROD_DEF.forEach(p=>{
-      const ex=DB.products.find(x=>x.id===p.id||x.name===p.name);
-      if(ex){if(!ex.userEdited)ex.price=p.price;ex.name=p.name}
-      else DB.products.push({...p});
-    });
+  DB.talents=DB.talents||{};
+  if(!DB.talents[name]){
+    const envil=(DB.teams||[]).find(t=>t.id==='tm2'||/ENVIL/i.test(t.name||''));
+    const defRate=(envil&&(envil.members||[]).includes(name))?10:30;
+    DB.talents[name]={addr:'',tel:'',bank:'',invno:'',rate:defRate,tax:false};
   }
-DB.bills=DB.bills||[];DB.payees=DB.payees||[];
-  if(!DB.talents[name])DB.talents[name]={addr:'',tel:'',bank:'',invno:'',rate:30,tax:false};
   const p=DB.talents[name];['bkNo','brNo','acNo','acName','bkName','brName'].forEach(k=>{if(p[k]===undefined)p[k]=''});if(!p.acType)p.acType='1';if(p.wht===undefined)p.wht=false;if(p.realName===undefined)p.realName='';
   return DB.talents[name];
 }
@@ -1115,6 +1088,24 @@ function renderTal(){
       ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
         onclick="window.talTeam='${t.id}';renderTal()">${esc(t.name)}</button>`).join('')}
     </div>
+    <div class="card"><h2>${mLabel(DB.curM)}の売上</h2>
+      ${listF.length?listF.map(t=>`
+        <div class="bar" style="cursor:pointer" onclick="openTal('${esc(t.name).replace(/'/g,"\\'")}')">
+          <button class="linebtn admin-only" title="出演、ギャラ明細書のご案内"
+            onclick="event.stopPropagation();lineInv('${esc(t.name).replace(/'/g,"\\'")}')">出演、ギャラ<br>明細書のご案内</button>
+          <span style="flex:1;min-width:0;text-align:left"><b style="font-family:var(--mincho);font-size:16px">${esc(t.name)}</b>
+            <span style="color:var(--mute);font-size:11px"> ${t.n}名${t.vip?' / VIP'+t.vip:''}${t.s?' / S'+t.s:''}${t.goods?' / グッズ'+t.grows.length:''}${t.tip?' / 投げ銭':''}</span></span>
+          <b style="font-family:var(--mono);text-align:right;line-height:1.35">${yen(t.sales+t.goods+(t.tip||0))}<br>
+            <span style="color:var(--berry);font-size:12px">払 ${yen(settle(t.name).total)} ›</span></b>
+        </div>`).join(''):'<div class="hint">来場者がいません</div>'}
+      <div class="bar" style="border-top:2px solid var(--grape);margin-top:6px">
+        <span style="font-weight:700">売上合計${tf?'（'+esc(teamOf(tf).name)+'）':''}</span>
+        <b style="font-family:var(--mono);font-size:16px">${yen(listF.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0),0))}</b></div>
+      <div class="bar"><span style="font-weight:700;color:var(--berry)">支払合計</span>
+        <b style="font-family:var(--mono);font-size:16px;color:var(--berry)">${yen(listF.reduce((a,b)=>a+settle(b.name).total,0))}</b></div>
+      <div class="bar"><span style="font-weight:700">事務所分</span>
+        <b style="font-family:var(--mono);font-size:16px">${yen(listF.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0)-settle(b.name).total,0))}</b></div>
+    </div>
     ${rk.length?`<div class="card"><h2>${mLabel(DB.curM)} 動員数ランキング（全イベント）</h2>
       ${rk.map((t,i)=>`<div class="mrowk" style="padding:7px 0;border-bottom:1px solid var(--line)">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
@@ -1132,24 +1123,7 @@ function renderTal(){
       <div class="bar" style="border-top:2px solid var(--grape)"><span style="font-weight:700">合計動員 / 金額</span>
         <b style="font-family:var(--mono)">${rk.reduce((a,b)=>a+b.n,0)}名 / ${yen(rk.reduce((a,b)=>a+b.sales,0))}</b></div>
     </div>`:''}
-    <div class="card"><h2>${mLabel(DB.curM)}${evFilter?'／'+esc((DB.events.find(e=>e.id===evFilter)||{}).title||''):'の売上'}</h2>
-      ${listF.length?listF.map(t=>`
-        <div class="bar" style="cursor:pointer" onclick="openTal('${esc(t.name).replace(/'/g,"\\'")}')">
-          <button class="linebtn admin-only" title="LINEで請求を送る"
-            onclick="event.stopPropagation();lineInv('${esc(t.name).replace(/'/g,"\\'")}')">LINE</button>
-          <span><b style="font-family:var(--mincho);font-size:16px">${esc(t.name)}</b>
-            <span style="color:var(--mute);font-size:11px"> ${t.n}名${t.vip?' / VIP'+t.vip:''}${t.s?' / S'+t.s:''}${t.goods?' / グッズ'+t.grows.length:''}${t.tip?' / 投げ銭':''}</span></span>
-          <b style="font-family:var(--mono);text-align:right;line-height:1.35">${yen(t.sales+t.goods+(t.tip||0))}<br>
-            <span style="color:var(--berry);font-size:12px">払 ${yen(settle(t.name).total)} ›</span></b>
-        </div>`).join(''):'<div class="hint">来場者がいません</div>'}
-      <div class="bar" style="border-top:2px solid var(--grape);margin-top:6px">
-        <span style="font-weight:700">売上合計</span>
-        <b style="font-family:var(--mono);font-size:16px">${yen(list.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0),0))}</b></div>
-      <div class="bar"><span style="font-weight:700;color:var(--berry)">支払合計</span>
-        <b style="font-family:var(--mono);font-size:16px;color:var(--berry)">${yen(list.reduce((a,b)=>a+settle(b.name).total,0))}</b></div>
-      <div class="bar"><span style="font-weight:700">手残り</span>
-        <b style="font-family:var(--mono);font-size:16px">${yen(list.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0)-settle(b.name).total,0))}</b></div>
-    </div>
+    
     <details class="card">
       <summary style="font-family:var(--mincho);font-size:15px;font-weight:600">＋ 動員・売上を直接入力</summary>
       <p class="hint" style="margin-top:8px">来場者を1件ずつ登録しないイベント用。同じタレント名を入れると上書きされます。</p>
@@ -1854,7 +1828,7 @@ const SITE_PROMPT=`この画像はライブ・イベント（現場）の売上�
 ・人数が書かれていなければ guests は 0。
 ・金額はカンマや円記号を除いた半角数字のみ。
 ・年が書かれていない場合は2026年として扱ってください。`;
-const SITE_NM={'ひかり':'星乃ひかり','みい':'三毛野みい','さやか':'中島沙也加','まい':'綾乃舞衣',
+const SITE_NM={'うか':'星乃羽華','羽華':'星乃羽華','星乃うか':'星乃羽華','ひかり':'星乃ひかり','みい':'三毛野みい','さやか':'中島沙也加','まい':'綾乃舞衣',
   'こもも':'瑚桃','ひま':'心花ひま','みなみ':'白音みなみ','ありす':'小山ありす','みゆ':'うさのみゆ'};
 const siteNorm=n=>{const t=String(n||'').replace(/[\s　]/g,'');return SITE_NM[t]||n};
 window.sitePick=()=>$('#siteFile').click();
@@ -1954,13 +1928,14 @@ function evStats(id){
     inn:ppl.filter(p=>p.in).length};
 }
 function renderSiteCards(){
+  updatePosBtn();
   const box=$('#siteList');if(!box)return;
   const evs=monthEvents();
   const head=$('#siteHead');
   if(head)head.innerHTML=`
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
       <button class="wide" style="margin:0;flex:1;font-size:14px;padding:12px" onclick="evFormToggle()">＋ 現場を追加</button>
-      ${evFilter?`<button class="wide ghost" style="margin:0;width:auto;padding:12px 14px;font-size:13px" onclick="setEvFilter('')">すべて表示</button>`:''}
+
     </div>
     <div id="evForm"></div>`;
   renderEvForm();
@@ -1987,6 +1962,10 @@ let evFormOpen=false;
 window.evFormToggle=()=>{evFormOpen=!evFormOpen;renderEvForm()};
 function renderEvForm(){
   const f=$('#evForm');if(!f)return;
+  const keep={};
+  ['n-title','n-date','n-venue','n-month','n-text'].forEach(id=>{
+    const el=document.getElementById(id);if(el)keep[id]=el.value;
+  });
   f.innerHTML=evFormOpen?`
     <div class="card">
       <h2>現場を追加</h2>
@@ -2004,6 +1983,25 @@ function renderEvForm(){
         <div><label for="n-venue">会場</label><input type="text" id="n-venue" placeholder="会場名"></div>
       </div>
       <label for="n-month">集計する月</label><input type="month" id="n-month" value="${DB.curM}">
+      ${evTals.length?`
+        <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+          <b style="font-family:var(--mincho);font-size:14px">タレント別 動員・売上（${evTals.length}名 / ${yen(evTals.reduce((a,b)=>a+(b.sales||0),0))}）</b>
+          ${evTals.map((r,i)=>`
+            <div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:7px;background:#FCFAFE">
+              <div class="row" style="margin:0;grid-template-columns:1.4fr .7fr 1fr">
+                <div><label style="font-size:10px">タレント</label>
+                  <input type="text" value="${esc(r.talent)}" onchange="evTalSet(${i},'talent',this.value)"></div>
+                <div><label style="font-size:10px">動員</label>
+                  <input type="number" inputmode="numeric" value="${r.guests}" onchange="evTalSet(${i},'guests',this.value)"></div>
+                <div><label style="font-size:10px">売上</label>
+                  <input type="number" inputmode="numeric" value="${r.sales}" onchange="evTalSet(${i},'sales',this.value)"></div>
+              </div>
+              <div style="text-align:right;margin-top:5px">
+                <button onclick="evTalDel(${i})" style="border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 10px;font-size:11px;color:var(--mute)">行を削除</button>
+              </div>
+            </div>`).join('')}
+          <button class="wide ghost" style="margin:8px 0 0" onclick="evTalAdd()">＋ タレント別を手入力で足す</button>
+        </div>`:''}
       ${evRows.length?`
         <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
           <b style="font-family:var(--mincho);font-size:14px">読み取った購入（${evRows.length}件 / ${yen(evRowsTotal())}）</b>
@@ -2033,6 +2031,9 @@ function renderEvForm(){
       <button class="wide ghost" onclick="evFormToggle()">やめる</button>
       <p class="hint">作った現場はこの下の一覧に出ます。タップするとその現場の来場者だけを表示します。</p>
     </div>`:'';
+  Object.entries(keep).forEach(([id,v])=>{
+    const el=document.getElementById(id);if(el&&v!==undefined&&v!=='')el.value=v;
+  });
 }
 window.evNew=async()=>{
   const t=$('#n-title').value.trim();if(!t){toast('現場の名前を入れてください');return}
@@ -2042,6 +2043,17 @@ window.evNew=async()=>{
   evDraftImg=null;
   DB.events.push(ev);DB.curM=m;evFilter=ev.id;evFormOpen=false;
   let n=0;
+  if(evTals.length){
+    DB.manual=DB.manual||[];
+    evTals.forEach(r=>{
+      const t2=(r.talent||'').trim();if(!t2)return;
+      const ex=DB.manual.find(x=>x.ev===ev.id&&x.talent===t2);
+      const dd={guests:Number(r.guests)||0,sales:Number(r.sales)||0};
+      if(ex)Object.assign(ex,dd);else DB.manual.push({id:uid(),ev:ev.id,talent:t2,...dd});
+      n++;
+    });
+  }
+  evTals=[];
   if(evRows.length){
     DB.goods=DB.goods||[];
     evRows.forEach((r,i)=>{
@@ -2103,9 +2115,14 @@ const talentNames=()=>{
   DB.people.forEach(p=>{if(p.talent)s.add(p.talent)});
   (DB.goods||[]).forEach(g=>{if(g.talent)s.add(g.talent)});
   Object.keys(DB.talents||{}).forEach(t=>s.add(t));
+  (DB.teams||[]).forEach(t=>(t.members||[]).forEach(m=>s.add(m)));
+  s.delete('未指定');
   return [...s].sort();
 };
-window.openPos=()=>{cart={};cartCus='';posEdit=false;posNew=false;renderGrid();$('#sheet').classList.add('on')};
+window.openPos=()=>{
+  if(!evFilter){toast('先に現場を選んでください');return}
+  cart={};cartCus='';posEdit=false;posNew=false;renderGrid();$('#sheet').classList.add('on');
+};
 window.posQty=(id,d)=>{cart[id]=Math.max(0,(cart[id]||0)+d);if(!cart[id])delete cart[id];renderPos()};
 window.posSet=(f,v)=>{if(f==='tal')cartTal=v;else cartCus=v;renderPos()};
 window.posNewToggle=()=>{posNew=!posNew;renderPos()};
@@ -2373,66 +2390,103 @@ function memoCard(){
 
 /* ---- 文章から購入を読み取る ---- */
 let evTextRead=false;
-const TXT_PROMPT=`次の文章は物販のメモです。誰が・どのタレントの・何を・何個・いつ買ったか、金額を読み取り、JSONだけを返してください。説明は不要です。
-{"rows":[{"date":"YYYY-MM-DD","customer":"購入者名やSNS名","talent":"タレント名","item":"商品名","qty":個数の半角数字,"amount":金額の半角数字}]}
-・1件ずつすべて rows に入れてください。
-・年がなければ2026年、日付がなければ空文字。個数がなければ1、金額がなければ0。
+const TXT_PROMPT=`次の文章はライブ・イベント（現場）の記録メモです。JSONだけを返してください。説明は不要です。
+{"name":"現場（イベント）の名前","date":"開催日をYYYY-MM-DD","venue":"会場名（@や会場:の後の文字）",
+ "talents":[{"talent":"タレント名","guests":動員人数の半角数字,"sales":売上金額の半角数字}],
+ "rows":[{"date":"YYYY-MM-DD","customer":"購入者名やSNS名","talent":"タレント名","item":"商品名","qty":個数の半角数字,"amount":金額の半角数字}]}
+・「動員」「売上」の見出しでタレント名と数字が並ぶ形式なら talents にまとめてください（動員と売上は同じタレントで1行に統合）。
+・「誰が何を買った」形式の行だけ rows に入れてください。
+・「合計」「計」「total」の行は集計行なので、talents にも rows にも入れないでください。
+・年がなければ2026年。読み取れない項目は空文字（数字は0）。
 文章:
 `;
 function evLocalParse(txt){
   const names=talentNames();
-  const rows=[];
+  const rows=[]; const tal={}; let name='',date='',venue='';
+  let section=''; /* '', guests, sales */
+  const skipRe=/^(合計|計|小計|total|お会計)/i;
   String(txt||'').split(/\n+/).forEach(line=>{
-    const l=line.trim();if(!l)return;
-    let rest=l;
-    let date='';
-    const dm=rest.match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})|(\d{1,2})[\/月](\d{1,2})日?/);
+    let l=line.trim();if(!l)return;
+    if(/^・?動員/.test(l)){section='guests';return}
+    if(/^・?売上/.test(l)){section='sales';return}
+    if(skipRe.test(l.replace(/[\s　]/g,'')))return;
+    /* 会場 */
+    const vm=l.match(/[@＠]\s*(.+)$|会場[:：]\s*(.+)$/);
+    if(vm&&!/\d{3,}/.test(l)){venue=venue||(vm[1]||vm[2]||'').trim();l=l.replace(vm[0],'').trim();if(!l)return}
+    /* 日付 */
+    const dm=l.match(/(\d{4})[年\/\-](\d{1,2})[月\/\-](\d{1,2})日?(?:\s*[（(][^）)]*[）)])?|(\d{1,2})[\/月](\d{1,2})日?(?:\s*[（(][^）)]*[）)])?/);
     if(dm){
-      date=dm[1]?`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`
-                :`2026-${String(dm[4]).padStart(2,'0')}-${String(dm[5]).padStart(2,'0')}`;
-      rest=rest.replace(dm[0],' ');
+      date=date||(dm[1]?`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`
+                       :`2026-${String(dm[4]).padStart(2,'0')}-${String(dm[5]).padStart(2,'0')}`);
+      l=l.replace(dm[0],'').trim();
+      if(l&&!name&&!/\d{3,}/.test(l)){name=l;return}
+      if(!l)return;
     }
+    /* タレント別（動員/売上セクション、または「名前 数字」だけの行） */
+    let rest=l;
+    let talent='';
+    for(const n of names){if(rest.includes(n)){talent=n;rest=rest.replace(n,' ');break}}
+    if(!talent){for(const k of Object.keys(SITE_NM)){if(rest.includes(k)){talent=SITE_NM[k];rest=rest.replace(k,' ');break}}}
+    const numm=rest.replace(/[,，]/g,'').match(/(\d+)\s*(円|pt)?/);
+    const num=numm?Number(numm[1]):0;
+    const isBare=talent&&rest.replace(/[,，\s　円]/g,'').replace(String(numm?numm[1]:''),'')==='';
+    if((section||isBare)&&talent){
+      const o=tal[talent]||(tal[talent]={talent,guests:0,sales:0});
+      const asSales=section==='sales'||(!section&&num>=1000);
+      if(asSales)o.sales+=num;else o.guests+=num;
+      return;
+    }
+    if(!talent&&!/\d/.test(l)){if(!name){name=l}return}
+    /* 購入行 */
+    let date2='';
     let amount=0;
     const am=rest.match(/[¥￥]\s*([\d,]+)|([\d,]{3,})\s*円/);
     if(am){amount=Number((am[1]||am[2]).replace(/,/g,''))||0;rest=rest.replace(am[0],' ')}
     let qty=1;
     const qm=rest.match(/(\d+)\s*(枚|個|点|本|セット)/);
     if(qm){qty=Number(qm[1])||1;rest=rest.replace(qm[0],' ')}
-    let talent='';
-    for(const n of names){if(rest.includes(n)){talent=n;rest=rest.replace(n,' ');break}}
-    if(!talent){
-      for(const k of Object.keys(SITE_NM)){if(rest.includes(k)){talent=SITE_NM[k];rest=rest.replace(k,' ');break}}
-    }
     let item='';
-    const im=rest.match(/(サイン入りチェキ|2ショットチェキ|ソロチェキ|チェキ|トレカ|Tシャツ|ペンライト|タオル|キーホルダー|ステッカー|色紙|CD)/);
+    const im=rest.match(/(サイン入りチェキ|チェキサイン有り|チェキサイン無し|2ショットチェキ|ソロチェキ|宿題チェキ|デカチェキ|ランチェキ|チェキ|トレカ|Tシャツ|ペンライト|タオル|缶バッジ|キーホルダー|ステッカー|色紙|CD)/);
     if(im){item=im[1];rest=rest.replace(im[0],' ')}
     const customer=rest.replace(/[×xX＊*、,。・\-–—:：]/g,' ').replace(/\s+/g,' ').trim()
       .replace(/^(枚|個|点|本|セット)\s*/,'').replace(/\s*(枚|個|点|本|セット)$/,'').trim();
+    if(skipRe.test(customer))return;
     if(!customer&&!item&&!amount)return;
-    rows.push({date,customer,talent,item:item||'グッズ',qty,amount});
+    rows.push({date:date2,customer,talent,item:item||'グッズ',qty,amount});
   });
-  return rows;
+  return {name,date,venue,rows,talents:Object.values(tal)};
 }
+/* タレント別集計の編集行 */
+let evTals=[];
+window.evTalSet=(i,f,v)=>{evTals[i][f]=f==='talent'?v:(Number(v)||0);renderEvForm()};
+window.evTalDel=i=>{evTals.splice(i,1);renderEvForm()};
+window.evTalAdd=()=>{evTals.push({talent:'',guests:0,sales:0});renderEvForm()};
 window.evReadText=async()=>{
   const txt=($('#n-text')||{}).value||'';
   if(!txt.trim()){toast('文章を貼り付けてください');return}
   evTextRead=true;renderEvForm();
-  let rows=null;
+  let r=null;
   try{
     const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:1500,
-        messages:[{role:'user',content:TXT_PROMPT+txt}]});
+      messages:[{role:'user',content:TXT_PROMPT+txt}]});
     const t=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'');
     const m=t.match(/\{[\s\S]*\}/);
-    if(m)rows=(JSON.parse(m[0]).rows||[]);
+    if(m)r=JSON.parse(m[0]);
   }catch(e){}
-  if(!rows||!rows.length)rows=evLocalParse(txt);
+  if(!r||((!r.rows||!r.rows.length)&&(!r.talents||!r.talents.length)))r=evLocalParse(txt);
   evTextRead=false;
-  evRows=evRows.concat(rows.map(x=>({talent:siteNorm(x.talent||''),customer:x.customer||'',
-    item:x.item||'グッズ',qty:Number(x.qty)||1,amount:Number(x.amount)||0,date:x.date||''})));
-  const d=evRows.find(r=>r.date);
-  if(d&&!$('#n-date').value){$('#n-date').value=d.date;$('#n-month').value=d.date.slice(0,7)}
+  const skipRe=/^(合計|計|小計|total)/i;
+  if(r.name&&!$('#n-title').value)$('#n-title').value=r.name;
+  if(r.venue&&!$('#n-venue').value)$('#n-venue').value=r.venue;
+  if(r.date&&/^\d{4}-\d{2}/.test(r.date)){if(!$('#n-date').value)$('#n-date').value=r.date;$('#n-month').value=r.date.slice(0,7)}
+  evTals=evTals.concat((r.talents||[]).filter(x=>x.talent&&!skipRe.test(x.talent))
+    .map(x=>({talent:siteNorm(x.talent),guests:Number(x.guests)||0,sales:Number(x.sales)||0})));
+  evRows=evRows.concat((r.rows||[]).filter(x=>!skipRe.test(String(x.customer||'').replace(/\s/g,'')))
+    .map(x=>({talent:siteNorm(x.talent||''),customer:x.customer||'',
+      item:x.item||'グッズ',qty:Number(x.qty)||1,amount:Number(x.amount)||0,date:x.date||''})));
   renderEvForm();
-  toast(rows.length?`${rows.length}件を読み取りました`:'読み取れませんでした。手入力で足してください');
+  const nT=(r.talents||[]).length,nR=(r.rows||[]).length;
+  toast(nT||nR?`読み取りました（タレント別${nT}件・購入${nR}件）`:'読み取れませんでした。手入力で足してください');
 };
 
 /* ---- アプリ内の確認ダイアログ（アプリ内ブラウザで confirm が効かないため） ---- */
@@ -3012,7 +3066,7 @@ window.gridProdDel=async id=>{
 };
 const FF_TALS=['小山ありす','綾乃舞衣','三毛野みい','星乃ひかり','中島沙也加','瑚桃','心花ひま','白音みなみ'];
 const talShort=t=>({'小山ありす':'ありす','綾乃舞衣':'まい','三毛野みい':'みい','星乃ひかり':'ひかり',
-  '中島沙也加':'さやか','瑚桃':'こもも','心花ひま':'ひま','白音みなみ':'みなみ','うさのみゆ':'みゆ',
+  '中島沙也加':'さやか','瑚桃':'こもも','心花ひま':'ひま','白音みなみ':'みなみ','星乃羽華':'うか','うさのみゆ':'みゆ',
   'へち':'へち','矢澤ないん':'ないん'}[t]||(t.length>4?t.slice(0,4):t));
 function gridTalents(){
   const m=teamMembers(curTeam);
@@ -3198,6 +3252,7 @@ async function gCsvImport(file){
     const x=String(txt2||'');
     if(/さやか|中島沙也加/.test(x))return '中島沙也加';
     if(/みなみ|白音/.test(x))return '白音みなみ';
+    if(/うか|羽華/.test(x))return '星乃羽華';
     if(/ひかり|星乃/.test(x))return '星乃ひかり';
     if(/ひま|心花/.test(x))return '心花ひま';
     if(/三毛野|みい/.test(x))return '三毛野みい';
@@ -3297,8 +3352,7 @@ function teams(){
   if(!DB.teams||!DB.teams.length){
     DB.teams=[
       {id:'tm1',name:'FruitFruit',members:['小山ありす','綾乃舞衣','三毛野みい','星乃ひかり','中島沙也加','瑚桃','心花ひま','白音みなみ']},
-      {id:'tm2',name:'ENVIL',members:['うか','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ']},
-      {id:'tm3',name:'アイドル3',members:[]},
+      {id:'tm2',name:'ENVIL',members:['星乃羽華','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ']},
       {id:'tmI',name:'インフルエンサー',members:['うさのみゆ','矢澤ないん','へち','ねこみみちゃん']}
     ];
   }
@@ -3312,6 +3366,26 @@ function teamMembers(id){
   return [];
 }
 window.setTeam=id=>{curTeam=id;gridTals=null;renderGrid()};
+window.teamAdd=async()=>{
+  if(!needAdmin())return;
+  const n=($('#tm-new')?$('#tm-new').value.trim():'');
+  if(!n){toast('チーム名を入れてください');return}
+  if(teams().some(t=>t.name===n)){toast('同じ名前のチームがあります');return}
+  teams().push({id:uid(),name:n,members:[]});
+  await save();fillTeamCard();renderAll();toast(`${n} を追加しました`);
+};
+window.teamDel=async i=>{
+  if(!needAdmin())return;
+  const t=teams()[i];if(!t)return;
+  if(teams().length<=1){toast('チームは1つ以上必要です');return}
+  if(!await ask(`チーム「${t.name}」を削除します。\n（メンバー${t.members.length}名の売上・投げ銭データは消えません）\n\n本当に消しますか？`))return;
+  if(!await ask('本当に本当に消しますか？'))return;
+  DB.teams.splice(i,1);
+  if(curTeam===t.id)curTeam=teams()[0].id;
+  if(window.talTeam===t.id)window.talTeam='';
+  if(window.tipTeam===t.id)window.tipTeam='';
+  await save();fillTeamCard();renderAll();toast(`${t.name} を削除しました`);
+};
 window.teamSave=async i=>{
   if(!needAdmin())return;
   const t=teams()[i];if(!t)return;
@@ -3329,10 +3403,118 @@ function fillTeamCard(){
         <input type="text" id="tm-name-${i}" value="${esc(t.name)}">
         <label for="tm-mem-${i}">メンバー（読点・改行区切り）</label>
         <textarea id="tm-mem-${i}" rows="2">${esc(t.members.join('、'))}</textarea>
-        <button class="wide ghost" style="margin-top:6px" onclick="teamSave(${i})">保存</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="wide ghost" style="margin:0;flex:1" onclick="teamSave(${i})">保存</button>
+          <button class="wide ghost" style="margin:0;width:auto;padding:12px 14px;color:var(--berry)" onclick="teamDel(${i})">削除</button>
+        </div>
       </div>`).join('')}
-    <p class="hint">物販売上シートの切替タブと、タレントページの絞り込みに使われます。</p>`;
+    <div style="border:1px dashed var(--line);border-radius:10px;padding:10px;margin-bottom:8px">
+      <label for="tm-new">新しいチーム名</label>
+      <input type="text" id="tm-new" placeholder="アイドル3期生">
+      <button class="wide ghost" style="margin-top:6px" onclick="teamAdd()">＋ チームを追加</button>
+    </div>
+    <p class="hint">物販売上シート・タレント・投げ銭の切替に使われます。メンバーの追加・削除は各チームの欄を書き換えて保存してください。チームを削除しても、タレント個人の売上・投げ銭データは消えません。</p>`;
 }
+
+function updatePosBtn(){
+  const b=$('#btnPos'),h=$('#posHint');
+  if(!b)return;
+  const on=!!evFilter;
+  b.disabled=!on;
+  b.style.opacity=on?'1':'.4';
+  b.style.pointerEvents=on?'':'none';
+  if(h)h.style.display=on?'none':'block';
+}
+
+/* ---- 投げ銭: 文章からの取り込み ---- */
+function tipLocalParse(txt){
+  const rows=[];let asof='';
+  String(txt||'').split(/\n+/).forEach(line=>{
+    let l=line.trim();if(!l)return;
+    const dm=l.match(/(\d{4})[年\/\-](\d{1,2})[月\/\-](\d{1,2})日?|(\d{1,2})[\/月](\d{1,2})日?/);
+    if(dm&&/時点|現在|集計|まで/.test(l)){
+      asof=dm[1]?`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`
+                :`2026-${String(dm[4]).padStart(2,'0')}-${String(dm[5]).padStart(2,'0')}`;
+      return;
+    }
+    if(/^(合計|計|total|ランキング|順位|オーディション|👼|👿)/i.test(l.replace(/[\s　]/g,'')))return;
+    const m=l.match(/^(.+?)[\s　]*([\d][\d,，．・.]*)\s*(ポイント|pt|pts|p)?[\s　]*$/i);
+    if(!m)return;
+    let name=m[1].replace(/^[\d]+[\.位:：]?[\s　]*/,'').replace(/[:：・]+$/,'').trim();
+    const pts=Number(m[2].replace(/[^\d]/g,''))||0;
+    if(!name)return;
+    name=siteNorm(name);
+    rows.push({talent:name,pts});
+  });
+  return {asof,rows};
+}
+window.tipReadText=async()=>{
+  const txt=($('#tip-text')||{}).value||'';
+  if(!txt.trim()){toast('文章を貼り付けてください');return}
+  const r=tipLocalParse(txt);
+  if(!r.rows.length){toast('読み取れませんでした。「名前 ポイント」の形で1行ずつお願いします');return}
+  await tipApply({asof:r.asof,rows:r.rows});
+  $('#tip-text').value='';
+  toast(`${r.rows.length}名分のポイントを反映しました`);
+};
+
+/* ---- 投げ銭: 文章からの一括反映 ---- */
+function tipTextParse(txt){
+  const rows=[]; let asof='';
+  const skipRe=/^(合計|計|小計|total|TOTAL)/i;
+  String(txt||'').split(/\n+/).forEach(line=>{
+    let l=line.trim();if(!l)return;
+    const dm=l.match(/(\d{1,2})[\/月](\d{1,2})日?\s*(時点|現在)?/);
+    if(dm&&(dm[3]||!/ポイント|pt/i.test(l))){asof=asof||`2026-${String(dm[1]).padStart(2,'0')}-${String(dm[2]).padStart(2,'0')}`;return}
+    if(skipRe.test(l.replace(/[\s　]/g,'')))return;
+    /* 順位・絵文字・記号を除去 */
+    l=l.replace(/[👑🥇🥈🥉⭐️✨🎖🏆]/g,'').trim().replace(/^[\d０-９]+\s*[位\.．、:：]\s*/,'');
+    const nm=l.match(/([\d,，]+(?:[・.][\d,，]+)?)\s*(ポイント|pt|ｐｔ|P)?\s*$/i);
+    if(!nm)return;
+    const pts=Number(nm[1].replace(/[,，・]/g,'').replace(/\..*$/,''))||0;
+    let name=l.slice(0,nm.index).replace(/[　\s:：\-–—]+$/,'').trim();
+    if(!name||skipRe.test(name))return;
+    rows.push({talent:siteNorm(name),pts});
+  });
+  return {asof,rows};
+}
+let tipTextRows=null,tipTextAsof='';
+window.tipTextOpen=()=>{
+  tipTextRows=null;
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2>文章からランキングを反映</h2>
+      <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <label for="tip-text">名前とポイントの一覧を貼り付け</label>
+      <textarea id="tip-text" rows="8" placeholder="うか5463ポイント
+ゆき0ポイント
+れいか 23,153ポイント"></textarea>
+      <button class="wide" onclick="tipTextRead()">読み取る</button>
+      <div id="tipTextPrev"></div>
+    </div>`;
+  $('#sheet').classList.add('on');
+};
+window.tipTextRead=()=>{
+  const r=tipTextParse($('#tip-text').value);
+  if(!r.rows.length){toast('名前とポイントを読み取れませんでした');return}
+  tipTextRows=r.rows;tipTextAsof=r.asof;
+  $('#tipTextPrev').innerHTML=`
+    <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:8px">
+      <b style="font-family:var(--mincho);font-size:14px">読み取り結果（${r.rows.length}名）${r.asof?'／'+r.asof+'時点':''}</b>
+      ${r.rows.map(x=>`<div class="bar"><span>${esc(x.talent)}</span>
+        <b style="font-family:var(--mono)">${x.pts.toLocaleString()}pt</b></div>`).join('')}
+      <button class="wide pink" onclick="tipTextApply()">この内容で反映する</button>
+      <p class="hint">同じタレントの既存ポイントは上書きされます。</p>
+    </div>`;
+};
+window.tipTextApply=async()=>{
+  if(!tipTextRows||!tipTextRows.length)return;
+  await tipApply({asof:tipTextAsof,rows:tipTextRows});
+  closeSheet();go('tip');
+  toast(`${tipTextRows.length}名分を反映しました`);
+};
 
 /* nav */
 function go(v){
@@ -3356,10 +3538,14 @@ $('#q').oninput=renderList;
   const d=await load();
   if(d&&d.events&&Array.isArray(d.people)){DB=d}
   DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
-  {const t2=(DB.teams||[]).find(t=>t.id==='tm2'||/エンビル|ENVIL/i.test(t.name||''));
+  {(DB.teams||[]).forEach(t=>{t.members=(t.members||[]).map(m=>(m==='うか'||m==='星乃うか')?'星乃羽華':m)});
+   [DB.people,DB.goods||[],DB.manual||[],DB.tips||[]].forEach(arr=>arr.forEach(r=>{if(r.talent==='うか'||r.talent==='星乃うか')r.talent='星乃羽華'}));
+   (DB.goods||[]).forEach(g=>{if(g.order==='72D14DEA08EABD19')g.talent='星乃羽華'});
+   DB.teams=(DB.teams||[]).filter(t=>!(t.id==='tm3'&&(!t.members||!t.members.length)));
+   const t2=(DB.teams||[]).find(t=>t.id==='tm2'||/エンビル|ENVIL/i.test(t.name||''));
    if(t2&&(!t2.members||!t2.members.length)){
      t2.name='ENVIL';
-     t2.members=['うか','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ'];
+     t2.members=['星乃羽華','ゆき','ひより','はな','かのん','れいか','かぐや','あいか','れいみ','りま','あいは','まなか','ひな','ありさ'];
    }}
   /* 物販シートの商品ラインナップに更新（既存の売上記録には影響しない） */
   {
@@ -3390,6 +3576,7 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
       const t=String(txt||'');
       if(/さやか|中島沙也加/.test(t))return '中島沙也加';
       if(/みなみ|白音/.test(t))return '白音みなみ';
+      if(/うか|羽華/.test(t))return '星乃羽華';
       if(/ひかり|星乃/.test(t))return '星乃ひかり';
       if(/ひま|心花/.test(t))return '心花ひま';
       if(/みい|三毛野/.test(t))return '三毛野みい';
