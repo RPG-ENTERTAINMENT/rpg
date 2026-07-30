@@ -196,6 +196,13 @@ header{position:sticky}
   color:#fff;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;font-family:var(--gothic)}
 #evalBtn{background:var(--mango);color:var(--grape);border-color:var(--mango)}
 body.staff .admin-only{display:none!important}
+.talent .admin-only{display:none!important}
+.talent .tick,.talent #btnPos,.talent #posHint,.talent #btnEvAdd2,.talent .sc .d+button,
+.talent .stub .no{pointer-events:none}
+.talent #btnPos{display:none!important}
+.talent #btnEvAdd2{display:none!important}
+.talent .tick{display:none!important}
+.talent .chips~* .tick{display:none}
 .linebtn{flex:none;background:#06C755;color:#fff;border:0;border-radius:8px;padding:5px 7px;
   font-size:9px;font-weight:700;font-family:var(--gothic);letter-spacing:.02em;margin-right:9px;align-self:center;line-height:1.35;white-space:nowrap}
 .linebtn:active{opacity:.75}
@@ -203,8 +210,13 @@ body.staff .admin-only{display:none!important}
 .tapbar:active{background:#F3EDF9}
 .tapmark{font-size:9.5px;color:var(--berry);border:1px solid #F3C3D3;background:#FDE9F0;
   border-radius:999px;padding:1px 7px;margin-left:5px;vertical-align:1px;white-space:nowrap}
-.stub .no.tdone{background:var(--berry)!important;color:#fff}
+.stub .no.gno{background:var(--berry)}
+.stub .no.tdone{background:var(--grape)!important;color:#fff}
 .stub .no{cursor:pointer}
+.stub .no.gno{flex-direction:column;gap:1px;width:44px;padding:4px 0;line-height:1.1}
+.stub .no.gno b{font-size:13px}
+.stub .no.gno .gd{font-size:8.5px;font-weight:700;color:#FFE3EC;letter-spacing:0}
+.stub .no.gno.tdone .gd{color:#D9CCE8}
 .viewer{position:fixed;inset:0;background:rgba(20,10,30,.95);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
 .viewer.on{display:flex}.viewer img{max-width:100%;max-height:88vh;border-radius:8px}
 .empty{text-align:center;color:var(--mute);font-size:13px;padding:26px 10px}
@@ -434,7 +446,8 @@ body.staff .admin-only{display:none!important}
     <input type="password" id="lg-code" inputmode="numeric" placeholder="パスコード" autocomplete="off">
     <button class="wide" onclick="login('admin')">責任者としてログイン</button>
     <button class="wide ghost" onclick="login('staff')">スタッフとしてログイン</button>
-    <p class="lghint">スタッフは「現場の追加・受付・当日グッズ販売」だけ操作できます。</p>
+    <button class="wide ghost" onclick="login('talent')">タレントとしてログイン</button>
+    <p class="lghint">スタッフは「現場の追加・受付・当日グッズ販売」だけ操作できます。タレントは閲覧のみです。</p>
   </div>
 </div>
 <div class="viewer" id="oview" onclick="this.classList.remove('on')"><img id="oviewImg" alt="請求書"></div>
@@ -642,7 +655,7 @@ function renderSum(){
 function renderAll(){renderEvents();renderList();renderSum();if($('#talBody'))renderTal();if($('#goodsBody'))renderGoods();if($('#tipBody'))renderTip()}
 
 /* ---------- actions ---------- */
-window.toggle=async id=>{
+window.toggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const p=DB.people.find(x=>x.id===id);if(!p)return;
   p.in=!p.in;p.inAt=p.in?new Date().toISOString():'';
   await save();renderList();renderSum();
@@ -655,7 +668,7 @@ window.detail=id=>{
     <div class="card" style="margin-top:12px">
       ${[['受付番号',p.no],['SNSのお名前',p.sns],['指名タレント',p.talent],['チケット',p.ticket],['ご飯会',p.meal?'参加':'なし'],
          ['ドリンク',p.drink],['金額',yen(p.amount)],['決済',p.pay],['注文ID',p.order],['注文日',p.date],
-         ['電話',p.tel],['メール',p.mail],['メモ',p.note],['受付',p.in?'済':'未']]
+         ...(isTalent()?[]:[['電話',p.tel],['メール',p.mail]]),['メモ',p.note],['受付',p.in?'済':'未']]
         .filter(r=>r[1]!==''&&r[1]!=null)
         .map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span><b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
     </div>
@@ -766,41 +779,44 @@ function renderGoods(){
       ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
         onclick="window.goodsTeam='${t.id}';renderGoods()">${esc(t.name)}</button>`).join('')}
     </div>
-    <div class="grid">
+    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${tf?"　"+esc(teamOf(tf).name):""}</div><div class="v">${a.length}</div></div></div>`
+    :`<div class="grid">
       <div class="kpi hi"><div class="k">GOODS SALES${tf?"　"+esc(teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
       <div class="kpi"><div class="k">ORDERS</div><div class="v">${a.length}</div></div>
-    </div>
+    </div>`}
     <button class="wide admin-only" style="margin:0 0 4px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
       onclick="gCsvPick()">📥 BASEのCSVから反映</button>
-    <p style="text-align:center;margin:0 0 10px;font-size:12px;color:var(--mute);font-family:var(--gothic)">
+    <p style="text-align:center;margin:0 0 10px;font-size:12px;color:var(--mute);font-family:var(--gothic);${isTalent()?'display:none':''}">
       CSV最終取り込み ${DB.gCsvAt?`<b style="font-family:var(--mono);color:var(--ink)">${new Date(DB.gCsvAt).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</b>
       ${DB.gCsvNew?`<span style="background:var(--berry);color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;margin-left:6px">NEW ${DB.gCsvNew}件</span>`:''}`
       :'<b style="color:var(--ink)">まだ取り込みがありません</b>'}</p>
-    <div class="card" style="padding:10px 12px">
+    <div class="card" style="padding:10px 12px;${isTalent()?'display:none':''}">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
       <div class="bar"><span>未発送</span><b style="font-family:var(--mono)">${a.filter(g=>!g.sent).length}件</b></div>
       <div class="bar"><span>タレント反映済み <span style="color:var(--berry)">■</span></span>
         <b style="font-family:var(--mono)">${a.filter(g=>g.tdone).length} / ${a.length}件</b></div>
 
-      <p class="hint" style="margin:6px 0 0">左の番号をタップすると赤くなり、「タレントに反映済み」の印になります。</p>
+      <p class="hint" style="margin:6px 0 0">左の番号をタップすると紫になり、「タレントに反映済み」の印になります。</p>
     </div>
     ${a.length?a.map(g=>`
       <div class="stub ${g.sent?'done':''}">
-        <div class="no ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
-          role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">${g.no}</div><div class="perf"></div>
+        <div class="no gno ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
+          role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">
+          <b>${g.no}</b>
+          ${g.date?`<span class="gd">${esc(String(g.date).slice(5,10).replace('-','/'))}</span>${String(g.date).length>10?`<span class="gd">${esc(String(g.date).slice(11,16))}</span>`:''}`:''}
+        </div><div class="perf"></div>
         <div class="body">
           <div class="txt" onclick="gDetail('${g.id}')">
-            <div class="nm">${esc(g.name)}
-              ${g.date?`<span style="font-family:var(--mono);font-size:10.5px;color:var(--mute);font-weight:400;margin-left:6px">${esc(String(g.date).slice(5).replace('-','/'))}</span>`:''}
+            <div class="nm">${esc(g.name)}${g.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(g.sns)}</span>`:''}
               ${g.isNew?`<span style="background:var(--berry);color:#fff;border-radius:6px;padding:1px 6px;font-size:9.5px;font-weight:700;font-family:var(--gothic);margin-left:5px;vertical-align:2px">NEW</span>`:''}
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
             <div class="sub"><span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
           </div>
-          <button class="tick" onclick="gToggle('${g.id}')" aria-label="${g.sent?'未発送に戻す':'発送済にする'}">${g.sent?'✓':'発'}</button>
+          ${isTalent()?'':`<button class="tick" onclick="gToggle('${g.id}')" aria-label="${g.sent?'未発送に戻す':'発送済にする'}">${g.sent?'✓':'発'}</button>`}
         </div>
       </div>`).join(''):'<div class="empty">グッズ注文がありません。</div>'}
-    <details class="card" style="margin-top:12px">
+    <details class="card" style="margin-top:12px;${isTalent()?'display:none':''}">
       <summary style="font-family:var(--mincho);font-size:15px;font-weight:600">＋ グッズ注文を追加</summary>
       <label for="g-ev">イベント</label><select id="g-ev">${monthEvents().map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('')}</select>
       <label for="g-name">お名前</label><input type="text" id="g-name">
@@ -823,9 +839,9 @@ function renderGoods(){
       </div>
       <button class="wide" onclick="gSave()">グッズ注文を追加</button>
     </details>
-    <button class="wide ghost" onclick="gCsv()">グッズ売上のCSVを書き出す</button>`;
+    ${isTalent()?'':`<button class="wide ghost" onclick="gCsv()">グッズ売上のCSVを書き出す</button>`}`;
 }
-window.gToggle=async id=>{
+window.gToggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
   g.sent=!g.sent;await save();renderGoods();toast(g.sent?'発送済にしました':'未発送に戻しました');
 };
@@ -839,10 +855,13 @@ window.gDetail=id=>{
         font-size:13px;font-weight:700;color:var(--ink)">閉じる</button>
     </div>
     <div class="card" style="margin-top:12px">
-    ${[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],
+    ${(isTalent()
+      ?[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],['金額',yen(g.amount)],['注文日',g.date]]
+      :[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],
        ['金額',yen(g.amount)],['決済',g.pay],
-       ['注文ID',g.order],['注文日',g.date],['お届け先',g.addr],['電話',g.tel],['メール',g.mail],
-       ['発送',g.sent?'済':'未']].filter(r=>r[1]!==''&&r[1]!=null)
+       ['注文ID',g.order],['注文日',g.date],
+       ['お届け先',g.addr],['電話',g.tel],['メール',g.mail],
+       ['発送',g.sent?'済':'未']]).filter(r=>r[1]!==''&&r[1]!=null)
       .map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span><b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
     </div>
     ${isAdmin()?`<div class="card">
@@ -853,7 +872,7 @@ window.gDetail=id=>{
       </select>
       <button class="wide ghost" onclick="gSetTal('${g.id}')">タレントを保存</button>
     </div>`:''}
-    <button class="wide danger" onclick="gDel('${g.id}')">この注文を削除</button>
+    ${isTalent()?'':`<button class="wide danger" onclick="gDel('${g.id}')">この注文を削除</button>`}
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
 };
@@ -865,13 +884,14 @@ window.gSetTal=async id=>{
   toast(g.talent?`${g.talent} に変更しました`:'未指定にしました');
 };
 window.gDel=async id=>{
+  if(isTalent()){toast('タレントは閲覧のみです');return}
   if(!await ask('削除します。よろしいですか？'))return;
   const g=(DB.goods||[]).find(x=>x.id===id);
   DB.goods=(DB.goods||[]).filter(x=>x.id!==id);
   if(g&&g.gkey&&DB.grid){const [ev,t]=g.gkey.split('|');if(DB.grid[ev])delete DB.grid[ev][t]}
   await save();closeSheet();renderAll();toast('削除しました');
 };
-window.gSave=async()=>{
+window.gSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const name=$('#g-name').value.trim();if(!name){toast('お名前を入れてください');return}
   const oid=$('#g-order').value.trim();
   if(oid){
@@ -887,7 +907,7 @@ window.gSave=async()=>{
     addr:$('#g-addr').value.trim(),tel:$('#g-tel').value.trim(),mail:$('#g-mail').value.trim(),note:''});
   await save();renderGoods();renderTal();toast(`${name} さんの注文を追加しました`);
 };
-window.gCsv=()=>{
+window.gCsv=()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const h=['番号','注文日','お名前','SNS名','タレント','商品','オプション','金額','決済','注文ID','お届け先','電話','メール','発送'];
   const rows=curGoods().sort((a,b)=>a.no-b.no).map(g=>[g.no,g.date,g.name,g.sns,g.talent,g.item,g.option,g.amount,g.pay,g.order,g.addr,g.tel,g.mail,g.sent?'済':'未']);
   const csvTxt=[h,...rows].map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -968,8 +988,8 @@ function renderTip(){
     </div>
     ${asof?`<p class="hint" style="margin:-6px 0 10px">集計日：${esc(asof.asof)}</p>`:''}
     <button class="wide" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
-      onclick="tipPick()" ${tipReading?'disabled':''}>${tipReading?'読み取り中…':'📷 ランキング画像から反映'}</button>
-    <button class="wide ghost" style="margin:6px 0 12px" onclick="tipTextOpen()">📝 文章から反映</button>
+      onclick="tipPick()" ${tipReading?'disabled':''} ${isTalent()?'hidden':''}>${tipReading?'読み取り中…':'📷 ランキング画像から反映'}</button>
+    <button class="wide ghost" style="margin:6px 0 12px" ${isTalent()?'hidden':''} onclick="tipTextOpen()">📝 文章から反映</button>
     ${a.length?a.map((t,i)=>{
       const w=total?Math.max(3,Math.round(t.pts/a[0].pts*100)):0;
       return `<div class="stub">
@@ -985,7 +1005,7 @@ function renderTip(){
           </div>
         </div>
       </div>`}).join(''):'<div class="empty">この月の投げ銭データがありません。</div>'}
-    <details class="card" style="margin-top:12px">
+    <details class="card" style="margin-top:12px;${isTalent()?'display:none':''}">
       <summary style="font-family:var(--mincho);font-size:15px;font-weight:600">＋ ポイントを入力</summary>
       <p class="hint" style="margin-top:8px">同じタレント名を入れると上書きします。</p>
       <label for="tp-talent">タレント名</label><input type="text" id="tp-talent">
@@ -995,7 +1015,7 @@ function renderTip(){
       </div>
       <button class="wide" onclick="tipSave()">保存する</button>
     </details>
-    <div class="card">
+    <div class="card" style="${isTalent()?'display:none':''}">
       <h2>円換算（任意）</h2>
       <label for="tp-rate">1ptあたりの金額</label>
       <input type="number" id="tp-rate" inputmode="decimal" step="0.01" value="${rate}">
@@ -1003,7 +1023,7 @@ function renderTip(){
       <p class="hint">初期値は 1pt＝¥0.6。ポイント×0.6を売上に合算して、支払（30%）を計算します。</p>
     </div>`;
 }
-window.tipSave=async()=>{
+window.tipSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const talent=$('#tp-talent').value.trim();if(!talent){toast('タレント名を入れてください');return}
   DB.tips=DB.tips||[];
   const pts=Number($('#tp-pts').value)||0, asof=$('#tp-asof').value;
@@ -1011,7 +1031,7 @@ window.tipSave=async()=>{
   if(ex){ex.pts=pts;ex.asof=asof}else DB.tips.push({id:uid(),month:DB.curM,talent,pts,asof});
   await save();renderTip();renderSum();toast(ex?`${talent} を更新しました`:`${talent} を追加しました`);
 };
-window.tipEdit=id=>{
+window.tipEdit=id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const t=(DB.tips||[]).find(x=>x.id===id);if(!t)return;
   $('#sheetIn').innerHTML=`<h2>${esc(t.talent)}</h2>
     <div class="card" style="margin-top:12px">
@@ -1028,11 +1048,11 @@ window.tipUpd=async id=>{
   const t=(DB.tips||[]).find(x=>x.id===id);if(!t)return;
   t.pts=Number($('#te-pts').value)||0;await save();closeSheet();renderTip();renderSum();toast('更新しました');
 };
-window.tipDel=async id=>{
+window.tipDel=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   if(!await ask('削除します。よろしいですか？'))return;
   DB.tips=(DB.tips||[]).filter(x=>x.id!==id);await save();closeSheet();renderTip();renderSum();toast('削除しました');
 };
-window.tipRateSave=async()=>{
+window.tipRateSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   DB.tipRate=DB.tipRate||{};
   const v=Number($('#tp-rate').value)||0;
   if(v>0)DB.tipRate[DB.curM]=v;else delete DB.tipRate[DB.curM];
@@ -1941,7 +1961,7 @@ function renderSiteCards(){
   const head=$('#siteHead');
   if(head)head.innerHTML=`
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <button class="wide" style="margin:0;flex:1;font-size:14px;padding:12px" onclick="evFormToggle()">＋ 現場を追加</button>
+      <button class="wide" id="btnEvAdd2" style="margin:0;flex:1;font-size:14px;padding:12px" onclick="evFormToggle()">＋ 現場を追加</button>
 
     </div>
     <div id="evForm"></div>`;
@@ -1966,7 +1986,7 @@ function renderSiteCards(){
     :'<div class="empty">この月の現場がありません。「＋ 現場を追加」から作ってください。</div>';
 }
 let evFormOpen=false;
-window.evFormToggle=()=>{evFormOpen=!evFormOpen;renderEvForm()};
+window.evFormToggle=()=>{if(isTalent()){toast('タレントは閲覧のみです');return}evFormOpen=!evFormOpen;renderEvForm()};
 function renderEvForm(){
   const f=$('#evForm');if(!f)return;
   const keep={};
@@ -2042,7 +2062,7 @@ function renderEvForm(){
     const el=document.getElementById(id);if(el&&v!==undefined&&v!=='')el.value=v;
   });
 }
-window.evNew=async()=>{
+window.evNew=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const t=$('#n-title').value.trim();if(!t){toast('現場の名前を入れてください');return}
   const date=$('#n-date').value||'', m=$('#n-month').value||(date?date.slice(0,7):DB.curM);
   const ev={id:uid(),title:t,date,venue:$('#n-venue').value.trim(),month:m,img:!!evDraftImg};
@@ -2127,6 +2147,7 @@ const talentNames=()=>{
   return [...s].sort();
 };
 window.openPos=()=>{
+  if(isTalent()){toast('タレントは閲覧のみです');return}
   if(!evFilter){toast('先に現場を選んでください');return}
   cart={};cartCus='';posEdit=false;posNew=false;renderGrid();$('#sheet').classList.add('on');
 };
@@ -2259,30 +2280,37 @@ const authCodes=()=>{
   DB.auth=DB.auth||{};
   if(!DB.auth.admin)DB.auth.admin='1234';
   if(!DB.auth.staff)DB.auth.staff='0000';
+  if(!DB.auth.talent)DB.auth.talent='11111';
   return DB.auth;
 };
 const STAFF_TABS=['rec'];
+const TALENT_TABS=['rec','goods','tip'];
+const isTalent=()=>ROLE==='talent';
+const canEdit=()=>!!ROLE&&ROLE!=='talent';
 function applyRole(){
   document.body.classList.toggle('staff',!isAdmin());
+  document.body.classList.toggle('talent',isTalent());
+  const allow=isAdmin()?null:(isTalent()?TALENT_TABS:STAFF_TABS);
   $$('nav button').forEach(b=>{
-    b.style.display=(isAdmin()||STAFF_TABS.includes(b.dataset.v))?'':'none';
+    b.style.display=(!allow||allow.includes(b.dataset.v))?'':'none';
   });
   const chip=$('#roleChip');
-  if(chip){chip.textContent=ROLE?(isAdmin()?'責任者':'スタッフ'):'ログイン';chip.style.display=ROLE?'':'none'}
-  if(!isAdmin()){
-    const on=$$('.view').find?null:null;
+  if(chip){chip.textContent=ROLE?(isAdmin()?'責任者':(isTalent()?'タレント':'スタッフ')):'ログイン';chip.style.display=ROLE?'':'none'}
+  const eb=$('#evalBtn');if(eb)eb.style.display=(ROLE&&!isTalent())?'':'none';
+  if(allow){
     const cur=[...document.querySelectorAll('.view')].find(v=>v.classList.contains('on'));
-    if(cur&&!STAFF_TABS.includes(cur.id.replace('v-','')))go('rec');
+    if(cur&&!allow.includes(cur.id.replace('v-','')))go('rec');
   }
 }
 window.login=async r=>{
   const code=$('#lg-code').value.trim();
   const c=authCodes();
-  if(code!==(r==='admin'?c.admin:c.staff)){toast('パスコードが違います');return}
+  const want=r==='admin'?c.admin:(r==='talent'?c.talent:c.staff);
+  if(code!==want){toast('パスコードが違います');return}
   ROLE=r;try{localStorage.setItem(RKEY,r)}catch(e){}
   $('#login').classList.remove('on');
   applyRole();renderAll();
-  toast(r==='admin'?'責任者としてログインしました':'スタッフとしてログインしました');
+  toast(r==='admin'?'責任者としてログインしました':(r==='talent'?'タレントとしてログインしました（閲覧のみ）':'スタッフとしてログインしました'));
 };
 window.logout=async()=>{
   if(!await ask('ログアウトしますか？\n\nパスコードの入力画面に戻ります。'))return;
@@ -2292,15 +2320,16 @@ window.logout=async()=>{
 };
 window.saveCodes=async()=>{
   if(!needAdmin())return;
-  const a=$('#ac-admin').value.trim(), s=$('#ac-staff').value.trim();
-  if(!a||!s){toast('パスコードを入れてください');return}
-  if(a===s){toast('責任者とスタッフは別のパスコードにしてください');return}
-  DB.auth={admin:a,staff:s};await save();toast('パスコードを変更しました');
+  const a=$('#ac-admin').value.trim(), s2=$('#ac-staff').value.trim();
+  const t=($('#ac-talent')?$('#ac-talent').value.trim():'')||authCodes().talent;
+  if(!a||!s2){toast('パスコードを入れてください');return}
+  if(a===s2||a===t||s2===t){toast('それぞれ別のパスコードにしてください');return}
+  DB.auth={admin:a,staff:s2,talent:t};await save();toast('パスコードを変更しました');
 };
 function bootAuth(){
   authCodes();
   let r='';try{r=localStorage.getItem(RKEY)||''}catch(e){}
-  if(r==='admin'||r==='staff'){ROLE=r;$('#login').classList.remove('on')}
+  if(r==='admin'||r==='staff'||r==='talent'){ROLE=r;$('#login').classList.remove('on')}
   else $('#login').classList.add('on');
   applyRole();
   const f=$('#ac-admin'),g=$('#ac-staff');
@@ -2333,7 +2362,7 @@ let memoOpen=false;
 const memos=()=>{DB.notes=DB.notes||[];return DB.notes};
 const evMemos=id=>memos().filter(n=>n.ev===id).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 window.memoToggle=()=>{memoOpen=!memoOpen;renderPos()};
-window.memoSave=async()=>{
+window.memoSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const item=$('#mo-item').value.trim(), cus=$('#mo-cus').value.trim();
   if(!item&&!cus){toast('お客様か買ったものを入れてください');return}
   memos().push({id:uid(),ev:$('#mo-ev').value||posEv(),date:$('#mo-date').value||new Date().toISOString().slice(0,10),
@@ -2344,7 +2373,7 @@ window.memoSave=async()=>{
 window.memoDel=async id=>{
   DB.notes=memos().filter(n=>n.id!==id);await save();renderPos();toast('メモを削除しました');
 };
-window.memoToSale=async id=>{
+window.memoToSale=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const n=memos().find(x=>x.id===id);if(!n)return;
   if(!n.amount){toast('金額を入れてから反映してください');return}
   DB.goods=DB.goods||[];
@@ -2516,7 +2545,7 @@ const TIP_PROMPT=`この画像はライブ配信アプリの投げ銭ランキ�
 ・カンマや「pt」を除いた数字だけを pts に入れてください。
 ・順位が付いていれば上位から順に入れてください。
 ・年がなければ2026年として扱ってください。`;
-window.tipPick=id=>{tipImgTarget=id||null;$('#tipFile').click()};
+window.tipPick=id=>{if(isTalent())return;tipImgTarget=id||null;$('#tipFile').click()};
 async function tipOcr(dataUrl){
   const b64=String(dataUrl).split(',')[1];
   const data=await aiCall({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:[
@@ -2566,7 +2595,7 @@ window.editManualSave=async id=>{
   m.guests=Number($('#em-g-'+id).value)||0;m.sales=Number($('#em-s-'+id).value)||0;
   await save();renderAll();closeSheet();toast('更新しました');
 };
-window.editTip=name=>{
+window.editTip=name=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   if(!needAdmin())return;
   const t=(DB.tips||[]).find(x=>x.month===DB.curM&&x.talent===name);
   if(t){tipEdit(t.id);return}
@@ -3004,7 +3033,7 @@ function qNorm(str){
   return out.toLowerCase().replace(/[\s　・･]/g,'');
 }
 
-window.gTalDone=async id=>{
+window.gTalDone=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
   g.tdone=!g.tdone;
   await save();renderGoods();
@@ -3039,7 +3068,7 @@ let gridMinus=false, gridTals=null, gridProdOpen=false;
 const gridStore=()=>{DB.grid=DB.grid||{};const ev=posEv();DB.grid[ev]=DB.grid[ev]||{};return DB.grid[ev]};
 const gridGStore=()=>{DB.gridG=DB.gridG||{};const ev=posEv();DB.gridG[ev]=DB.gridG[ev]||{};return DB.gridG[ev]};
 const gGuest=t=>(gridGStore()[t]||0);
-window.gridTapG=async t=>{
+window.gridTapG=async t=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const g=gridGStore();
   const before=g[t]||0;
   g[t]=Math.max(0,before+(gridMinus?-1:1));
@@ -3056,7 +3085,7 @@ window.gridTapG=async t=>{
   renderGrid();renderList();
 };
 window.gridProdToggle=()=>{gridProdOpen=!gridProdOpen;renderGrid()};
-window.gridProdAdd=async()=>{
+window.gridProdAdd=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const n=$('#gp-name').value.trim(), pr=Number($('#gp-price').value)||0;
   if(!n){toast('グッズの名前を入れてください');return}
   if(products().some(p=>p.name===n)){toast('同じ名前のグッズがあります');return}
@@ -3083,7 +3112,7 @@ function gridTalents(){
   return talentNames().filter(t=>t&&t!=='未指定'&&!/新井/.test(t)&&!assigned.has(t));
 }
 const gCell=(t,p)=>(((gridStore())[t]||{})[p]||0);
-window.gridTap=async(t,pid)=>{
+window.gridTap=async(t,pid)=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const g=gridStore();
   g[t]=g[t]||{};
   const before=g[t][pid]||0;
@@ -3234,6 +3263,7 @@ function parseCsvText(text){
 const TICKET_RE=/定期|会場|ライブ|live|チケット|ファンミ|クラウドファンディング|レンタル|オフ会|撮影会|ファンクラブ/i;
 window.gCsvPick=()=>{if(!needAdmin())return;$('#gCsvFile').click()};
 async function gCsvImport(file){
+  if(isTalent()){toast('タレントは閲覧のみです');return}
   const buf=await file.arrayBuffer();
   let txt='';try{txt=new TextDecoder('shift_jis').decode(buf)}catch(e){}
   if(!txt||txt.indexOf('注文ID')<0)txt=new TextDecoder('utf-8').decode(buf);
@@ -3243,7 +3273,7 @@ async function gCsvImport(file){
   const orders={};
   t.slice(1).forEach(r=>{
     const id=g(r,'注文ID');if(!id)return;
-    const o=orders[id]||(orders[id]={id,d:g(r,'注文日時').slice(0,10),
+    const o=orders[id]||(orders[id]={id,d:g(r,'注文日時').slice(0,16),
       n:(g(r,'氏(請求先)')+' '+g(r,'名(請求先)')).trim(),items:[],opts:{},opt:0,ship:0,
       pay:g(r,'支払い方法'),tel:g(r,'電話番号(請求先)'),mail:g(r,'メールアドレス(請求先)'),
       addr:g(r,'都道府県(配送先)')+g(r,'住所(配送先)')+g(r,'住所2(配送先)')});
@@ -3605,6 +3635,10 @@ window.evalOpen=()=>{
 
 /* nav */
 function go(v){
+  if(ROLE&&!isAdmin()){
+    const allow=isTalent()?TALENT_TABS:STAFF_TABS;
+    if(!allow.includes(v))v=allow[0];
+  }
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
   if(v==='goods')renderGoods();
