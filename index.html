@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>タレント経理総合アプリ | RPG GOODS&TICKETS</title>
 <style>
@@ -192,8 +192,9 @@ header{position:sticky}
 .lgbox .wide{background:var(--mango);color:var(--grape)}
 .lgbox .wide.ghost{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff}
 .lghint{margin-top:14px!important;font-size:11.5px;line-height:1.7}
-#roleChip{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+#roleChip,#evalBtn{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
   color:#fff;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;font-family:var(--gothic)}
+#evalBtn{background:var(--mango);color:var(--grape);border-color:var(--mango)}
 body.staff .admin-only{display:none!important}
 .linebtn{flex:none;background:#06C755;color:#fff;border:0;border-radius:8px;padding:5px 7px;
   font-size:9px;font-weight:700;font-family:var(--gothic);letter-spacing:.02em;margin-right:9px;align-self:center;line-height:1.35;white-space:nowrap}
@@ -251,6 +252,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
+    <button id="evalBtn" onclick="evalOpen()">今月の評価</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
   <div class="evline">
@@ -570,13 +572,12 @@ function card(p){
   const rk=tRank(p.ticket);
   if(rk<2)bits.push(`<span class="v">${rk===0?'VIP':'S'}</span>`);
   if(p.meal)bits.push(`<span class="m">飯${p.drink?'・'+esc(p.drink):''}</span>`);
-  if(p.sns)bits.push(`<span>@${esc(p.sns)}</span>`);
   bits.push(`<span class="a">${yen(p.amount)}</span>`);
   return `<div class="stub ${p.in?'done':''}">
     <div class="no">${p.no}</div><div class="perf"></div>
     <div class="body">
       <div class="txt" onclick="detail('${p.id}')">
-        <div class="nm">${esc(p.name)}</div>
+        <div class="nm">${esc(p.name)}${p.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(p.sns)}</span>`:''}</div>
         <div class="sub">${bits.join('<span style="opacity:.4">/</span>')}</div>
       </div>
       <button class="tick ent" onclick="toggle('${p.id}')" aria-label="${p.in?'入場前に戻す':'入場済にする'}">${p.in?'入場済':'入場前'}</button>
@@ -769,13 +770,17 @@ function renderGoods(){
       <div class="kpi hi"><div class="k">GOODS SALES${tf?"　"+esc(teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
       <div class="kpi"><div class="k">ORDERS</div><div class="v">${a.length}</div></div>
     </div>
-    <button class="wide admin-only" style="margin:0 0 6px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
+    <button class="wide admin-only" style="margin:0 0 4px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
       onclick="gCsvPick()">📥 BASEのCSVから反映</button>
+    ${DB.gCsvAt?`<p style="text-align:center;margin:0 0 10px;font-size:12px;color:var(--mute);font-family:var(--gothic)">
+      最終取り込み <b style="font-family:var(--mono);color:var(--ink)">${new Date(DB.gCsvAt).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</b>
+      ${DB.gCsvNew?`<span style="background:var(--berry);color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;margin-left:6px">NEW ${DB.gCsvNew}件</span>`:''}</p>`:''}
     <div class="card" style="padding:10px 12px">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
       <div class="bar"><span>未発送</span><b style="font-family:var(--mono)">${a.filter(g=>!g.sent).length}件</b></div>
       <div class="bar"><span>タレント反映済み <span style="color:var(--berry)">■</span></span>
         <b style="font-family:var(--mono)">${a.filter(g=>g.tdone).length} / ${a.length}件</b></div>
+
       <p class="hint" style="margin:6px 0 0">左の番号をタップすると赤くなり、「タレントに反映済み」の印になります。</p>
     </div>
     ${a.length?a.map(g=>`
@@ -786,6 +791,7 @@ function renderGoods(){
           <div class="txt" onclick="gDetail('${g.id}')">
             <div class="nm">${esc(g.name)}
               ${g.date?`<span style="font-family:var(--mono);font-size:10.5px;color:var(--mute);font-weight:400;margin-left:6px">${esc(String(g.date).slice(5).replace('-','/'))}</span>`:''}
+              ${g.isNew?`<span style="background:var(--berry);color:#fff;border-radius:6px;padding:1px 6px;font-size:9.5px;font-weight:700;font-family:var(--gothic);margin-left:5px;vertical-align:2px">NEW</span>`:''}
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
             <div class="sub"><span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
@@ -1098,13 +1104,13 @@ function renderTal(){
           <b style="font-family:var(--mono);text-align:right;line-height:1.35">${yen(t.sales+t.goods+(t.tip||0))}<br>
             <span style="color:var(--berry);font-size:12px">払 ${yen(settle(t.name).total)} ›</span></b>
         </div>`).join(''):'<div class="hint">来場者がいません</div>'}
-      <div class="bar" style="border-top:2px solid var(--grape);margin-top:6px">
-        <span style="font-weight:700">売上合計${tf?'（'+esc(teamOf(tf).name)+'）':''}</span>
+      ${!tf?`<div class="bar" style="border-top:2px solid var(--grape);margin-top:6px">
+        <span style="font-weight:700">売上合計</span>
         <b style="font-family:var(--mono);font-size:16px">${yen(listF.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0),0))}</b></div>
       <div class="bar"><span style="font-weight:700;color:var(--berry)">支払合計</span>
         <b style="font-family:var(--mono);font-size:16px;color:var(--berry)">${yen(listF.reduce((a,b)=>a+settle(b.name).total,0))}</b></div>
-      <div class="bar"><span style="font-weight:700">事務所分</span>
-        <b style="font-family:var(--mono);font-size:16px">${yen(listF.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0)-settle(b.name).total,0))}</b></div>
+      <div class="bar"><span style="font-weight:700">会社の取り分</span>
+        <b style="font-family:var(--mono);font-size:16px">${yen(listF.reduce((a,b)=>a+b.sales+b.goods+(b.tip||0)-settle(b.name).total,0))}</b></div>`:''}
     </div>
     ${rk.length?`<div class="card"><h2>${mLabel(DB.curM)} 動員数ランキング（全イベント）</h2>
       ${rk.map((t,i)=>`<div class="mrowk" style="padding:7px 0;border-bottom:1px solid var(--line)">
@@ -3265,6 +3271,7 @@ async function gCsvImport(file){
     return '';
   };
   let add=0,skip=0,tk=0;
+  (DB.goods||[]).forEach(g=>{delete g.isNew});
   const known=new Set([...(DB.goods||[]).map(x=>x.order),...DB.people.map(x=>x.order)].filter(Boolean));
   Object.values(orders).forEach(o=>{
     const goodsItems=o.items.filter(i=>!TICKET_RE.test(i.n));
@@ -3282,9 +3289,10 @@ async function gCsvImport(file){
       name:o.n,sns:sns?sns[1]:'',talent:guess((optTal?optTal[1]:'')+goodsItems.map(i=>i.n).join(' ')),
       item:goodsItems.map(i=>i.n).join('／'),
       option:Object.entries(o.opts).filter(([k])=>!/SNS|タレント|推し|押し/.test(k)).map(([k,v])=>`${k}: ${v}`).join('／'),
-      amount:total,pay:o.pay,order:o.id,date:o.d,addr:o.addr,tel:o.tel,mail:o.mail,note:'',sent:false});
+      amount:total,pay:o.pay,order:o.id,date:o.d,addr:o.addr,tel:o.tel,mail:o.mail,note:'',sent:false,isNew:true});
     add++;
   });
+  DB.gCsvAt=new Date().toISOString();DB.gCsvNew=add;
   await save();renderAll();
   toast(`グッズ${add}件を追加しました（重複${skip}件・チケットのみ${tk}件はスキップ）`);
 }
@@ -3514,6 +3522,84 @@ window.tipTextApply=async()=>{
   await tipApply({asof:tipTextAsof,rows:tipTextRows});
   closeSheet();go('tip');
   toast(`${tipTextRows.length}名分を反映しました`);
+};
+
+/* ---- 今月の評価（データから自動判定＋メモ） ---- */
+function evalStore(){DB.reviews=DB.reviews||{};DB.reviews[DB.curM]=DB.reviews[DB.curM]||{};return DB.reviews[DB.curM]}
+window.evalSet=async(name,val)=>{
+  const st=evalStore();
+  const v=String(val||'').trim();
+  if(v)st[name]=v;else delete st[name];
+  await save();
+};
+function statsForMonth(m){
+  const km=DB.curM,ef=evFilter;
+  DB.curM=m;evFilter='';
+  let st=[];try{st=talStats()}catch(e){}
+  DB.curM=km;evFilter=ef;
+  return st;
+}
+function prevMonth(m){
+  const y=Number(m.slice(0,4)),mo=Number(m.slice(5));
+  return mo===1?`${y-1}-12`:`${y}-${String(mo-1).padStart(2,'0')}`;
+}
+function evalJudge(cur,prv){
+  const cs=cur?cur.sales+cur.goods+(cur.tip||0):0;
+  const ps=prv?prv.sales+prv.goods+(prv.tip||0):0;
+  const n=cur?cur.n:0, tip=cur?(cur.tipPts||cur.tip||0):0, goods=cur?cur.goods:0;
+  if(!cs&&!n)return {mark:'—',cls:'#9A8FAB',word:'今月の活動記録がありません',cs,ps,diff:null};
+  let diff=null;
+  if(ps>0)diff=Math.round((cs-ps)/ps*100);
+  let mark,cls,word;
+  if(diff===null){mark='◎';cls:'';cls='#3E9B4F';word='今月から売上が立ちました'}
+  else if(diff>=20){mark='◎';cls='#3E9B4F';word=`好調です（前月比 +${diff}%）`}
+  else if(diff>=-20){mark='○';cls='#B98A00';word=`安定しています（前月比 ${diff>=0?'+':''}${diff}%）`}
+  else {mark='△';cls='#B21E4E';word=`前月より下がっています（${diff}%）`}
+  const tips=[];
+  if(!cur.goods)tips.push('物販');
+  if(!(cur.tip||0))tips.push('投げ銭・配信');
+  if(!cur.n)tips.push('現場動員');
+  return {mark,cls,word,cs,ps,diff,improve:tips.length?('改善ポイント: '+tips.join('・')):''};
+}
+window.evalOpen=()=>{
+  const st=evalStore();
+  const cur=statsForMonth(DB.curM);
+  const prv=statsForMonth(prevMonth(DB.curM));
+  const get=(arr,n)=>arr.find(x=>x.name===n);
+  const groups=teams().map(t=>({name:t.name,members:t.members||[]})).filter(g=>g.members.length);
+  const canEdit=isAdmin();
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2>${mLabel(DB.curM)}の評価</h2>
+      <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
+    </div>
+    <p class="hint" style="margin:2px 0 10px">売上・動員・前月比のデータから自動で判定しています。${canEdit?'メモ欄は自由に追記できます（自動保存）。':'メモの編集は責任者のみです。'}</p>
+    ${groups.map(g=>`
+      <div class="card" style="margin-bottom:10px">
+        <h2 style="font-size:14px">${esc(g.name)}</h2>
+        ${g.members.map(m=>{
+          const j=evalJudge(get(cur,m),get(prv,m));
+          const c=get(cur,m)||{sales:0,goods:0,tip:0,n:0};
+          return `
+          <div style="margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <b style="font-family:var(--mincho);font-size:14.5px">
+                <span style="color:${j.cls};font-size:16px">${j.mark}</span> ${esc(m)}</b>
+              <span style="font-family:var(--mono);font-size:12px;white-space:nowrap">${yen(j.cs)}
+                ${j.diff!==null?`<span style="color:${j.cls};font-size:10.5px">(${j.diff>=0?'+':''}${j.diff}%)</span>`:''}</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--mute);margin-top:2px">
+              動員${c.n}名・グッズ${yen(c.goods)}・投げ銭${yen(c.tip||0)}</div>
+            <div style="font-size:12px;margin-top:3px;color:${j.cls}">${j.word}</div>
+            ${j.improve?`<div style="font-size:11.5px;color:var(--berry);margin-top:2px">${j.improve}</div>`:''}
+            ${canEdit?`<textarea rows="1" placeholder="メモ・改善点（任意）"
+              onchange="evalSet('${esc(m).replace(/'/g,"\\'")}',this.value)"
+              style="margin-top:6px">${esc(st[m]||'')}</textarea>`
+            :(st[m]?`<div style="font-size:12px;background:#F6F2F9;border-radius:8px;padding:7px 9px;margin-top:6px">${esc(st[m])}</div>`:'')}
+          </div>`}).join('')}
+      </div>`).join('')}
+    <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
+  $('#sheet').classList.add('on');
 };
 
 /* nav */
