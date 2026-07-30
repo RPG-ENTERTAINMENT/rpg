@@ -302,6 +302,7 @@ body.staff .admin-only{display:none!important}
     <button class="wide" id="btnPos" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
       onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
     <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
+    <div id="memberList"></div>
     <div id="list"></div>
     <div id="buyList"></div>
   </section>
@@ -565,7 +566,7 @@ function renderEvents(){
   });
   renderSiteCards();
 }
-window.setEvFilter=id=>{evFilter=id;renderEvents();renderList();renderSum();renderGoods();renderTal()};
+window.setEvFilter=id=>{window.memFilter='';evFilter=id;renderEvents();renderList();renderSum();renderGoods();renderTal()};
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
 
@@ -575,6 +576,7 @@ const tRank=t=>{const v=String(t||'');
   return 2;};
 const tLabel=t=>['VIP','S','通常'][tRank(t)];
 function renderList(){
+  renderMembers();
   const q=qNorm($('#q').value.trim());
   /* 現場を選んでいない・検索もしていないときは、来場者リストを出さない */
   if(!evFilter&&!q){
@@ -586,6 +588,7 @@ function renderList(){
     return;
   }
   let a=curPeople();
+  if(window.memFilter)a=a.filter(p=>p.talent===window.memFilter);
   if(filter==='yet')a=a.filter(p=>!p.in);
   if(filter==='done')a=a.filter(p=>p.in);
   if(filter==='meal')a=a.filter(p=>p.meal);
@@ -3700,6 +3703,28 @@ window.evalOpen=()=>{
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
 };
+
+/* 選択中の現場の出演メンバー一覧 */
+window.memFilter='';
+window.memPick=n=>{window.memFilter=(window.memFilter===n?'':n);renderList()};
+function renderMembers(){
+  const el=$('#memberList');if(!el)return;
+  if(!evFilter){el.innerHTML='';window.memFilter='';return}
+  const cnt={};
+  DB.people.filter(p=>p.ev===evFilter&&p.talent).forEach(p=>{cnt[p.talent]=(cnt[p.talent]||0)+1});
+  (DB.manual||[]).filter(m=>m.ev===evFilter&&m.talent).forEach(m=>{cnt[m.talent]=(cnt[m.talent]||0)+(Number(m.guests)||0)});
+  const rows=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  if(!rows.length){el.innerHTML='';window.memFilter='';return}
+  if(window.memFilter&&!cnt[window.memFilter])window.memFilter='';
+  el.innerHTML=`<div class="card" style="padding:10px 12px;margin-bottom:10px">
+    <h2 style="font-size:13.5px;margin-bottom:6px">出演メンバー（${rows.length}名）${window.memFilter?`<span style="font-weight:400;font-size:11px;color:var(--berry)">　${esc(talShort(window.memFilter))}で絞り込み中（もう一度タップで解除）</span>`:''}</h2>
+    <div class="chips">${rows.map(([n,c])=>`
+      <button class="chip ${window.memFilter===n?'on':''}" style="padding:5px 11px"
+        onclick="memPick('${esc(n).replace(/'/g,"\\'")}')">
+        <b style="font-family:var(--mincho)">${esc(talShort(n))}</b>
+        <span style="font-size:10.5px;${window.memFilter===n?'':'color:var(--mute)'}"> ${c}名</span></button>`).join('')}
+    </div></div>`;
+}
 
 /* nav */
 function go(v){
