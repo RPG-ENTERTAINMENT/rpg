@@ -813,7 +813,7 @@ function renderGoods(){
             <div class="nm">${esc(g.name)}${g.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(g.sns)}</span>`:''}
               ${g.isNew?`<span style="background:var(--berry);color:#fff;border-radius:6px;padding:1px 6px;font-size:9.5px;font-weight:700;font-family:var(--gothic);margin-left:5px;vertical-align:2px">NEW</span>`:''}
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
-            <div class="sub"><span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
+            <div class="sub">${teamNameOf(g.talent)?`<span style="background:#F0EAF7;color:var(--grape);border-radius:5px;padding:1px 5px;font-size:9.5px;font-weight:700">${esc(teamNameOf(g.talent))}</span> `:''}<span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
           </div>
           ${isTalent()?'':`<button class="tick" onclick="gToggle('${g.id}')" aria-label="${g.sent?'未発送に戻す':'発送済にする'}">${g.sent?'✓':'発'}</button>`}
@@ -3402,6 +3402,7 @@ function teams(){
 }
 let curTeam='tm1';
 const teamOf=id=>teams().find(t=>t.id===id)||teams()[0];
+const teamNameOf=n=>{const t=teams().find(x=>(x.members||[]).includes(n));return t?t.name:''};
 function teamMembers(id){
   const t=teamOf(id);
   if(t.members&&t.members.length)return t.members;
