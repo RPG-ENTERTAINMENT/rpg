@@ -201,7 +201,7 @@ header{position:sticky}
 .lgbox .wide{background:var(--mango);color:var(--grape)}
 .lgbox .wide.ghost{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff}
 .lghint{margin-top:14px!important;font-size:11.5px;line-height:1.7}
-#roleChip,#evalBtn{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+#roleChip,#evalBtn,#setBtn{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
   color:#fff;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;font-family:var(--gothic)}
 #evalBtn{background:var(--mango);color:var(--grape);border-color:var(--mango)}
 body.staff .admin-only{display:none!important}
@@ -276,6 +276,7 @@ body.staff .admin-only{display:none!important}
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
     <button id="evalBtn" onclick="evalOpen()">今月の評価</button>
+    <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
   <div class="evline">
@@ -337,8 +338,8 @@ body.staff .admin-only{display:none!important}
   <section class="view" id="v-set">
 
 
-    <div class="card">
-      <h2>来場者を追加</h2>
+    <div class="card" id="pForm" style="display:none">
+      <h2>来場者の編集</h2>
       <label for="f-ev">イベント</label>
       <select id="f-ev"></select>
       <label for="f-name">お名前</label>
@@ -432,6 +433,7 @@ body.staff .admin-only{display:none!important}
 
   <section class="view" id="v-out"><div id="outBody"></div></section>
   <section class="view" id="v-stock"><div id="stockBody"></div></section>
+  <section class="view" id="v-sched"><div id="schedBody"></div></section>
 
 <nav>
   <button class="on" data-v="rec"><span class="n">現</span>現場</button>
@@ -440,8 +442,7 @@ body.staff .admin-only{display:none!important}
   <button data-v="tal"><span class="n">タ</span>タレント</button>
   <button data-v="sum"><span class="n">計</span>集計</button>
   <button data-v="out"><span class="n">外</span>外注</button>
-  <button data-v="stock"><span class="n">在</span>在庫</button>
-  <button data-v="set"><span class="n">設</span>設定・追加</button>
+  <button data-v="sched"><span class="n">ス</span>予定</button>
 </nav>
 
 <div class="sheet" id="sheet"><div class="inner" id="sheetIn"></div></div>
@@ -468,6 +469,7 @@ body.staff .admin-only{display:none!important}
 <input type="file" id="outFile" accept="image/*" style="display:none">
 <input type="file" id="siteFile" accept="image/*" style="display:none">
 <input type="file" id="stockFile" accept="image/*" style="display:none">
+<input type="file" id="schedFile" accept="image/*" style="display:none">
 <input type="file" id="evFile" accept="image/*" style="display:none">
 <input type="file" id="tipFile" accept="image/*" style="display:none">
 <input type="file" id="gCsvFile" accept=".csv,text/csv" style="display:none">
@@ -719,13 +721,15 @@ window.editP=id=>{
     'f-pay':p.pay,'f-order':p.order,'f-date':p.date,'f-tel':p.tel,'f-mail':p.mail,'f-note':p.note};
   for(const k in v)$('#'+k).value=v[k]??'';
   $('#f-meal').checked=!!p.meal;
+  $('#pForm').style.display='';
   $('#btnSave').textContent='この内容で更新';$('#btnCancel').style.display='block';
-  window.scrollTo(0,0);
+  try{window.scrollTo(0,0)}catch(e){}
 };
 function clearForm(){
   ['f-name','f-kana','f-sns','f-talent','f-amount','f-drink','f-pay','f-order','f-tel','f-mail','f-note','f-date'].forEach(i=>{const el=$('#'+i);if(el)el.value=''});
   $('#f-ticket').value='一般チケット';$('#f-meal').checked=false;
-  editId=null;$('#btnSave').textContent='リストに追加';$('#btnCancel').style.display='none';
+  editId=null;$('#btnSave').textContent='この内容で更新';$('#btnCancel').style.display='none';
+  const pf=$('#pForm');if(pf)pf.style.display='none';
 }
 $('#btnCancel').onclick=()=>{clearForm();toast('編集をやめました')};
 
@@ -805,6 +809,10 @@ function renderGoods(){
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
   const item=a.reduce((s,g)=>s+(Number(g.amount)||0),0);
   $('#goodsBody').innerHTML=`
+    ${isAdmin()?`<div class="oseg" style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="on" style="flex:1;border:0;background:var(--grape);color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📦 グッズ注文</button>
+      <button onclick="go('stock')" style="flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📋 在庫</button>
+    </div>`:''}
     <div class="chips" style="margin-bottom:8px">
       <button class="chip ${!tf?'on':''}" onclick="window.goodsTeam='';window.goodsTal='';renderGoods()">全員</button>
       ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
@@ -1058,6 +1066,16 @@ function renderTip(){
       <input type="number" id="tp-rate" inputmode="decimal" step="0.01" value="${rate}">
       <button class="wide ghost" onclick="tipRateSave()">レートを保存</button>
       <p class="hint">初期値は 1pt＝¥0.6。ポイント×0.6を売上に合算して、支払（30%）を計算します。</p>
+    </div>
+    <div class="card">
+      <h2>🎬 ウィークリーミッション換算スキャナー</h2>
+      <p class="hint">配信のウィークリーミッション動画からUSD金額を読み取り、日本円に換算するツールです。</p>
+      <button class="wide" onclick="window.open('./scanner.html','_blank')">スキャナーを開く</button>
+      <details style="margin-top:8px">
+        <summary style="font-size:12.5px;color:var(--mute)">この画面の中で開く</summary>
+        <iframe src="./scanner.html" loading="lazy"
+          style="width:100%;height:640px;border:1px solid var(--line);border-radius:12px;margin-top:8px;background:#12161f"></iframe>
+      </details>
     </div>`;
 }
 window.tipSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
@@ -2330,8 +2348,8 @@ const authCodes=()=>{
   if(!DB.auth.talent)DB.auth.talent='11111';
   return DB.auth;
 };
-const STAFF_TABS=['rec'];
-const TALENT_TABS=['rec','goods','tip'];
+const STAFF_TABS=['rec','sched'];
+const TALENT_TABS=['rec','goods','tip','sched'];
 const isTalent=()=>ROLE==='talent';
 const canEdit=()=>!!ROLE&&ROLE!=='talent';
 function applyRole(){
@@ -2344,6 +2362,7 @@ function applyRole(){
   const chip=$('#roleChip');
   if(chip){chip.textContent=ROLE?(isAdmin()?'責任者':(isTalent()?'タレント':'スタッフ')):'ログイン';chip.style.display=ROLE?'':'none'}
   const eb=$('#evalBtn');if(eb)eb.style.display=(ROLE&&!isTalent())?'':'none';
+  const sb=$('#setBtn');if(sb)sb.style.display=isAdmin()?'':'none';
   if(allow){
     const cur=[...document.querySelectorAll('.view')].find(v=>v.classList.contains('on'));
     if(cur&&!allow.includes(cur.id.replace('v-','')))go('rec');
@@ -2353,10 +2372,12 @@ function applyRole(){
 const roleSave=r=>{
   try{localStorage.setItem(RKEY,r)}catch(e){}
   try{document.cookie=`rpgrole=${r};max-age=31536000;path=/;SameSite=Lax`}catch(e){}
+  try{oSet('rpg-role',r)}catch(e){}
 };
 const roleClear=()=>{
   try{localStorage.removeItem(RKEY)}catch(e){}
   try{document.cookie='rpgrole=;max-age=0;path=/'}catch(e){}
+  try{oDel('rpg-role')}catch(e){}
 };
 const roleRead=()=>{
   let r='';
@@ -2388,9 +2409,12 @@ window.saveCodes=async()=>{
   if(a===s2||a===t||s2===t){toast('それぞれ別のパスコードにしてください');return}
   DB.auth={admin:a,staff:s2,talent:t};await save();toast('パスコードを変更しました');
 };
-function bootAuth(){
+async function bootAuth(){
   authCodes();
-  const r=roleRead();
+  let r=roleRead();
+  if(!(r==='admin'||r==='staff'||r==='talent')){
+    try{const v=await oGet('rpg-role');if(v==='admin'||v==='staff'||v==='talent')r=v}catch(e){}
+  }
   if(r==='admin'||r==='staff'||r==='talent'){ROLE=r;roleSave(r);$('#login').classList.remove('on')}
   else $('#login').classList.add('on');
   applyRole();
@@ -2764,6 +2788,7 @@ window.lineInv=name=>{
     <textarea id="ln-text" rows="16" style="font-size:13.5px">${esc(txt)}</textarea>
     <button class="wide" style="background:#06C755" onclick="lineSend()">LINEを開いて送る</button>
     <button class="wide ghost" onclick="lineSendPdf('${esc(name).replace(/'/g,"\\'")}')">請求書PDFも付けて送る</button>
+    <button class="wide ghost" onclick="driveSaveInv('${esc(name).replace(/'/g,"\\'")}')">📁 Googleドライブに保存（月ごと）</button>
     <button class="wide ghost" onclick="lineCopy()">文面をコピー</button>
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
@@ -3854,6 +3879,10 @@ function renderStock(){
   const total=a.reduce((s,x)=>s+remain(x),0);
   const low=a.filter(x=>remain(x)<=5).length;
   $('#stockBody').innerHTML=`
+    <div class="oseg" style="display:flex;gap:6px;margin-bottom:10px">
+      <button onclick="go('goods')" style="flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📦 グッズ注文</button>
+      <button class="on" style="flex:1;border:0;background:var(--grape);color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📋 在庫</button>
+    </div>
     <div class="grid">
       <div class="kpi hi"><div class="k">残り在庫合計</div><div class="v">${total}<span style="font-size:13px">点</span></div></div>
       <div class="kpi"><div class="k">残りわずか（5以下）</div><div class="v">${low}<span style="font-size:13px">品</span></div></div>
@@ -3920,19 +3949,249 @@ function renderStock(){
 </div>`;
 }
 
+/* ---- 週間スケジュール ---- */
+window.schedOff=0;
+function scheds(){DB.sched=DB.sched||[];return DB.sched}
+function weekDays(off){
+  const t=new Date();
+  const m=new Date(t.getFullYear(),t.getMonth()+off,1);
+  const last=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+  return [...Array(last)].map((_,i)=>
+    `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`);
+}
+const WD=['月','火','水','木','金','土','日'];
+window.schedMove=d=>{window.schedOff+=d;renderSched()};
+const TIMES=(()=>{const a=[];for(let h=6;h<=23;h++){a.push(`${String(h).padStart(2,'0')}:00`);a.push(`${String(h).padStart(2,'0')}:30`)}return a})();
+window.scNewImg='';
+window.schedNewOpen=(date,keep,editId)=>{
+  if(!keep)window.scNewImg='';
+  const k=keep||{};
+  const WD2=['日','月','火','水','木','金','土'];
+  const dt=new Date(date+'T00:00:00');
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2>${editId?'予定を編集':'予定を追加'}</h2>
+      <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
+    </div>
+    <p class="hint" style="margin:2px 0 10px;font-size:13px"><b style="font-family:var(--mono);color:var(--berry)">${esc(date.slice(5).replace('-','/'))}（${WD2[dt.getDay()]}）</b> の予定</p>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+      <div onclick="schedImgPick('${date}','${editId||''}')" style="width:64px;height:64px;flex:none;border-radius:10px;overflow:hidden;background:#F0EAF7;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line)">
+        ${window.scNewImg?`<img src="${window.scNewImg}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:22px">📷</span>'}
+      </div>
+      <button class="wide ghost" style="margin:0;flex:1" onclick="schedImgPick('${date}','${editId||''}')">${window.scNewImg?'画像を変更する':'📷 画像を付ける（任意）'}</button>
+    </div>
+    <label>開始時間</label>
+    <select id="sc-t1"><option value="">未定</option>${TIMES.map(t=>`<option value="${t}" ${k.t1===t?'selected':''}>${t}</option>`).join('')}</select>
+    <label>終了時間（任意）</label>
+    <select id="sc-t2"><option value="">なし</option>${TIMES.map(t=>`<option value="${t}" ${k.t2===t?'selected':''}>${t}</option>`).join('')}</select>
+    <label for="sc-title">内容</label><input type="text" id="sc-title" placeholder="TikTok撮影会＠事務所" value="${esc(k.title||'')}">
+    <label for="sc-note">メモ（任意）</label><input type="text" id="sc-note" placeholder="私服でOK" value="${esc(k.note||'')}">
+    <button class="wide" onclick="schedCreate('${date}','${editId||''}')">${editId?'この内容で保存する':'この日に追加する'}</button>
+    ${editId?`<button class="wide danger" onclick="schedDel('${editId}')">この予定を削除する</button>`:''}
+    <p class="hint">${editId?'参加者はそのまま引き継がれます。':'追加するとタレント全員が見られます。'}</p>`;
+  $('#sheet').classList.add('on');
+};
+window.schedImgPick=(date,editId)=>{window.schedImgDate=date;window.schedImgEdit=editId||'';$('#schedFile').click()};
+window.schedCreate=async(date,editId)=>{
+  const title=$('#sc-title').value.trim();
+  if(!title){toast('内容を入れてください');return}
+  const t1=$('#sc-t1').value,t2=$('#sc-t2').value;
+  const time=t1?(t2?`${t1}〜${t2}`:t1):'';
+  if(editId){
+    const ev=scheds().find(x=>x.id===editId);
+    if(ev){ev.time=time;ev.title=title;ev.note=$('#sc-note').value.trim();ev.img=window.scNewImg||''}
+    window.scNewImg='';
+    await save();closeSheet();renderSched();toast('予定を更新しました');
+    return;
+  }
+  scheds().push({id:uid(),date,time,title,note:$('#sc-note').value.trim(),img:window.scNewImg||'',join:[]});
+  window.scNewImg='';
+  await save();closeSheet();renderSched();toast('予定を追加しました');
+};
+window.schedEdit=id=>{
+  if(isTalent()){toast('編集は運営のみです');return}
+  const ev=scheds().find(x=>x.id===id);if(!ev)return;
+  window.scNewImg=ev.img||'';
+  const tt=String(ev.time||'').split('〜');
+  schedNewOpen(ev.date,{t1:tt[0]||'',t2:tt[1]||'',title:ev.title,note:ev.note||''},id);
+};
+window.schedDel=async id=>{
+  if(isTalent()){toast('タレントは閲覧のみです');return}
+  const ev=scheds().find(x=>x.id===id);if(!ev)return;
+  if(!await ask(`「${ev.title}」を削除します。よろしいですか？`))return;
+  DB.sched=scheds().filter(x=>x.id!==id);
+  await save();closeSheet();renderSched();toast('削除しました');
+};
+window.sjTeam='';
+window.schedTeamPick=(id,tid)=>{window.sjTeam=(window.sjTeam===tid?'':tid);schedJoinOpen(id)};
+window.schedJoinOpen=id=>{
+  const ev=scheds().find(x=>x.id===id);if(!ev)return;
+  ev.join=ev.join||[];
+  const tf=window.sjTeam;
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+      <h2>参加の登録</h2>
+      <div style="display:flex;gap:6px">
+        ${(!isTalent()&&ROLE)?`<button onclick="schedEdit('${id}')" style="border:1px solid var(--line);background:#fff;color:var(--grape);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700">✏️ 編集</button>`:''}
+        <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
+      </div>
+    </div>
+    <p class="hint" style="margin:2px 0 10px">${esc(ev.date.slice(5).replace('-','/'))} ${esc(ev.time)}　${esc(ev.title)}</p>
+    ${ev.join.length?`<div style="margin:0 0 10px;font-size:12px">参加中：${ev.join.map(n=>`<b style="background:#EAF6EC;color:#2E7D39;border-radius:999px;padding:2px 9px;font-size:11px;margin-right:3px">${esc(talShort(n))}</b>`).join('')}</div>`:''}
+    <p class="hint" style="margin:0 0 6px">まず自分のグループを選んでください。</p>
+    <div class="chips" style="margin-bottom:10px">
+      ${teams().map(t=>`
+      <button class="chip ${tf===t.id?'on':''}" style="padding:9px 16px;font-size:13.5px"
+        onclick="schedTeamPick('${id}','${t.id}')">${esc(t.name)}</button>`).join('')}
+    </div>
+    ${tf?`<p class="hint" style="margin:0 0 6px">自分の名前をタップしてください（もう一度タップで取り消し）。</p>
+    <div class="chips">
+      <button class="chip ${(teamOf(tf).members||[]).every(n=>ev.join.includes(n))&&(teamOf(tf).members||[]).length?'on':''}" style="font-weight:800"
+        onclick="schedJoinAll('${id}','${tf}')">${esc(teamOf(tf).name)}全員</button>
+      ${(teamOf(tf).members||[]).map(n=>`
+      <button class="chip ${ev.join.includes(n)?'on':''}" onclick="schedJoin('${id}','${esc(n).replace(/'/g,"\\\\'")}')">${esc(n)}</button>`).join('')}
+    </div>`:''}`;
+  $('#sheet').classList.add('on');
+};
+window.schedJoinAll=async(id,tid)=>{
+  const ev=scheds().find(x=>x.id===id);if(!ev)return;
+  ev.join=ev.join||[];
+  const ms=(teamOf(tid).members||[]);
+  const all=ms.length&&ms.every(n=>ev.join.includes(n));
+  if(all){ev.join=ev.join.filter(n=>!ms.includes(n));toast(`${teamOf(tid).name}全員の参加を取り消しました`)}
+  else{ms.forEach(n=>{if(!ev.join.includes(n))ev.join.push(n)});toast(`${teamOf(tid).name}全員で参加登録しました！`)}
+  await save();schedJoinOpen(id);renderSched();
+};
+window.schedJoin=async(id,name)=>{
+  const ev=scheds().find(x=>x.id===id);if(!ev)return;
+  ev.join=ev.join||[];
+  const i=ev.join.indexOf(name);
+  if(i>=0){ev.join.splice(i,1);toast(`${name} の参加を取り消しました`)}
+  else{ev.join.push(name);toast(`${name} 参加で登録しました！`)}
+  await save();schedJoinOpen(id);renderSched();
+};
+function renderSched(){
+  const days=weekDays(window.schedOff);
+  const today=(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date());
+  const label=`${days[0].slice(0,4)}年${Number(days[0].slice(5,7))}月`;
+  const canEd=!isTalent()&&!!ROLE;
+  $('#schedBody').style.padding='4px 10px 20px';
+  $('#schedBody').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 16px">
+      <button onclick="schedMove(-1)" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-weight:700">‹</button>
+      <div style="flex:1;text-align:center;font-family:var(--mincho);font-weight:600;font-size:15px">
+        ${label}${window.schedOff===0?'<span style="color:var(--berry);font-size:11px">　今月</span>':''}</div>
+      <button onclick="schedMove(1)" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-weight:700">›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;align-items:start">
+    ${days.map((d,i)=>{
+      const evs=scheds().filter(x=>x.date===d).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+      const dow=new Date(d+'T00:00:00').getDay();
+      const isToday=d===today, isSun=dow===0, isSat=dow===6;
+      return `
+      <div style="margin-bottom:4px">
+        <div style="display:flex;align-items:baseline;gap:7px;margin:0 2px 7px">
+          <b style="font-family:var(--mono);font-size:12.5px;color:${isSun?'var(--berry)':isSat?'#2E6FD8':'var(--ink)'}">${d.slice(8)}日（${['日','月','火','水','木','金','土'][dow]}）</b>
+          ${isToday?'<span style="background:var(--berry);color:#fff;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700">今日</span>':''}
+        </div>
+        ${evs.length?evs.map(ev=>`
+          <div class="card" style="padding:9px 10px;margin-bottom:7px">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+              <div style="flex:1;min-width:0">
+                ${ev.time?`<span style="font-family:var(--mono);font-size:12px;color:var(--berry);font-weight:700">${esc(ev.time)}</span>`:''}
+                <b style="font-family:var(--mincho);font-size:13.5px;display:block;line-height:1.35">${esc(ev.title)}</b>
+                ${ev.note?`<div style="font-size:11px;color:var(--mute)">${esc(ev.note)}</div>`:''}
+              </div>
+
+            </div>
+            ${ev.img?`<img src="${ev.img}" style="width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-top:8px">`:''}
+            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+              ${(ev.join||[]).map(n=>`<span style="background:#F0EAF7;color:var(--grape);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700">${esc(talShort(n))}</span>`).join('')}
+              <span style="font-size:10.5px;color:var(--mute)">参加 ${(ev.join||[]).length}名</span>
+            </div>
+            <button class="wide" style="margin:8px 0 0;padding:10px 6px;font-size:12.5px;background:var(--lime);color:#fff"
+              onclick="schedJoinOpen('${ev.id}')">🙋 参加できる！</button>
+          </div>`).join('')+`<button onclick="schedNewOpen('${d}')" style="width:100%;border:1px dashed var(--line);background:#fff;color:var(--mute);border-radius:9px;padding:7px;font-size:11px">＋ この日に予定を作る</button>`
+        :`<button onclick="schedNewOpen('${d}')" style="width:100%;border:1px dashed var(--grape);background:#F8F5FC;color:var(--grape);border-radius:10px;padding:11px;text-align:center;font-size:12.5px;font-weight:700">＋ 予定を作る</button>`}
+      </div>`}).join('')}
+    </div>`;
+}
+
+/* ---- 請求書をGoogleドライブへ（Apps Script経由・月フォルダ） ---- */
+const GAS_CODE=`function doPost(e){
+  var d=JSON.parse(e.postData.contents);
+  var it=DriveApp.getFoldersByName('RPG請求書');
+  var root=it.hasNext()?it.next():DriveApp.createFolder('RPG請求書');
+  var mi=root.getFoldersByName(d.month);
+  var mf=mi.hasNext()?mi.next():root.createFolder(d.month);
+  mf.createFile(Utilities.newBlob(Utilities.base64Decode(d.pdf),'application/pdf',d.name));
+  return ContentService.createTextOutput('ok');
+}`;
+async function fileToB64(file){
+  const buf=await file.arrayBuffer();
+  const u8=new Uint8Array(buf);let bin='';
+  for(let i=0;i<u8.length;i+=0x8000)bin+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+window.driveSaveInv=async name=>{
+  if(!DB.gasUrl){gasSetupOpen(name);return}
+  toast('請求書を作成中…');
+  let file;
+  try{file=await invPdfFile(name)}catch(e){toast('PDFの作成に失敗しました');return}
+  try{
+    const b64=await fileToB64(file);
+    await fetch(DB.gasUrl,{method:'POST',mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({name:file.name,month:mLabel(DB.curM),pdf:b64})});
+    toast(`ドライブへ送信しました（RPG請求書/${mLabel(DB.curM)}）`);
+  }catch(e){toast('送信に失敗しました。通信環境とURLを確認してください')}
+};
+window.gasSetupOpen=name=>{
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2>Googleドライブ保存の設定</h2>
+      <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
+    </div>
+    <p class="hint">最初に1回だけ設定すると、以後はボタン1つで「RPG請求書／2026年7月」のように月ごとのフォルダへ自動保存されます。</p>
+    <div class="card">
+      <h2>手順（約3分）</h2>
+      <p class="hint" style="line-height:1.9">
+        ① <b>script.google.com</b> を開き「新しいプロジェクト」<br>
+        ② 下のコードを貼り付けて保存<br>
+        ③ 右上「デプロイ」→「新しいデプロイ」→種類「ウェブアプリ」<br>
+        ④ アクセスできるユーザー：<b>全員</b> にしてデプロイ<br>
+        ⑤ 表示された <b>ウェブアプリURL</b> を下に貼って保存
+      </p>
+      <button class="wide ghost" onclick="navigator.clipboard.writeText(GAS_CODE).then(()=>toast('コードをコピーしました'))">📋 貼り付け用コードをコピー</button>
+      <label for="gas-url">ウェブアプリURL</label>
+      <input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(DB.gasUrl||'')}">
+      <button class="wide" onclick="gasSaveUrl('${esc(name||'').replace(/'/g,"\\\\'")}')">保存する</button>
+    </div>`;
+  $('#sheet').classList.add('on');
+};
+window.gasSaveUrl=async name=>{
+  const u=$('#gas-url').value.trim();
+  if(!u.startsWith('https://script.google.com/')){toast('script.google.com のURLを貼ってください');return}
+  DB.gasUrl=u;await save();closeSheet();
+  toast('設定しました');
+  if(name)driveSaveInv(name);
+};
+
 /* nav */
 function go(v){
   if(ROLE&&!isAdmin()){
     const allow=isTalent()?TALENT_TABS:STAFF_TABS;
     if(!allow.includes(v))v=allow[0];
   }
-  $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  const navV=v==='stock'?'goods':(v==='set'?'':v);
+  $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===navV));
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
   if(v==='goods')renderGoods();
   if(v==='tip')renderTip();
   if(v==='tal')renderTal();
   if(v==='sum')renderSum();
   if(v==='stock')renderStock();
+  if(v==='sched')renderSched();
   if(v==='set')fillEvForm();
   if(v==='out')renderOut();
   window.scrollTo(0,0);
@@ -4149,6 +4408,17 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   $('#gCsvFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
     try{await gCsvImport(f)}catch(err){toast('読み込みに失敗しました')}
+  };
+  $('#schedFile').onchange=async e=>{
+    const f=e.target.files[0];e.target.value='';
+    if(!f)return;
+    const url=await stockShrink(f);
+    if(!url){toast('画像を読み込めませんでした');return}
+    window.scNewImg=url;
+    const keep={t1:$('#sc-t1')?$('#sc-t1').value:'',t2:$('#sc-t2')?$('#sc-t2').value:'',
+      title:$('#sc-title')?$('#sc-title').value:'',note:$('#sc-note')?$('#sc-note').value:''};
+    schedNewOpen(window.schedImgDate,keep,window.schedImgEdit||'');
+    toast('画像を設定しました');
   };
   $('#stockFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';
