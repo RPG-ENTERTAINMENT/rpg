@@ -431,6 +431,7 @@ body.staff .admin-only{display:none!important}
 </main>
 
   <section class="view" id="v-out"><div id="outBody"></div></section>
+  <section class="view" id="v-stock"><div id="stockBody"></div></section>
 
 <nav>
   <button class="on" data-v="rec"><span class="n">現</span>現場</button>
@@ -439,6 +440,7 @@ body.staff .admin-only{display:none!important}
   <button data-v="tal"><span class="n">タ</span>タレント</button>
   <button data-v="sum"><span class="n">計</span>集計</button>
   <button data-v="out"><span class="n">外</span>外注</button>
+  <button data-v="stock"><span class="n">在</span>在庫</button>
   <button data-v="set"><span class="n">設</span>設定・追加</button>
 </nav>
 
@@ -465,6 +467,7 @@ body.staff .admin-only{display:none!important}
 <div class="viewer" id="oview" onclick="this.classList.remove('on')"><img id="oviewImg" alt="請求書"></div>
 <input type="file" id="outFile" accept="image/*" style="display:none">
 <input type="file" id="siteFile" accept="image/*" style="display:none">
+<input type="file" id="stockFile" accept="image/*" style="display:none">
 <input type="file" id="evFile" accept="image/*" style="display:none">
 <input type="file" id="tipFile" accept="image/*" style="display:none">
 <input type="file" id="gCsvFile" accept=".csv,text/csv" style="display:none">
@@ -3204,7 +3207,7 @@ function syncGridSale(ev,t){
     addr:'',tel:'',mail:'',note:'',sent:true});
 }
 window.gridMode=()=>{gridMinus=!gridMinus;renderGrid()};
-window.gridClear=async()=>{
+window.gridClear=async()=>{if(!needAdmin())return;
   if(!await ask('この現場のシート入力をすべてクリアしますか？\n（シートから記録した売上も取り消されます）'))return;
   const ev=posEv();
   const tals=Object.keys((DB.grid||{})[ev]||{});
@@ -3241,7 +3244,7 @@ function renderGrid(){
       <button onclick="gridMode()" style="flex:1;border:1px solid ${gridMinus?'var(--berry)':'var(--line)'};
         background:${gridMinus?'#FDE9F0':'#fff'};color:${gridMinus?'var(--berry)':'var(--ink)'};
         border-radius:9px;padding:9px;font-size:13px;font-weight:700">−1モード ${gridMinus?'ON':'OFF'}</button>
-      <button onclick="gridClear()" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;font-size:13px">クリア</button>
+      ${isAdmin()?`<button onclick="gridClear()" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;font-size:13px">クリア</button>`:''}
     </div>
     <div style="border:1px solid var(--line);border-radius:11px;background:#fff;${tals.length>8?'overflow-x:auto;-webkit-overflow-scrolling:touch':'overflow:hidden'}">
       <table style="border-collapse:collapse;font-size:11px;${tals.length>8?`min-width:${96+tals.length*56}px`:'width:100%;table-layout:fixed'}">
@@ -3253,7 +3256,7 @@ function renderGrid(){
         ${products().map(p=>`<tr>
           <td style="background:#FCFAFE;padding:6px 5px;border-top:1px solid var(--line);line-height:1.2;${tals.length>8?'position:sticky;left:0;z-index:1':''}">
             <b style="font-size:10px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</b>
-            <span style="color:var(--mute);font-size:9px">${(p.price/1000).toFixed(p.price%1000?1:0)}千</span></td>
+            <span style="color:var(--mute);font-size:9px;font-family:var(--mono)">${p.price.toLocaleString('ja-JP')}</span></td>
           ${tals.map(t=>{const n=gCell(t,p.id);
             return `<td onclick="gridTap('${esc(t).replace(/'/g,"\\'")}','${p.id}')"
               style="border-top:1px solid var(--line);border-left:1px solid var(--line);text-align:center;
@@ -3278,7 +3281,7 @@ function renderGrid(){
           <td style="background:var(--grape);color:#fff;padding:7px 5px;font-weight:700;font-size:10px;${tals.length>8?'position:sticky;left:0;z-index:1':''}">売上計</td>
           ${tals.map(t=>{const v=gridTalSum(t);
             return `<td style="border-left:1px solid var(--line);text-align:center;padding:7px 0;
-              font-family:var(--mono);font-size:9.5px;background:#F6F2F9;${v?'color:var(--berry);font-weight:700':''}">${v?(v/1000)+'千':'0'}</td>`}).join('')}
+              font-family:var(--mono);font-size:9.5px;background:#F6F2F9;${v?'color:var(--berry);font-weight:700':''}">${v?v.toLocaleString('ja-JP'):'0'}</td>`}).join('')}
         </tr>
       </table>
     </div>
@@ -3730,6 +3733,193 @@ function renderMembers(){
     </div></div>`;
 }
 
+/* ---- 在庫管理 ---- */
+let stockImgTarget=null;
+function stocks(){DB.stock=DB.stock||[];return DB.stock}
+/* 注文データから商品カタログを自動集計 */
+function stockCatalog(){
+  const cnt={};
+  (DB.goods||[]).forEach(g=>{
+    String(g.item||'').split('／').forEach(tok=>{
+      tok=tok.trim();if(!tok)return;
+      const m=tok.match(/^(.*?)[×x]\s*(\d+)\s*$/);
+      const name=(m?m[1]:tok).trim();
+      const q=m?Number(m[2]):1;
+      if(!name)return;
+      cnt[name]=(cnt[name]||0)+q;
+    });
+  });
+  return Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+}
+window.stFromCat=n=>{
+  if(!needAdmin())return;
+  $('#st-name').value=n;
+  $('#st-qty').focus();
+  try{$('#st-name').scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}
+  toast('入荷数を入れて「追加する」を押してください');
+};
+
+/* 在庫: 販売済み数の自動集計（BASE取り込み・当日物販の全期間分） */
+function stockSold(it){
+  const kw=(it.match||it.name||'').trim();
+  if(!kw)return 0;
+  let n=0;
+  (DB.goods||[]).forEach(g=>{
+    String(g.item||'').split('／').forEach(tok=>{
+      tok=tok.trim();if(!tok)return;
+      if(!tok.includes(kw))return;
+      const m=tok.match(/[×x]\s*(\d+)\s*$/);
+      n+=m?Number(m[1]):1;
+    });
+  });
+  return n;
+}
+
+async function stockShrink(file){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const M=240,r=Math.min(1,M/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/jpeg',.72));
+    };
+    img.onerror=()=>res('');
+    const fr=new FileReader();fr.onload=()=>img.src=fr.result;fr.readAsDataURL(file);
+  });
+}
+window.stockPick=id=>{if(!needAdmin())return;stockImgTarget=id;$('#stockFile').click()};
+window.stQty=async(id,d)=>{
+  if(!needAdmin())return;
+  const it=stocks().find(x=>x.id===id);if(!it)return;
+  it.qty=Math.max(0,(Number(it.qty)||0)+d);
+  await save();renderStock();
+};
+window.stAdd=async()=>{
+  if(!needAdmin())return;
+  const n=$('#st-name').value.trim();
+  if(!n){toast('商品名を入れてください');return}
+  const q=Number($('#st-qty').value)||0;
+  stocks().push({id:uid(),name:n,qty:q,img:window.stNewImg||'',note:$('#st-note').value.trim(),
+    talent:($('#st-tal')?$('#st-tal').value:'')});
+  window.stNewImg='';
+  await save();renderStock();toast(`${n} を追加しました`);
+};
+window.stEdit=id=>{
+  if(!needAdmin())return;
+  const it=stocks().find(x=>x.id===id);if(!it)return;
+  $('#sheetIn').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h2>${esc(it.name)}</h2>
+      <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
+    </div>
+    <div class="card" style="margin-top:10px">
+      ${it.img?`<img src="${it.img}" style="width:110px;height:110px;object-fit:cover;border-radius:10px;display:block;margin:0 auto 10px">`:''}
+      <button class="wide ghost" onclick="stockPick('${it.id}')">${it.img?'画像を変更':'📷 画像を登録'}</button>
+      <label for="se-name">商品名</label><input type="text" id="se-name" value="${esc(it.name)}">
+      <label for="se-tal">タレント</label>
+      <select id="se-tal"><option value="">（未指定・全体グッズ）</option>
+        ${talentNames().map(t=>`<option value="${esc(t)}" ${it.talent===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
+      <label for="se-qty">在庫数</label><input type="number" id="se-qty" inputmode="numeric" value="${Number(it.qty)||0}">
+      <label for="se-note">メモ（サイズ・保管場所など）</label><input type="text" id="se-note" value="${esc(it.note||'')}">
+      <label for="se-match">販売カウントのキーワード</label><input type="text" id="se-match" value="${esc(it.match||it.name)}" placeholder="Tシャツ">
+      <p class="hint">注文の商品名にこの文字が含まれていたら「販売済み」として自動で数えます（例:「Tシャツ」でBASEの生誕Tシャツも当日販売のTシャツも数えます）。</p>
+      <div class="bar"><span>この商品の販売済み</span><b style="font-family:var(--mono)">${stockSold(it)}点</b></div>
+      <button class="wide" onclick="stSave('${it.id}')">保存する</button>
+    </div>
+    <button class="wide danger" onclick="stDel('${it.id}')">この商品を削除</button>`;
+  $('#sheet').classList.add('on');
+};
+window.stSave=async id=>{
+  const it=stocks().find(x=>x.id===id);if(!it)return;
+  it.name=$('#se-name').value.trim()||it.name;
+  it.qty=Math.max(0,Number($('#se-qty').value)||0);
+  it.note=$('#se-note').value.trim();
+  it.talent=($('#se-tal')?$('#se-tal').value:'')||'';
+  it.match=($('#se-match')?$('#se-match').value.trim():'')||it.name;
+  await save();closeSheet();renderStock();toast('保存しました');
+};
+window.stDel=async id=>{
+  if(!needAdmin())return;
+  const it=stocks().find(x=>x.id===id);if(!it)return;
+  if(!await ask(`「${it.name}」を在庫から削除します。よろしいですか？`))return;
+  if(!await ask('本当に本当に消しますか？'))return;
+  DB.stock=stocks().filter(x=>x.id!==id);
+  await save();closeSheet();renderStock();toast('削除しました');
+};
+function renderStock(){
+  const a=stocks();
+  const remain=x=>Math.max(0,(Number(x.qty)||0)-stockSold(x));
+  const total=a.reduce((s,x)=>s+remain(x),0);
+  const low=a.filter(x=>remain(x)<=5).length;
+  $('#stockBody').innerHTML=`
+    <div class="grid">
+      <div class="kpi hi"><div class="k">残り在庫合計</div><div class="v">${total}<span style="font-size:13px">点</span></div></div>
+      <div class="kpi"><div class="k">残りわずか（5以下）</div><div class="v">${low}<span style="font-size:13px">品</span></div></div>
+    </div>
+    <div class="card">
+      <h2>＋ 商品を追加</h2>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <div onclick="stockPick('NEW')" style="width:64px;height:64px;flex:none;border-radius:10px;overflow:hidden;background:#F0EAF7;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line)">
+          ${window.stNewImg?`<img src="${window.stNewImg}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:22px">📷</span>'}
+        </div>
+        <button class="wide ghost" style="margin:0;flex:1" onclick="stockPick('NEW')">${window.stNewImg?'画像を変更する':'📷 商品画像を選ぶ（任意）'}</button>
+      </div>
+      <label for="st-name">商品名</label><input type="text" id="st-name" placeholder="さやか生誕Tシャツ（M）">
+      <label for="st-tal">タレント</label>
+      <select id="st-tal"><option value="">（未指定・全体グッズ）</option>
+        ${talentNames().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
+      <label for="st-qty">入荷数（仕入れた数）</label><input type="number" id="st-qty" inputmode="numeric" placeholder="30">
+      <label for="st-note">メモ（任意）</label><input type="text" id="st-note" placeholder="事務所の棚2段目">
+      <button class="wide" onclick="stAdd()">追加する</button>
+      <p class="hint">残り在庫 ＝ 入荷数 − 販売済み。販売済みはBASE注文と当日物販の記録から自動で数えます（商品名のキーワード一致）。手売りや破損の補正は＋/−で入荷数を調整してください。カードをタップすると編集・画像登録ができます。</p>
+    </div>
+    ${a.length?a.map(it=>{
+      const stockIn=Number(it.qty)||0;
+      const sold=stockSold(it);
+      const q=Math.max(0,stockIn-sold);
+      return `
+      <div class="card" style="padding:10px 12px;display:flex;gap:10px;align-items:center">
+        <div onclick="stockPick('${it.id}')" style="width:56px;height:56px;flex:none;border-radius:10px;overflow:hidden;background:#F0EAF7;display:flex;align-items:center;justify-content:center">
+          ${it.img?`<img src="${it.img}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:20px">📷</span>'}
+        </div>
+        <div style="flex:1;min-width:0" onclick="stEdit('${it.id}')">
+          <b style="font-family:var(--mincho);font-size:15px">${esc(it.name)}</b>
+          ${it.talent?`<div style="margin-top:2px">${teamBadge(it.talent)}<span style="font-size:11px;color:var(--berry);font-weight:700">${esc(it.talent)}</span></div>`:''}
+          ${it.note?`<div style="font-size:10.5px;color:var(--mute)">${esc(it.note)}</div>`:''}
+          <div style="font-family:var(--mono);font-size:13px;margin-top:2px;color:${q===0?'var(--berry)':q<=5?'#B98A00':'var(--ink)'}">
+            残 <b style="font-size:17px">${q}</b>${q===0?'　売り切れ':q<=5?'　残りわずか':''}</div>
+          <div style="font-size:10px;color:var(--mute)">入荷${stockIn}・販売済み${sold}（注文データから自動）</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button onclick="stQty('${it.id}',1)" style="width:40px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:16px;font-weight:700">＋</button>
+          <button onclick="stQty('${it.id}',-1)" style="width:40px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:16px;font-weight:700;color:var(--berry)">−</button>
+        </div>
+      </div>`}).join('')
+    :'<div class="empty">在庫がまだ登録されていません。下のフォームから追加してください。</div>'}
+    <div class="card">
+      <h2>販売実績のある商品（注文データから自動）</h2>
+      ${(()=>{
+        const cat=stockCatalog();
+        if(!cat.length)return '<p class="hint">まだ注文データがありません。</p>';
+        const covered=n=>a.some(it=>n.includes((it.match||it.name).trim())&&(it.match||it.name).trim());
+        const rows=cat.slice(0,40);
+        return `<p class="hint" style="margin-top:0">これまでに売れた商品の一覧です。「在庫に登録」を押して入荷数を入れると残数管理が始まります。</p>`
+          +rows.map(([n,c])=>`
+          <div class="bar" style="gap:8px">
+            <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.4">${esc(n)}
+              <b style="font-family:var(--mono);color:var(--berry)"> ${c}点販売</b></span>
+            ${covered(n)
+              ?`<span style="flex:none;font-size:10.5px;color:var(--lime);font-weight:700">✓ 在庫登録済み</span>`
+              :`<button style="flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:700;color:var(--grape)" onclick="stFromCat('${esc(n).replace(/'/g,"\\'")}')">在庫に登録</button>`}
+          </div>`).join('')
+          +(cat.length>40?`<p class="hint">ほか ${cat.length-40} 品</p>`:'');
+      })()}
+    </div>
+</div>`;
+}
+
 /* nav */
 function go(v){
   if(ROLE&&!isAdmin()){
@@ -3742,6 +3932,7 @@ function go(v){
   if(v==='tip')renderTip();
   if(v==='tal')renderTal();
   if(v==='sum')renderSum();
+  if(v==='stock')renderStock();
   if(v==='set')fillEvForm();
   if(v==='out')renderOut();
   window.scrollTo(0,0);
@@ -3958,6 +4149,24 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   $('#gCsvFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
     try{await gCsvImport(f)}catch(err){toast('読み込みに失敗しました')}
+  };
+  $('#stockFile').onchange=async e=>{
+    const f=e.target.files[0];e.target.value='';
+    if(!f||!stockImgTarget)return;
+    const url=await stockShrink(f);
+    if(!url){toast('画像を読み込めませんでした');return}
+    if(stockImgTarget==='NEW'){
+      /* 追加フォーム用: 入力値を保ったままプレビューを差し替え */
+      window.stNewImg=url;
+      const n=$('#st-name').value,q=$('#st-qty').value,no=$('#st-note').value;
+      renderStock();
+      $('#st-name').value=n;$('#st-qty').value=q;$('#st-note').value=no;
+      toast('画像を設定しました');
+    }else{
+      const it=stocks().find(x=>x.id===stockImgTarget);
+      if(it){it.img=url;await save();renderStock();if($('#sheet').classList.contains('on'))stEdit(it.id);toast('画像を登録しました')}
+    }
+    stockImgTarget=null;
   };
   $('#tipFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
