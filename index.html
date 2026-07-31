@@ -3576,8 +3576,9 @@ function tipTextParse(txt){
     const dm=l.match(/(\d{1,2})[\/月](\d{1,2})日?\s*(時点|現在)?/);
     if(dm&&(dm[3]||!/ポイント|pt/i.test(l))){asof=asof||`2026-${String(dm[1]).padStart(2,'0')}-${String(dm[2]).padStart(2,'0')}`;return}
     if(skipRe.test(l.replace(/[\s　]/g,'')))return;
-    /* 順位・絵文字・記号を除去 */
-    l=l.replace(/[👑🥇🥈🥉⭐️✨🎖🏆]/g,'').trim().replace(/^[\d０-９]+\s*[位\.．、:：]\s*/,'');
+    /* 順位・絵文字・記号を除去（⏰時間・🏋回数などの付帯情報は切り落とす） */
+    l=l.split(/[⏰🏋⌚🕐💪]/)[0];
+    l=l.replace(/[👑🥇🥈🥉⭐️✨🎖🏆💍💎]/g,'').trim().replace(/^[\d０-９]+\s*[位\.．、:：]?\s*/,'');
     const nm=l.match(/([\d,，]+(?:[・.][\d,，]+)?)\s*(ポイント|pt|ｐｔ|P)?\s*$/i);
     if(!nm)return;
     const pts=Number(nm[1].replace(/[,，・]/g,'').replace(/\..*$/,''))||0;
@@ -3679,7 +3680,10 @@ window.evalOpen=()=>{
     ${groups.map(g=>`
       <div class="card" style="margin-bottom:10px">
         <h2 style="font-size:14px">${esc(g.name)}</h2>
-        ${g.members.map(m=>{
+        ${g.members.slice().sort((a,b)=>{
+            const v=n=>{const t=get(cur,n);return t?t.sales+t.goods+(t.tip||0):0};
+            return v(b)-v(a);
+          }).map(m=>{
           const j=evalJudge(get(cur,m),get(prv,m));
           const c=get(cur,m)||{sales:0,goods:0,tip:0,n:0};
           return `
@@ -3755,6 +3759,18 @@ $('#q').oninput=renderList;
   {(DB.teams||[]).forEach(t=>{t.members=(t.members||[]).map(m=>(m==='うか'||m==='星乃うか')?'星乃羽華':m)});
    [DB.people,DB.goods||[],DB.manual||[],DB.tips||[]].forEach(arr=>arr.forEach(r=>{if(r.talent==='うか'||r.talent==='星乃うか')r.talent='星乃羽華'}));
    (DB.goods||[]).forEach(g=>{if(g.order==='72D14DEA08EABD19')g.talent='星乃羽華'});
+  /* 2026-07-31 ダイヤ集計合計の反映（FruitFruit・1回だけ・上書き） */
+  if(!DB.migTipFF0731){
+    const TFF=[{"talent":"中島沙也加","pts":252029},{"talent":"小山ありす","pts":60926},{"talent":"綾乃舞衣","pts":57786},{"talent":"星乃ひかり","pts":51643},{"talent":"白音みなみ","pts":55813},{"talent":"三毛野みい","pts":29466},{"talent":"心花ひま","pts":26210},{"talent":"瑚桃","pts":11946}];
+    DB.tips=DB.tips||[];
+    TFF.forEach(r=>{
+      const ex=DB.tips.find(t=>t.month==='2026-07'&&t.talent===r.talent);
+      if(ex){ex.pts=r.pts;ex.asof='2026-07-30'}
+      else DB.tips.push({id:uid(),month:'2026-07',talent:r.talent,pts:r.pts,asof:'2026-07-30'});
+    });
+    DB.migTipFF0731=true;
+  }
+
 
   /* 2026-07-29 BASE全履歴の反映（2025-07〜2026-04・注文IDで重複防止・NEWなし） */
   {
