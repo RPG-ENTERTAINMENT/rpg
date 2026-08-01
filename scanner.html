@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ウィークリーミッション換算スキャナー</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Roboto+Mono:wght@500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+:root{
+  --navy-deep:#12161f;
+  --navy:#1a1f2e;
+  --navy-panel:#20263a;
+  --gold:#e0c992;
+  --gold-bright:#eeddb0;
+  --magenta:#e2a3c4;
+  --text:#e9e7f2;
+  --muted:#9298b0;
+  --line:rgba(224,201,146,0.16);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(circle at 15% 0%, rgba(226,163,196,0.06), transparent 50%),
+    radial-gradient(circle at 85% 100%, rgba(224,201,146,0.06), transparent 50%),
+    var(--navy-deep);
+  min-height:100vh;
+  font-family:'Noto Sans JP', sans-serif;
+  color:var(--text);
+}
+
+a{color:inherit;}
+
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 24px;
+  background:rgba(18,22,31,0.75);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-family:'Orbitron',sans-serif;
+  font-size:13px;
+  letter-spacing:0.14em;
+  color:var(--gold-bright);
+}
+.brand .mark{
+  width:22px;height:22px;
+  border-radius:6px;
+  background:linear-gradient(135deg, var(--gold), var(--magenta));
+  flex:none;
+}
+.nav-link{
+  font-size:12px;
+  color:var(--muted);
+  text-decoration:none;
+  letter-spacing:0.04em;
+}
+
+.hero{
+  max-width:720px;
+  margin:0 auto;
+  padding:56px 24px 8px;
+  text-align:center;
+}
+.hero .eyebrow{ justify-content:center; display:flex; }
+
+section{
+  max-width:720px;
+  margin:0 auto;
+  padding:32px 24px;
+}
+
+.steps{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  padding-top:0;
+}
+.step-card{
+  background:linear-gradient(180deg, var(--navy-panel), var(--navy));
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:18px 14px;
+}
+.step-num{
+  font-family:'Orbitron',sans-serif;
+  font-size:11px;
+  color:var(--gold);
+  letter-spacing:0.1em;
+  margin-bottom:8px;
+}
+.step-title{
+  font-size:13px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+.step-desc{
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.6;
+}
+
+.site-footer{
+  max-width:720px;
+  margin:0 auto;
+  padding:32px 24px 56px;
+  text-align:center;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:0.04em;
+}
+
+@media (max-width:600px){
+  .steps{grid-template-columns:1fr;}
+}
+
+.frame{
+  width:100%;
+  max-width:520px;
+  margin:0 auto;
+}
+
+.eyebrow{
+  font-family:'Orbitron',sans-serif;
+  font-size:11px;
+  letter-spacing:0.32em;
+  color:var(--gold);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+h1{
+  font-family:'Orbitron',sans-serif;
+  font-weight:900;
+  font-size:28px;
+  letter-spacing:0.02em;
+  margin:0 0 10px 0;
+  background:linear-gradient(90deg, var(--gold-bright), var(--magenta));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+
+.sub{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:0;
+  line-height:1.7;
+}
+
+.section-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:11px;
+  letter-spacing:0.24em;
+  color:var(--gold);
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+.panel{
+  background:linear-gradient(180deg, var(--navy-panel), var(--navy));
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:16px;
+  position:relative;
+  overflow:hidden;
+}
+.panel::before{
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:1.5px;
+  background:linear-gradient(90deg, var(--gold), var(--magenta), var(--gold));
+  opacity:0.4;
+}
+
+.dropzone{
+  border:1.5px dashed var(--line);
+  border-radius:12px;
+  padding:36px 16px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .2s, background .2s;
+}
+.dropzone:hover, .dropzone.drag{
+  border-color:var(--gold);
+  background:rgba(224,201,146,0.03);
+}
+.dropzone .icon{
+  font-size:28px;
+  margin-bottom:10px;
+  display:block;
+}
+.dropzone .label{
+  font-family:'Orbitron',sans-serif;
+  font-size:13px;
+  letter-spacing:0.06em;
+  color:var(--gold-bright);
+  margin-bottom:4px;
+}
+.dropzone .hint{
+  font-size:12px;
+  color:var(--muted);
+}
+input[type=file]{display:none;}
+
+.key-row{
+  display:flex;
+  gap:8px;
+  margin-top:14px;
+}
+.key-input{
+  flex:1;
+  padding:11px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.04);
+  color:var(--text);
+  font-size:13px;
+  font-family:'Noto Sans JP',sans-serif;
+}
+.key-input::placeholder{color:var(--muted);}
+.key-input:focus{outline:none;border-color:var(--gold);}
+.paste-btn{
+  flex:none;
+  padding:0 14px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.06);
+  color:var(--gold-bright);
+  font-size:12px;
+  font-family:'Noto Sans JP',sans-serif;
+  cursor:pointer;
+}
+.paste-btn:hover{background:rgba(255,255,255,0.1);}
+.remember-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  font-size:12px;
+  color:var(--muted);
+  cursor:pointer;
+}
+.remember-row input{accent-color:var(--gold);}
+
+video{
+  width:100%;
+  border-radius:8px;
+  display:block;
+  margin-top:14px;
+  background:#000;
+  max-height:340px;
+}
+
+.filename{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:10px;
+  word-break:break-all;
+}
+
+.file-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:12px;
+}
+.file-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:7px;
+  font-size:12px;
+  color:var(--muted);
+}
+.file-item .fname{
+  word-break:break-all;
+  flex:1;
+}
+.file-item .fstatus{
+  flex:none;
+  font-size:11px;
+  color:var(--gold);
+}
+.file-item .remove{
+  flex:none;
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-size:16px;
+  cursor:pointer;
+  padding:0 4px;
+  line-height:1;
+}
+.file-item .remove:hover{color:var(--text);}
+
+.btn{
+  font-family:'Orbitron',sans-serif;
+  font-size:13px;
+  letter-spacing:0.06em;
+  font-weight:700;
+  width:100%;
+  padding:13px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  background:linear-gradient(90deg, var(--gold), var(--gold-bright));
+  color:#2a2416;
+  margin-top:16px;
+  transition:transform .15s, box-shadow .15s;
+}
+.btn:hover:not(:disabled){
+  transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(224,201,146,0.18);
+}
+.btn:disabled{
+  opacity:0.4;
+  cursor:default;
+}
+
+.btn-secondary{
+  background:rgba(255,255,255,0.06);
+  color:var(--gold-bright);
+  border:1px solid var(--line);
+}
+.btn-secondary:hover:not(:disabled){
+  box-shadow:none;
+  background:rgba(255,255,255,0.1);
+}
+
+.scan-status{
+  display:none;
+  margin-top:16px;
+}
+.scan-status.active{display:block;}
+
+.scan-label{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+  font-family:'Orbitron',sans-serif;
+  letter-spacing:0.05em;
+}
+
+.bar-track{
+  height:8px;
+  border-radius:5px;
+  background:rgba(255,255,255,0.06);
+  overflow:hidden;
+  border:1px solid var(--line);
+}
+.bar-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg, var(--magenta), var(--gold));
+  transition:width .3s ease;
+}
+
+.result{
+  display:none;
+}
+.result.active{display:block;}
+
+.result-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:12px;
+  letter-spacing:0.12em;
+  color:var(--muted);
+  margin-bottom:14px;
+  text-transform:uppercase;
+}
+
+.missions{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:18px;
+}
+.mission-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:9px 12px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:7px;
+  font-size:13px;
+}
+.mission-row .name{color:var(--text);}
+.mission-row .val{
+  font-family:'Roboto Mono',monospace;
+  color:var(--gold-bright);
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:0;
+}
+
+.month-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:10px;
+  padding:6px 2px 4px;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+  font-weight:700;
+  color:var(--gold);
+}
+.month-header:first-child{margin-top:0;}
+.month-header .val{
+  font-family:'Roboto Mono',monospace;
+  font-size:13px;
+  color:var(--gold-bright);
+  margin-left:auto;
+}
+.copy-mini{
+  flex:none;
+  margin-left:8px;
+  padding:3px 9px;
+  border-radius:6px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.06);
+  color:var(--gold-bright);
+  font-size:11px;
+  font-family:'Noto Sans JP',sans-serif;
+  cursor:pointer;
+}
+.copy-mini:hover{background:rgba(255,255,255,0.1);}
+
+.totals{
+  border-top:1px solid var(--line);
+  padding-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.total-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+}
+.total-row .tlabel{
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:0.04em;
+}
+.total-row .tval{
+  font-family:'Roboto Mono',monospace;
+  font-weight:700;
+  font-size:16px;
+}
+.total-row.big .tval{
+  font-size:28px;
+  font-weight:700;
+  background:linear-gradient(90deg, var(--gold-bright), var(--magenta));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.rate-note{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:10px;
+}
+
+.empty-note{
+  font-size:13px;
+  color:var(--muted);
+  text-align:center;
+  padding:8px 0;
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand"><span class="mark"></span>RPG ACADEMY</div>
+</header>
+
+<section id="tool">
+<div class="frame">
+  <div class="panel">
+    <div id="dropzone" class="dropzone">
+      <span class="icon">🎬</span>
+      <div class="label">動画をドロップ / タップして選択</div>
+      <div class="hint">MP4・MOV など（最大10本まとめてOK）</div>
+    </div>
+    <input type="file" id="fileInput" accept="video/*" multiple>
+    <div id="fileList" class="file-list"></div>
+    <video id="worker" style="display:none;" muted playsinline webkit-playsinline></video>
+    <div class="key-row">
+      <input type="password" id="apiKey" class="key-input" placeholder="Anthropic APIキー（sk-ant-...）" autocomplete="off">
+      <button type="button" class="paste-btn" id="pasteBtn">貼り付け</button>
+    </div>
+    <label class="remember-row"><input type="checkbox" id="rememberKey"> この端末にキーを保存する</label>
+    <button class="btn" id="scanBtn" disabled>ミッションを読み取る</button>
+
+    <div class="scan-status" id="scanStatus">
+      <div class="scan-label"><span id="scanLabel">フレーム抽出中...</span><span id="scanPct">0%</span></div>
+      <div class="bar-track"><div class="bar-fill" id="scanBar"></div></div>
+    </div>
+  </div>
+
+  <div class="panel result" id="resultPanel">
+    <div class="result-title">検出されたミッション</div>
+    <div class="missions" id="missionList"></div>
+    <div class="totals">
+      <div class="total-row">
+        <div class="tlabel">合計 (USD)</div>
+        <div class="tval" id="totalUsd">$0.00</div>
+      </div>
+      <div class="total-row big">
+        <div class="tlabel">日本円換算</div>
+        <div class="tval" id="totalJpy">¥0</div>
+      </div>
+    </div>
+    <div class="rate-note" id="rateNote"></div>
+    <button class="btn btn-secondary" id="copyBtn">結果をコピー</button>
+  </div>
+</div>
+</section>
+
+<footer class="site-footer">RPG ACADEMY / QUEST SCANNER</footer>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const worker = document.getElementById('worker');
+const fileListEl = document.getElementById('fileList');
+const scanBtn = document.getElementById('scanBtn');
+const scanStatus = document.getElementById('scanStatus');
+const scanLabel = document.getElementById('scanLabel');
+const scanPct = document.getElementById('scanPct');
+const scanBar = document.getElementById('scanBar');
+const resultPanel = document.getElementById('resultPanel');
+const missionList = document.getElementById('missionList');
+const totalUsdEl = document.getElementById('totalUsd');
+const totalJpyEl = document.getElementById('totalJpy');
+const rateNote = document.getElementById('rateNote');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const MAX_FILES = 10;
+let files = [];
+let copyText = '';
+
+// --- API key: paste button & optional on-device save ---
+const apiKeyEl = document.getElementById('apiKey');
+const pasteBtn = document.getElementById('pasteBtn');
+const rememberKey = document.getElementById('rememberKey');
+const KEY_STORAGE = 'rpg_scanner_api_key';
+
+/* 経理アプリから #k=… で渡されたキーを自動設定 */
+try {
+  const m = location.hash.match(/[#&]k=([^&]+)/);
+  if (m){
+    const k = decodeURIComponent(m[1]);
+    apiKeyEl.value = k;
+    rememberKey.checked = true;
+    try{ localStorage.setItem(KEY_STORAGE, k); }catch(e){}
+    try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  }
+} catch(e) {}
+
+try {
+  const saved = localStorage.getItem(KEY_STORAGE);
+  if (saved && !apiKeyEl.value){
+    apiKeyEl.value = saved;
+    rememberKey.checked = true;
+  }
+} catch(e) {}
+
+function persistKey(){
+  try {
+    if (rememberKey.checked && apiKeyEl.value.trim()){
+      localStorage.setItem(KEY_STORAGE, apiKeyEl.value.trim());
+    } else {
+      localStorage.removeItem(KEY_STORAGE);
+    }
+  } catch(e) {}
+}
+apiKeyEl.addEventListener('input', persistKey);
+rememberKey.addEventListener('change', persistKey);
+
+pasteBtn.addEventListener('click', async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && text.trim()){
+      apiKeyEl.value = text.trim();
+      persistKey();
+      pasteBtn.textContent = '✓';
+      setTimeout(() => { pasteBtn.textContent = '貼り付け'; }, 1500);
+      return;
+    }
+  } catch(e) {}
+  // Clipboard read not available/denied: focus the field so the user can long-press to paste
+  apiKeyEl.focus();
+  pasteBtn.textContent = '長押しで貼付';
+  setTimeout(() => { pasteBtn.textContent = '貼り付け'; }, 2000);
+});
+
+async function copyPlain(text, btn){
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch(e2) {}
+    document.body.removeChild(ta);
+  }
+  if (btn){
+    const original = btn.textContent;
+    btn.textContent = ok ? '✓' : '×';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }
+  return ok;
+}
+
+const copyBtn = document.getElementById('copyBtn');
+copyBtn.addEventListener('click', async () => {
+  if (!copyText) return;
+  const ok = await copyPlain(copyText, null);
+  copyBtn.textContent = ok ? 'コピーしました ✓' : 'コピーできませんでした';
+  setTimeout(() => { copyBtn.textContent = '結果をコピー'; }, 2000);
+});
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) addFiles(e.target.files);
+  fileInput.value = '';
+});
+
+function addFiles(fileList){
+  for (const f of fileList){
+    if (files.length >= MAX_FILES) break;
+    files.push({ file: f, status: '' });
+  }
+  renderFileList();
+  scanBtn.disabled = files.length === 0;
+  resultPanel.classList.remove('active');
+}
+
+function renderFileList(){
+  fileListEl.innerHTML = '';
+  files.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'file-item';
+    const name = document.createElement('span');
+    name.className = 'fname';
+    name.textContent = entry.file.name;
+    const status = document.createElement('span');
+    status.className = 'fstatus';
+    status.textContent = entry.status;
+    const btn = document.createElement('button');
+    btn.className = 'remove';
+    btn.textContent = '×';
+    btn.addEventListener('click', () => {
+      files.splice(i, 1);
+      renderFileList();
+      scanBtn.disabled = files.length === 0;
+    });
+    row.appendChild(name);
+    row.appendChild(status);
+    row.appendChild(btn);
+    fileListEl.appendChild(row);
+  });
+  if (files.length >= MAX_FILES){
+    const note = document.createElement('div');
+    note.className = 'filename';
+    note.textContent = `最大${MAX_FILES}本まで選択できます`;
+    fileListEl.appendChild(note);
+  }
+}
+
+function setFileStatus(i, text){
+  if (files[i]) files[i].status = text;
+  renderFileList();
+}
+
+// Load a file into the hidden worker video. Tries blob URL first, then data URL.
+function loadIntoWorker(file){
+  return new Promise((resolve, reject) => {
+    let triedFallback = false;
+    let failTimer = null;
+
+    const cleanup = () => {
+      clearTimeout(failTimer);
+      worker.removeEventListener('loadedmetadata', onReady);
+      worker.removeEventListener('error', onFail);
+    };
+    const onReady = () => { cleanup(); resolve(); };
+    const onFail = () => {
+      cleanup();
+      if (!triedFallback){
+        triedFallback = true;
+        const reader = new FileReader();
+        reader.onload = () => { attach(); worker.src = reader.result; worker.load(); };
+        reader.onerror = () => reject(new Error('読み込みに失敗しました'));
+        reader.readAsDataURL(file);
+      } else {
+        reject(new Error('この動画形式を再生できません'));
+      }
+    };
+    const attach = () => {
+      worker.addEventListener('loadedmetadata', onReady, { once: true });
+      worker.addEventListener('error', onFail, { once: true });
+      clearTimeout(failTimer);
+      failTimer = setTimeout(onFail, 15000);
+    };
+
+    attach();
+    worker.src = URL.createObjectURL(file);
+    worker.load();
+  });
+}
+
+function withTimeout(promise, ms, message){
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function setProgress(pct, label){
+  scanStatus.classList.add('active');
+  scanBar.style.width = pct + '%';
+  scanPct.textContent = Math.round(pct) + '%';
+  if (label) scanLabel.textContent = label;
+}
+
+function resolveDuration(video){
+  return new Promise((resolve) => {
+    if (isFinite(video.duration) && video.duration > 0){
+      resolve(video.duration);
+      return;
+    }
+    // Some files (e.g. iOS screen recordings) report Infinity until forced to seek near the end.
+    const onTimeUpdate = () => {
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      const d = isFinite(video.duration) ? video.duration : 0;
+      video.currentTime = 0;
+      resolve(d);
+    };
+    video.addEventListener('timeupdate', onTimeUpdate);
+    video.currentTime = 1e10;
+    setTimeout(() => {
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      resolve(isFinite(video.duration) ? video.duration : 0);
+    }, 4000);
+  });
+}
+
+function extractFrames(video, frameCount, duration, onFrame){
+  return new Promise((resolve, reject) => {
+    const frames = [];
+    if (!duration || !isFinite(duration) || duration <= 0){
+      reject(new Error('動画の長さを取得できません'));
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const times = [];
+    for (let i = 0; i < frameCount; i++){
+      times.push((duration * (i + 0.5)) / frameCount);
+    }
+    let idx = 0;
+    let frameTimer = null;
+
+    function report(){
+      if (onFrame) onFrame(idx, times.length);
+    }
+
+    function captureNext(){
+      if (idx >= times.length){
+        video.removeEventListener('seeked', onSeeked);
+        resolve(frames);
+        return;
+      }
+      clearTimeout(frameTimer);
+      frameTimer = setTimeout(() => {
+        // This frame's seek never resolved; skip it and continue rather than hang forever.
+        idx++;
+        report();
+        captureNext();
+      }, 6000);
+      video.currentTime = times[idx];
+    }
+
+    function onSeeked(){
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          clearTimeout(frameTimer);
+          try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
+          } catch(e) { /* skip unreadable frame */ }
+          idx++;
+          report();
+          captureNext();
+        });
+      });
+    }
+
+    video.addEventListener('seeked', onSeeked);
+    video.addEventListener('error', () => reject(new Error('動画の読み込みに失敗しました')));
+    captureNext();
+  });
+}
+
+async function analyzeFrames(frames){
+  setProgress(55, 'AIがテキストを解析中...');
+  const content = [
+    { type: 'text', text: 'これは1本または複数本の動画から抽出したフレーム画像です。画面内に表示されている「ウィークリーミッション」の報酬履歴と、それぞれのUSD金額・日付を探してください。「LIVEごとのミッション」など他の種類の報酬は含めず、ウィークリーミッションのみを対象にしてください。同じ項目が複数のフレームや複数の動画に重複して映っている場合は1回だけ数えてください（日付と金額が同一なら重複とみなす）。見つかった場合は、他のテキストは一切含めず、次のJSON形式のみで答えてください:\n{"missions":[{"name":"ミッション名","usd":数値,"month":"YYYY-MM"},...]}\n日付が読み取れない項目は "month":"不明" としてください。USD金額が見当たらない場合は {"missions":[]} とだけ答えてください。' }
+  ];
+  frames.forEach(f => {
+    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f } });
+  });
+
+  const headers = { 'Content-Type': 'application/json' };
+  const key = document.getElementById('apiKey').value.trim();
+  if (key){
+    headers['x-api-key'] = key;
+    headers['anthropic-version'] = '2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
+
+  let response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content }]
+      })
+    });
+  } catch(e) {
+    throw new Error(key ? 'APIに接続できませんでした。通信環境を確認してください' : 'AI解析にはAPIキーが必要です。上の欄に入力してください');
+  }
+
+  if (!response.ok){
+    if (response.status === 401 || response.status === 403){
+      throw new Error(key ? 'APIキーが無効です。確認してください' : 'AI解析にはAPIキーが必要です。上の欄に入力してください');
+    }
+    throw new Error('AI解析に失敗しました（' + response.status + '）');
+  }
+
+  const data = await response.json();
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  if (!textBlock) throw new Error('解析結果を取得できませんでした');
+  const clean = textBlock.text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+async function fetchRate(){
+  try {
+    const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const data = await res.json();
+    if (data && data.rates && data.rates.JPY) return data.rates.JPY;
+  } catch(e) {}
+  return null;
+}
+
+scanBtn.addEventListener('click', async () => {
+  if (files.length === 0) return;
+  scanBtn.disabled = true;
+  resultPanel.classList.remove('active');
+  setProgress(2, '動画を読み込み中...');
+  let succeeded = false;
+
+  try {
+    // Cap total frames so the API payload stays reasonable across up to 10 videos.
+    const perVideo = Math.max(3, Math.min(12, Math.floor(40 / files.length)));
+    const allFrames = [];
+    const failed = [];
+    const extractSpan = 60; // % of the bar dedicated to extraction
+
+    for (let i = 0; i < files.length; i++){
+      const base = 2 + (i / files.length) * extractSpan;
+      const span = extractSpan / files.length;
+      const fname = files[i].file.name;
+      setFileStatus(i, '処理中...');
+      setProgress(base, `動画 ${i+1}/${files.length} を読み込み中...`);
+
+      try {
+        await withTimeout(loadIntoWorker(files[i].file), 30000, '読み込みがタイムアウトしました');
+        try { await worker.play(); worker.pause(); } catch(e) {}
+        const duration = await resolveDuration(worker);
+        if (!duration) throw new Error('動画の長さを取得できません');
+
+        const frames = await extractFrames(worker, perVideo, duration, (done, total) => {
+          setProgress(base + (done / total) * span, `動画 ${i+1}/${files.length}: フレーム抽出中 (${done}/${total})`);
+        });
+        allFrames.push(...frames);
+        setFileStatus(i, `✓ ${frames.length}フレーム`);
+      } catch(e) {
+        failed.push(fname);
+        setFileStatus(i, '読み込み失敗');
+      }
+    }
+
+    if (allFrames.length === 0){
+      throw new Error('どの動画も読み込めませんでした');
+    }
+
+    const parsed = await analyzeFrames(allFrames);
+    setProgress(85, '為替レート取得中...');
+    const rate = await fetchRate();
+    setProgress(95, '集計中...');
+
+    const missions = (parsed.missions || []).filter(m => typeof m.usd === 'number');
+    missionList.innerHTML = '';
+    const copyLines = ['【ウィークリーミッション集計】'];
+    if (missions.length === 0){
+      missionList.innerHTML = '<div class="empty-note">USD金額を含むウィークリーミッションが見つかりませんでした</div>';
+    } else {
+      // Group by month
+      const groups = {};
+      missions.forEach(m => {
+        const key = m.month || '不明';
+        (groups[key] = groups[key] || []).push(m);
+      });
+      Object.keys(groups).sort().forEach(month => {
+        const items = groups[month];
+        const monthUsd = items.reduce((s, m) => s + m.usd, 0);
+
+        const header = document.createElement('div');
+        header.className = 'month-header';
+        let label = month;
+        const mm = month.match(/^(\d{4})-(\d{2})$/);
+        if (mm) label = `${mm[1]}年${parseInt(mm[2],10)}月`;
+        const monthJpy = rate ? Math.round(monthUsd * rate) : null;
+        const jpyPart = monthJpy !== null ? `　¥${monthJpy.toLocaleString('ja-JP')}` : '';
+
+        const left = document.createElement('span');
+        left.textContent = label;
+        const right = document.createElement('span');
+        right.className = 'val';
+        right.textContent = `$${monthUsd.toFixed(2)}${jpyPart}`;
+
+        const copyMini = document.createElement('button');
+        copyMini.className = 'copy-mini';
+        copyMini.textContent = 'コピー';
+        copyMini.title = 'この月の合計をコピー';
+        const numberToCopy = monthJpy !== null ? String(monthJpy) : monthUsd.toFixed(2);
+        copyMini.addEventListener('click', () => copyPlain(numberToCopy, copyMini));
+
+        header.appendChild(left);
+        header.appendChild(right);
+        header.appendChild(copyMini);
+        missionList.appendChild(header);
+
+        copyLines.push(`${label}: $${monthUsd.toFixed(2)}${monthJpy !== null ? ` / ¥${monthJpy.toLocaleString('ja-JP')}` : ''}（${items.length}件）`);
+
+        items.forEach(m => {
+          const row = document.createElement('div');
+          row.className = 'mission-row';
+          row.innerHTML = `<span class="name">${m.name || 'ウィークリーミッション'}</span><span class="val">$${m.usd.toFixed(2)}</span>`;
+          missionList.appendChild(row);
+        });
+      });
+    }
+
+    const totalUsd = missions.reduce((s, m) => s + m.usd, 0);
+    totalUsdEl.textContent = `$${totalUsd.toFixed(2)}`;
+
+    copyLines.push('----------------');
+    copyLines.push(`合計: $${totalUsd.toFixed(2)}`);
+
+    if (rate){
+      const jpy = totalUsd * rate;
+      totalJpyEl.textContent = `¥${Math.round(jpy).toLocaleString('ja-JP')}`;
+      rateNote.textContent = `為替レート: 1USD = ${rate.toFixed(2)}円`;
+      copyLines.push(`日本円換算: ¥${Math.round(jpy).toLocaleString('ja-JP')}`);
+      copyLines.push(`（1USD = ${rate.toFixed(2)}円）`);
+    } else {
+      totalJpyEl.textContent = '取得できませんでした';
+      rateNote.textContent = '為替レートの取得に失敗しました';
+    }
+
+    copyText = copyLines.join('\n');
+
+    if (failed.length){
+      rateNote.textContent += `　※読み込めなかった動画: ${failed.length}本`;
+    }
+
+    resultPanel.classList.add('active');
+    setProgress(100, '完了');
+    succeeded = true;
+  } catch (err){
+    scanLabel.textContent = (err && err.message) ? err.message : 'エラーが発生しました。もう一度お試しください。';
+    scanPct.textContent = '';
+    scanBar.style.width = '0%';
+  } finally {
+    scanBtn.disabled = false;
+    if (succeeded){
+      setTimeout(() => { scanStatus.classList.remove('active'); }, 1200);
+    }
+  }
+});
+</script>
+</body>
+</html>
