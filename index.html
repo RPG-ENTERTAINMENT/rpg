@@ -117,10 +117,12 @@ main{padding:10px 12px 20px}
 .sub .m{color:#8A5B00}
 .sub .a{font-family:var(--mono);color:var(--ink)}
 .tick{
-  flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--berry);
-  background:#fff;color:var(--berry);font-size:15px;font-weight:700;line-height:1;padding:0
+  flex:none;min-width:52px;height:34px;border-radius:10px;border:1.5px solid var(--berry);
+  background:#fff;color:var(--berry);font-size:10.5px;font-weight:800;line-height:1;padding:0 7px
 }
-.stub.done .tick{border-color:var(--lime);background:var(--lime);color:#fff}
+.tick.ship-pre{border-color:#B9AECB;background:#F4F0FA;color:#6C5E82}
+.tick.ship-ready{border-color:#E2A400;background:#FFF3D1;color:#8A6400}
+.tick.ship-done{border-color:var(--lime);background:var(--lime);color:#fff}
 .tick.ent{width:auto;height:auto;border-radius:999px;padding:8px 11px;font-size:12px;white-space:nowrap}
 .empty{
   border:1px dashed var(--line);border-radius:12px;padding:30px 18px;text-align:center;color:var(--mute);font-size:13px
@@ -837,11 +839,13 @@ function renderGoods(){
       :'<b style="color:var(--ink)">まだ取り込みがありません</b>'}</p>
     <div class="card" style="padding:10px 12px;${isTalent()?'display:none':''}">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
-      <div class="bar"><span>未発送</span><b style="font-family:var(--mono)">${a.filter(g=>!g.sent).length}件</b></div>
+      <div class="bar"><span>制作前</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='pre').length}件</b></div>
+      <div class="bar"><span>発送前（制作済み）</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='ready').length}件</b></div>
+      <div class="bar"><span>発送済み</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='done').length}件</b></div>
       <div class="bar"><span>タレント反映済み <span style="color:var(--berry)">■</span></span>
         <b style="font-family:var(--mono)">${a.filter(g=>g.tdone).length} / ${a.length}件</b></div>
 
-      <p class="hint" style="margin:6px 0 0">左の番号をタップすると紫になり、「タレントに反映済み」の印になります。</p>
+      <p class="hint" style="margin:6px 0 0">左の番号をタップすると紫になり「タレントに反映済み」の印。右のボタンはタップするたびに 制作前 → 発送前 → 発送済 と切り替わります。</p>
     </div>
     ${a.length?a.map(g=>`
       <div class="stub ${g.sent?'done':''}">
@@ -858,7 +862,7 @@ function renderGoods(){
             <div class="sub">${teamBadge(g.talent)}<span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
           </div>
-          ${isTalent()?'':`<button class="tick" onclick="gToggle('${g.id}')" aria-label="${g.sent?'未発送に戻す':'発送済にする'}">${g.sent?'✓':'発'}</button>`}
+          ${isTalent()?'':(st=>`<button class="tick ship-${st}" onclick="gToggle('${g.id}')" aria-label="タップで状態を切り替え（制作前→発送前→発送済）">${SHIP_LABEL[st]}</button>`)(gShip(g))}
         </div>
       </div>`).join(''):'<div class="empty">グッズ注文がありません。</div>'}
     <details class="card" style="margin-top:12px;${isTalent()?'display:none':''}">
@@ -886,9 +890,16 @@ function renderGoods(){
     </details>
     ${isTalent()?'':`<button class="wide ghost" onclick="gCsv()">グッズ売上のCSVを書き出す</button>`}`;
 }
+
+/* 注文の進行状態: pre(制作前) → ready(発送前) → done(発送済み) */
+const gShip=g=>g.ship||(g.sent?'done':'pre');
+const SHIP_LABEL={pre:'制作前',ready:'発送前',done:'発送済'};
 window.gToggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
-  g.sent=!g.sent;await save();renderGoods();toast(g.sent?'発送済にしました':'未発送に戻しました');
+  const next={pre:'ready',ready:'done',done:'pre'}[gShip(g)];
+  g.ship=next;
+  g.sent=(next==='done');
+  await save();renderGoods();toast(SHIP_LABEL[next]+'にしました');
 };
 window.gDetail=id=>{
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
@@ -4007,6 +4018,21 @@ window.schedNewOpen=(date,keep,editId)=>{
     <p class="hint">${editId?'参加者はそのまま引き継がれます。':'追加するとタレント全員が見られます。'}</p>`;
   $('#sheet').classList.add('on');
 };
+
+async function schedShrink(file){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const M=1400,r=Math.min(1,M/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/jpeg',.85));
+    };
+    img.onerror=()=>res('');
+    const fr=new FileReader();fr.onload=()=>img.src=fr.result;fr.readAsDataURL(file);
+  });
+}
 window.schedImgPick=(date,editId)=>{window.schedImgDate=date;window.schedImgEdit=editId||'';$('#schedFile').click()};
 window.schedCreate=async(date,editId)=>{
   const title=$('#sc-title').value.trim();
@@ -4553,7 +4579,7 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   $('#schedFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';
     if(!f)return;
-    const url=await stockShrink(f);
+    const url=await schedShrink(f);
     if(!url){toast('画像を読み込めませんでした');return}
     window.scNewImg=url;
     const keep={t1:$('#sc-t1')?$('#sc-t1').value:'',t2:$('#sc-t2')?$('#sc-t2').value:'',
