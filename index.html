@@ -290,7 +290,10 @@ body.staff .admin-only{display:none!important}
 
 <main>
   <!-- 受付 -->
-  <section class="view on" id="v-rec">
+  <div id="syncWarn" style="display:none;background:#FFF3D1;color:#8A6400;font-size:12px;padding:9px 14px;text-align:center" onclick="go('set')">
+  ⚠️ オンライン同期が未設定のため、この端末のデータは共有されていません。タップして設定 →
+</div>
+<section class="view on" id="v-rec">
     <div id="siteHead"></div>
     <div class="search">
       <input type="text" id="q" placeholder="名前・カナ・タレント・注文IDで検索" autocomplete="off">
@@ -808,6 +811,7 @@ function renderGoods(){
   let base;
   if(isTalent()){const _ef=evFilter;evFilter='';base=curGoods();evFilter=_ef}
   else base=curGoods();
+  if(window.goodsLimit===undefined)window.goodsLimit=200;
   const a=base.filter(g=>inTeam(g.talent)&&(!tal||g.talent===tal))
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
   const item=a.reduce((s,g)=>s+(Number(g.amount)||0),0);
@@ -847,7 +851,7 @@ function renderGoods(){
 
       <p class="hint" style="margin:6px 0 0">左の番号をタップすると紫になり「タレントに反映済み」の印。右のボタンはタップするたびに 制作前 → 発送前 → 発送済 と切り替わります。</p>
     </div>
-    ${a.length?a.map(g=>`
+    ${a.length?(window.goodsLimit&&a.length>window.goodsLimit?a.slice(0,window.goodsLimit):a).map(g=>`
       <div class="stub ${g.sent?'done':''}">
         <div class="no gno ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
           role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">
@@ -864,7 +868,11 @@ function renderGoods(){
           </div>
           ${isTalent()?'':(st=>`<button class="tick ship-${st}" onclick="gToggle('${g.id}')" aria-label="タップで状態を切り替え（制作前→発送前→発送済）">${SHIP_LABEL[st]}</button>`)(gShip(g))}
         </div>
-      </div>`).join(''):'<div class="empty">グッズ注文がありません。</div>'}
+      </div>`).join('')+(a.length>200?(window.goodsLimit
+        ?`<button class="wide ghost" onclick="window.goodsLimit=0;renderGoods()">すべて表示する（あと ${a.length-window.goodsLimit} 件）</button>
+          <p class="hint" style="text-align:center;margin-top:4px">いまは最初の ${window.goodsLimit} 件だけ表示しています。</p>`
+        :`<button class="wide ghost" onclick="window.goodsLimit=200;renderGoods()">表示を200件に戻す（軽くなります）</button>`):'')
+    :'<div class="empty">グッズ注文がありません。</div>'}
     <details class="card" style="margin-top:12px;${isTalent()?'display:none':''}">
       <summary style="font-family:var(--mincho);font-size:15px;font-weight:600">＋ グッズ注文を追加</summary>
       <label for="g-ev">イベント</label><select id="g-ev">${monthEvents().map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('')}</select>
@@ -2371,6 +2379,8 @@ function applyRole(){
   if(chip){chip.textContent=ROLE?(isAdmin()?'責任者':(isTalent()?'タレント':'スタッフ')):'ログイン';chip.style.display=ROLE?'':'none'}
   const eb=$('#evalBtn');if(eb)eb.style.display=(ROLE&&!isTalent())?'':'none';
   const sb=$('#setBtn');if(sb)sb.style.display=isAdmin()?'':'none';
+  const sw=$('#syncWarn');
+  if(sw)sw.style.display=(isAdmin()&&typeof ghOn==='function'&&!ghOn())?'':'none';
   if(allow){
     const cur=[...document.querySelectorAll('.view')].find(v=>v.classList.contains('on'));
     if(cur&&!allow.includes(cur.id.replace('v-','')))go('rec');
@@ -3067,6 +3077,25 @@ async function ghPush(){
     if(ghDirty){ghDirty=false;ghPush()}
   }
 }
+
+/* 他の端末で記録された内容を自動で取り込む */
+async function ghAutoRefresh(){
+  if(!ghOn()||ghBusy||ghDirty)return;
+  if($('#sheet')&&$('#sheet').classList.contains('on'))return; /* 入力中は待つ */
+  if(Date.now()-ghLastPull<15000)return;
+  ghLastPull=Date.now();
+  try{
+    const remote=await ghPull();
+    if(remote&&remote.events&&JSON.stringify(remote)!==JSON.stringify(DB)){
+      DB=remote;renderAll();fillEvForm();
+      const st=$('#ghState');if(st)st.textContent='同期: 取得済み '+new Date().toLocaleTimeString('ja-JP');
+    }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')ghAutoRefresh()});
+window.addEventListener('focus',()=>ghAutoRefresh());
+window.addEventListener('pageshow',()=>ghAutoRefresh());
+setInterval(ghAutoRefresh,90*1000);
 async function ghRefresh(manual){
   await ghRestore();
   if(!ghOn())return;
@@ -4334,6 +4363,10 @@ function go(v){
   if(ROLE&&!isAdmin()){
     const allow=isTalent()?TALENT_TABS:STAFF_TABS;
     if(!allow.includes(v))v=allow[0];
+  }
+  if(v==='goods'&&!window._goodsAllDone){
+    window._goodsAllDone=true;
+    if(DB.curM!=='ALL'){DB.curM='ALL';renderEvents();}
   }
   const navV=v==='stock'?'goods':(v==='set'?'':v);
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===navV));
