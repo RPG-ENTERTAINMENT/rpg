@@ -2785,7 +2785,7 @@ window.lineInv=name=>{
     <textarea id="ln-text" rows="16" style="font-size:13.5px">${esc(txt)}</textarea>
     <button class="wide" style="background:#06C755" onclick="lineSend()">LINEを開いて送る</button>
     <button class="wide ghost" onclick="lineSendPdf('${esc(name).replace(/'/g,"\\'")}')">請求書PDFも付けて送る</button>
-    <button class="wide ghost" onclick="driveSaveInv('${esc(name).replace(/'/g,"\\'")}')">📁 Googleドライブに保存（月ごと）</button>
+    
     <button class="wide ghost" onclick="lineCopy()">文面をコピー</button>
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
@@ -4057,7 +4057,7 @@ const STAFF_TEAM={id:'tmS',name:'スタッフ',members:['しずく','けん','�
 const sjTeams=()=>[...teams(),STAFF_TEAM];
 const sjTeamOf=tid=>tid==='tmS'?STAFF_TEAM:teamOf(tid);
 const isStaffName=n=>STAFF_TEAM.members.includes(n);
-const sjLabel=n=>(isStaffName(n)?'👷':'')+esc(talShort(n));
+const sjLabel=n=>(isStaffName(n)?'🏢':'')+esc(talShort(n));
 window.sjTeam='';
 window.schedTeamPick=(id,tid)=>{window.sjTeam=(window.sjTeam===tid?'':tid);schedJoinOpen(id)};
 window.schedJoinOpen=id=>{
@@ -4080,17 +4080,17 @@ window.schedJoinOpen=id=>{
     <div class="chips" style="margin-bottom:10px">
       ${sjTeams().map(t=>`
       <button class="chip ${tf===t.id?'on':''}" style="padding:9px 16px;font-size:13.5px;${t.id==='tmS'?(tf==='tmS'?'background:#E85D8A;border-color:#E85D8A;color:#fff':'background:#FDE7EF;border-color:#F5C2D6;color:#C2185B'):''}"
-        onclick="schedTeamPick('${id}','${t.id}')">${t.id==='tmS'?'👷 ':''}${esc(t.name)}</button>`).join('')}
+        onclick="schedTeamPick('${id}','${t.id}')">${t.id==='tmS'?'🏢 ':''}${esc(t.name)}</button>`).join('')}
     </div>
     ${tf?`<p class="hint" style="margin:0 0 6px">自分の名前をタップしてください（もう一度タップで取り消し）。</p>
     <div class="chips">
       <button class="chip ${(sjTeamOf(tf).members||[]).every(n=>ev.join.includes(n))&&(sjTeamOf(tf).members||[]).length?'on':''}"
         style="font-weight:800;${tf==='tmS'?((sjTeamOf(tf).members||[]).every(n=>ev.join.includes(n))?'background:#E85D8A;border-color:#E85D8A;color:#fff':'background:#FDE7EF;border-color:#F5C2D6;color:#C2185B'):''}"
-        onclick="schedJoinAll('${id}','${tf}')">${tf==='tmS'?'👷':''}${esc(sjTeamOf(tf).name)}全員</button>
+        onclick="schedJoinAll('${id}','${tf}')">${tf==='tmS'?'🏢':''}${esc(sjTeamOf(tf).name)}全員</button>
       ${(sjTeamOf(tf).members||[]).map(n=>`
       <button class="chip ${ev.join.includes(n)?'on':''}"
         style="${isStaffName(n)?(ev.join.includes(n)?'background:#E85D8A;border-color:#E85D8A;color:#fff':'background:#FDE7EF;border-color:#F5C2D6;color:#C2185B'):''}"
-        onclick="schedJoin('${id}','${esc(n).replace(/'/g,"\\\\'")}')">${isStaffName(n)?'👷':''}${esc(n)}</button>`).join('')}
+        onclick="schedJoin('${id}','${esc(n).replace(/'/g,"\\\\'")}')">${isStaffName(n)?'🏢':''}${esc(n)}</button>`).join('')}
     </div>`:''}`;
   $('#sheet').classList.add('on');
 };
@@ -4145,7 +4145,7 @@ function renderSched(){
               </div>
 
             </div>
-            ${ev.img?`<img src="${ev.img}" style="width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-top:8px">`:''}
+            ${ev.img?`<img src="${ev.img}" onclick="imgZoom(this.src)" style="width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-top:8px;cursor:zoom-in">`:''}
             <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
               ${(ev.join||[]).map(n=>`<span style="background:${isStaffName(n)?'#FDE7EF':'#F0EAF7'};color:${isStaffName(n)?'#C2185B':'var(--grape)'};border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700">${sjLabel(n)}</span>`).join('')}
               <span style="font-size:10.5px;color:var(--mute)">参加 ${(ev.join||[]).length}名</span>
@@ -4155,12 +4155,32 @@ function renderSched(){
           </div>`).join('')+`<button onclick="schedNewOpen('${d}')" style="width:100%;border:1px dashed var(--line);background:#fff;color:var(--mute);border-radius:9px;padding:7px;font-size:11px">＋ この日に予定を作る</button>`
         :`<button onclick="schedNewOpen('${d}')" style="width:100%;border:1px dashed var(--grape);background:#F8F5FC;color:var(--grape);border-radius:10px;padding:11px;text-align:center;font-size:12.5px;font-weight:700">＋ 予定を作る</button>`}
       </div>`}).join('')}
-    </div>`;
+    </div>
+    ${isAdmin()?`<button class="wide ghost" style="margin-top:14px" onclick="gcalImport()">📥 Googleカレンダーから読み取る（${label}）</button>
+    <p class="hint" style="text-align:center">Googleカレンダーの予定（フルフル・メンバーの予定など）をこの月に取り込みます。責任者のみ。</p>`:''}`;
 }
 
 /* ---- 請求書をGoogleドライブへ（Apps Script経由・月フォルダ） ---- */
 const GAS_CODE=`function doPost(e){
   var d=JSON.parse(e.postData.contents);
+  if(d.action==='calendar'){
+    var out=[];
+    CalendarApp.getAllCalendars().forEach(function(cal){
+      try{
+        cal.getEvents(new Date(d.from),new Date(d.to)).forEach(function(ev){
+          out.push({
+            cal:cal.getName(),
+            title:ev.getTitle(),
+            date:Utilities.formatDate(ev.getStartTime(),'Asia/Tokyo','yyyy-MM-dd'),
+            t1:ev.isAllDayEvent()?'':Utilities.formatDate(ev.getStartTime(),'Asia/Tokyo','HH:mm'),
+            t2:ev.isAllDayEvent()?'':Utilities.formatDate(ev.getEndTime(),'Asia/Tokyo','HH:mm'),
+            note:ev.getDescription()||''
+          });
+        });
+      }catch(err){}
+    });
+    return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+  }
   var it=DriveApp.getFoldersByName('RPG請求書');
   var root=it.hasNext()?it.next():DriveApp.createFolder('RPG請求書');
   var mi=root.getFoldersByName(d.month);
@@ -4241,6 +4261,46 @@ window.schedGcal=id=>{
     +'&ctz=Asia/Tokyo'
     +'&details='+encodeURIComponent((ev.note||'')+(ev.join&&ev.join.length?'\n参加: '+ev.join.join('・'):''));
   window.open(u,'_blank');
+};
+
+/* Googleカレンダーから予定を読み取り（責任者のみ・表示中の月） */
+window.gcalImport=async()=>{
+  if(!needAdmin())return;
+  if(!DB.gasUrl){gasSetupOpen('');toast('先にGoogleドライブ/カレンダー連携の設定をしてください');return}
+  const days=weekDays(window.schedOff);
+  const from=days[0]+'T00:00:00+09:00';
+  const to=days[days.length-1]+'T23:59:59+09:00';
+  toast('Googleカレンダーを読み取り中…');
+  try{
+    const res=await fetch(DB.gasUrl,{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'calendar',from,to})});
+    const rows=await res.json();
+    if(!Array.isArray(rows)){toast('読み取れませんでした。GASのコードを最新に更新してください');return}
+    let added=0;
+    const allNames=[...new Set([...teams().flatMap(t=>t.members||[]),...STAFF_TEAM.members])];
+    rows.forEach(r=>{
+      if(!r.title||!r.date)return;
+      if(scheds().some(x=>x.date===r.date&&x.title===r.title))return;
+      const time=r.t1?(r.t2&&r.t2!==r.t1?`${r.t1}〜${r.t2}`:r.t1):'';
+      const hay=String(r.title)+' '+String(r.cal||'')+' '+String(r.note||'');
+      const join=allNames.filter(n=>hay.includes(n)||(talShort(n)!==n&&hay.includes(talShort(n))));
+      const note=[r.cal?`（${r.cal}）`:'',r.note||''].filter(Boolean).join('\n');
+      scheds().push({id:uid(),date:r.date,time,title:r.title,note,img:'',join});
+      added++;
+    });
+    if(added){await save();renderSched();toast(`Googleカレンダーから ${added}件 取り込みました`)}
+    else toast('新しい予定はありませんでした（同名・同日の予定は取り込みません）');
+  }catch(e){toast('読み取りに失敗しました。GASのコードを最新版に更新して再デプロイしてください')}
+};
+
+/* 画像タップで拡大表示 */
+window.imgZoom=src=>{
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(10,6,18,.94);display:flex;align-items:center;justify-content:center;padding:14px';
+  ov.innerHTML=`<img src="${src}" style="max-width:96vw;max-height:90vh;object-fit:contain;border-radius:12px">
+    <div style="position:fixed;top:calc(14px + env(safe-area-inset-top));right:16px;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:700">✕ 閉じる</div>`;
+  ov.onclick=()=>ov.remove();
+  document.body.appendChild(ov);
 };
 
 /* nav */
