@@ -1070,12 +1070,8 @@ function renderTip(){
     <div class="card">
       <h2>🎬 ウィークリーミッション換算スキャナー</h2>
       <p class="hint">配信のウィークリーミッション動画からUSD金額を読み取り、日本円に換算するツールです。</p>
-      <button class="wide" onclick="window.open('./scanner.html','_blank')">スキャナーを開く</button>
-      <details style="margin-top:8px">
-        <summary style="font-size:12.5px;color:var(--mute)">この画面の中で開く</summary>
-        <iframe src="./scanner.html" loading="lazy"
-          style="width:100%;height:640px;border:1px solid var(--line);border-radius:12px;margin-top:8px;background:#12161f"></iframe>
-      </details>
+      <iframe src="./scanner.html${DB.scanKey?'#k='+encodeURIComponent(DB.scanKey):''}" loading="lazy"
+        style="width:100%;height:680px;border:1px solid var(--line);border-radius:12px;margin-top:4px;background:#12161f"></iframe>
     </div>`;
 }
 window.tipSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
@@ -4209,6 +4205,12 @@ $('#q').oninput=renderList;
   {(DB.teams||[]).forEach(t=>{t.members=(t.members||[]).map(m=>(m==='うか'||m==='星乃うか')?'星乃羽華':m)});
    [DB.people,DB.goods||[],DB.manual||[],DB.tips||[]].forEach(arr=>arr.forEach(r=>{if(r.talent==='うか'||r.talent==='星乃うか')r.talent='星乃羽華'}));
    (DB.goods||[]).forEach(g=>{if(g.order==='72D14DEA08EABD19')g.talent='星乃羽華'});
+  /* スキャナー用AIキー（1回だけ設定・以後は設定値を優先） */
+  if(!DB.migScanKey){
+    DB.scanKey='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';
+    DB.migScanKey=true;
+  }
+
   /* 2026-07-31 ダイヤ集計合計の反映（FruitFruit・1回だけ・上書き） */
   if(!DB.migTipFF0731){
     const TFF=[{"talent":"中島沙也加","pts":252029},{"talent":"小山ありす","pts":60926},{"talent":"綾乃舞衣","pts":57786},{"talent":"星乃ひかり","pts":51643},{"talent":"白音みなみ","pts":55813},{"talent":"三毛野みい","pts":29466},{"talent":"心花ひま","pts":26210},{"talent":"瑚桃","pts":11946}];
