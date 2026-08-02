@@ -816,6 +816,43 @@ const isCF=g=>CF_RE.test([g.item,g.option,((DB.events||[]).find(e=>e.id===g.ev)|
 const PS_RE=/個撮|個人撮影|撮影会|個人コスプレ|チェキ/i;
 const PS_NG=/チェキ入り/i;   /* 「チェキ入り落書きスマホケース」などのグッズは除外 */
 const isPS=g=>{const t=String(g.item||'');return PS_RE.test(t)&&!PS_NG.test(t)};
+/* 左の番号の色: ENVIL=紫 / FruitFruit=ピンク / インフルエンサー=青 */
+const gTeamKey=g=>{
+  const t=teams().find(x=>(x.members||[]).includes(g.talent));
+  if(t)return t.id;
+  const s=[g.item,g.option,g.talent].filter(Boolean).join(' ');
+  if(/エンビル|ENVIL/i.test(s))return 'tm2';
+  if(/フルフル|フルーツフルーツ|fruit ?fruits?/i.test(s))return 'tm1';
+  if(/インフルエンサー/.test(s))return 'tmI';
+  return '';
+};
+const gNoColor=g=>({tm2:'var(--grape)',tm1:'var(--berry)',tmI:'#2E6FD8'}[gTeamKey(g)]||'');
+/* 明細はシートではなく一覧の中で開閉する */
+window.gOpenSet=window.gOpenSet||new Set();
+window.gToggleDet=id=>{const s=window.gOpenSet;s.has(id)?s.delete(id):s.add(id);renderGoods()};
+function gDetRows(g){
+  const rows=(isTalent()
+    ?[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],['金額',yen(g.amount)],['注文日',g.date]]
+    :[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],
+      ['金額',yen(g.amount)],['決済',g.pay],['注文ID',g.order],['注文日',g.date],
+      ['お届け先',g.addr],['電話',g.tel],['メール',g.mail],['BASEの状況',g.st],['発送',g.sent?'済':'未']])
+    .filter(r=>r[1]!==''&&r[1]!=null);
+  return `<div class="card" style="margin:-3px 0 8px;padding:8px 12px;border-color:var(--grape)">
+    ${rows.map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span>
+      <b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
+    ${isAdmin()?`<label for="gt-tal-${g.id}" style="margin-top:6px">タレントを変更</label>
+      <select id="gt-tal-${g.id}" onchange="gSetTalInline('${g.id}',this.value)">
+        <option value="">（未指定）</option>
+        ${talentNames().map(t=>`<option value="${esc(t)}" ${g.talent===t?'selected':''}>${esc(t)}</option>`).join('')}
+      </select>`:''}
+    ${isTalent()?'':`<button class="wide danger" style="margin-top:8px" onclick="gDel('${g.id}')">この注文を削除</button>`}
+  </div>`;
+}
+window.gSetTalInline=async(id,v)=>{
+  if(!needAdmin())return;
+  const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
+  g.talent=v;await save();renderAll();toast(v?`${v} に変更しました`:'未指定にしました');
+};
 function renderGoods(){
   const _gqFocus=document.activeElement&&document.activeElement.id==='gq';
   const _gqPos=_gqFocus?document.activeElement.selectionStart:0;
@@ -835,6 +872,10 @@ function renderGoods(){
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
   const live=a.filter(g=>!g.cancel);
   const item=live.reduce((s,g)=>s+(Number(g.amount)||0),0);
+  let _lastM='';
+  const mHead=g=>{const m=String(g.date||'').slice(0,7);if(m===_lastM)return '';_lastM=m;
+    return `<div style="font-family:var(--mincho);font-size:13px;font-weight:700;color:var(--grape);
+      margin:12px 2px 6px;padding-bottom:4px;border-bottom:1.5px solid var(--line)">${m?mLabel(m):'（日付なし）'}</div>`};
   $('#goodsBody').innerHTML=`
     ${isAdmin()?`<div class="oseg" style="display:flex;gap:6px;margin-bottom:10px">
       <button class="on" style="flex:1;border:0;background:var(--grape);color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📦 グッズ注文</button>
@@ -877,14 +918,15 @@ function renderGoods(){
       <p class="hint" style="margin:6px 0 0">左の番号をタップすると紫になり「タレントに反映済み」の印。右のボタンはタップするたびに 制作前 → 発送前 → 発送済 と切り替わります。</p>
     </div>
     ${a.length?(window.goodsLimit&&a.length>window.goodsLimit?a.slice(0,window.goodsLimit):a).map(g=>`
+      ${mHead(g)}
       <div class="stub ${g.cancel?'cancel':(g.sent?'done':'')}">
-        <div class="no gno ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
+        <div class="no gno ${g.tdone?'tdone':''}" ${(!g.tdone&&gNoColor(g))?`style="background:${gNoColor(g)}"`:''} onclick="gTalDone('${g.id}')"
           role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">
-          <b>${g.no}</b>
-          ${g.date?`<span class="gd">${esc(String(g.date).slice(5,10).replace('-','/'))}</span>${String(g.date).length>10?`<span class="gd">${esc(String(g.date).slice(11,16))}</span>`:''}`:''}
+          ${g.date?`<span class="gd" style="font-size:9.5px">${Number(String(g.date).slice(5,7))}/${Number(String(g.date).slice(8,10))}</span>
+            ${String(g.date).length>10?`<span class="gd" style="font-size:9.5px">${esc(String(g.date).slice(11,16))}</span>`:''}`:'<span class="gd">—</span>'}
         </div><div class="perf"></div>
         <div class="body">
-          <div class="txt" onclick="gDetail('${g.id}')">
+          <div class="txt" onclick="gToggleDet('${g.id}')">
             <div class="nm">${esc(g.name)}${g.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(g.sns)}</span>`:''}
               ${g.isNew?`<span style="background:linear-gradient(135deg,#E8B923,#FFD966 55%,#C9970F);color:#3A2A00;border-radius:6px;padding:1px 7px;font-size:9.5px;font-weight:800;font-family:var(--gothic);margin-left:5px;vertical-align:2px;box-shadow:0 1px 2px rgba(180,140,20,.4)">NEW${g.date?"　"+esc(String(g.date).slice(5,10).replace("-","/")):""}</span>`:''}
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
@@ -894,7 +936,7 @@ function renderGoods(){
           ${g.cancel?`<span style="flex:none;background:#111;color:#fff;border-radius:8px;padding:7px 9px;font-size:10.5px;font-weight:800">キャンセル</span>`
             :isTalent()?'':(st=>`<button class="tick ship-${st}" onclick="gToggle('${g.id}')" aria-label="タップで状態を切り替え（制作前→発送前→発送済）">${SHIP_LABEL[st]}</button>`)(gShip(g))}
         </div>
-      </div>`).join('')+(a.length>200?(window.goodsLimit
+      </div>${window.gOpenSet.has(g.id)?gDetRows(g):''}`).join('')+(a.length>200?(window.goodsLimit
         ?`<button class="wide ghost" onclick="window.goodsLimit=0;renderGoods()">すべて表示する（あと ${a.length-window.goodsLimit} 件）</button>
           <p class="hint" style="text-align:center;margin-top:4px">いまは最初の ${window.goodsLimit} 件だけ表示しています。</p>`
         :`<button class="wide ghost" onclick="window.goodsLimit=200;renderGoods()">表示を200件に戻す（軽くなります）</button>`):'')
@@ -3470,6 +3512,8 @@ async function gCsvImport(file){
     if(/ないん|矢澤/.test(x))return '矢澤ないん';
     return '';
   };
+  /* BASEの発送状況をアプリの状態に写す（未対応→制作前 / 対応済・発送済→発送済 / キャンセル→キャンセル） */
+  const shipOf=st=>/発送済|対応済/.test(String(st||''))?'done':'pre';
   let add=0,skip=0,tk=0,upd=0;
   (DB.goods||[]).forEach(g=>{delete g.isNew});
   const known=new Set([...(DB.goods||[]).map(x=>x.order)].filter(Boolean));
@@ -3479,7 +3523,15 @@ async function gCsvImport(file){
     const isCancel=/キャンセル/.test(o.st||'');
     if(known.has(o.id)){
       const ex=(DB.goods||[]).find(x=>x.order===o.id);
-      if(ex&&isCancel&&!ex.cancel){ex.cancel=true;upd++}
+      if(ex){
+        let ch=false;
+        if(isCancel&&!ex.cancel){ex.cancel=true;ch=true}
+        if(!isCancel&&ex.cancel){ex.cancel=false;ch=true}
+        const sp=shipOf(o.st);
+        if(sp==='done'&&gShip(ex)!=='done'){ex.ship='done';ex.sent=true;ch=true}
+        if(ex.st!==o.st){ex.st=o.st;ch=true}
+        if(ch)upd++;
+      }
       skip++;return
     }
     const total=goodsItems.reduce((a,b)=>a+b.t,0)+o.opt+o.ship;
@@ -3495,13 +3547,13 @@ async function gCsvImport(file){
       item:goodsItems.map(i=>i.n).join('／'),
       option:Object.entries(o.opts).filter(([k])=>!/SNS|タレント|推し|押し/.test(k)).map(([k,v])=>`${k}: ${v}`).join('／'),
       amount:total,pay:o.pay,order:o.id,date:o.d,addr:o.addr,tel:o.tel,mail:o.mail,note:'',
-      cancel:/キャンセル/.test(o.st||''),
-      ship:/発送済/.test(o.st||'')?'done':'pre',sent:/発送済/.test(o.st||''),isNew:true});
+      cancel:isCancel,st:o.st||'',
+      ship:shipOf(o.st),sent:shipOf(o.st)==='done',isNew:true});
     add++;
   });
   DB.gCsvAt=new Date().toISOString();DB.gCsvNew=add;
   await save();renderAll();
-  toast(`グッズ${add}件を追加しました（重複${skip}件・チケットのみ${tk}件スキップ${upd?'・キャンセル反映'+upd+'件':''}）`);
+  toast(`グッズ${add}件を追加しました（重複${skip}件・チケットのみ${tk}件スキップ${upd?'・状況を更新'+upd+'件':''}）`);
 }
 
 /* ---- 現場の編集（名前タップ） / 日程変更（日付タップ） ---- */
