@@ -3455,7 +3455,7 @@ async function gCsvImport(file){
   };
   let add=0,skip=0,tk=0,upd=0;
   (DB.goods||[]).forEach(g=>{delete g.isNew});
-  const known=new Set([...(DB.goods||[]).map(x=>x.order),...DB.people.map(x=>x.order)].filter(Boolean));
+  const known=new Set([...(DB.goods||[]).map(x=>x.order)].filter(Boolean));
   Object.values(orders).forEach(o=>{
     const goodsItems=o.items.filter(i=>!TICKET_RE.test(i.n));
     if(!goodsItems.length){tk++;return}
