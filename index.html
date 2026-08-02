@@ -639,6 +639,7 @@ function card(p){
 }
 
 function renderSum(){
+  if(!document.getElementById('s-total'))return;
   const a=curPeople();
   const sales=a.reduce((s,p)=>s+(Number(p.amount)||0),0);
   $('#s-total').textContent=a.length;
@@ -855,6 +856,7 @@ window.gSetTalInline=async(id,v)=>{
   g.talent=v;await save();renderAll();toast(v?`${v} に変更しました`:'未指定にしました');
 };
 function renderGoods(){
+  if(!document.getElementById('goodsBody'))return;
   const _gqFocus=document.activeElement&&document.activeElement.id==='gq';
   const _gqPos=_gqFocus?document.activeElement.selectionStart:0;
   const tf=window.goodsTeam||'';
@@ -3555,7 +3557,8 @@ async function gCsvImport(file){
     add++;
   });
   DB.gCsvAt=new Date().toISOString();DB.gCsvNew=add;
-  await save();renderAll();
+  await save();
+  try{renderAll()}catch(e){console.warn('render after import',e);try{renderGoods()}catch(_){}}
   toast(`グッズ${add}件を追加しました（重複${skip}件・明細なし${tk}件${upd?'・状況を更新'+upd+'件':''}）`);
 }
 
@@ -4732,7 +4735,7 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   };
   $('#gCsvFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
-    try{await gCsvImport(f)}catch(err){toast('読み込みに失敗しました')}
+    try{await gCsvImport(f)}catch(err){console.error('CSV import',err);toast('読み込みに失敗：'+((err&&err.message)||err))}
   };
   $('#schedFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';
