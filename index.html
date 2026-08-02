@@ -4270,7 +4270,7 @@ function renderSched(){
   const today=(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)(new Date());
   const label=`${days[0].slice(0,4)}年${Number(days[0].slice(5,7))}月`;
   const canEd=!isTalent()&&!!ROLE;
-  $('#schedBody').style.padding='4px 10px 20px';
+  $('#schedBody').style.padding='2px 10px 16px';
   $('#schedBody').innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin:6px 0 16px">
       <button onclick="schedMove(-1)" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-weight:700">‹</button>
@@ -4278,19 +4278,20 @@ function renderSched(){
         ${label}${window.schedOff===0?'<span style="color:var(--berry);font-size:11px">　今月</span>':''}</div>
       <button onclick="schedMove(1)" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-weight:700">›</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;align-items:start">
+    <div style="column-count:2;column-gap:10px">
     ${days.map((d,i)=>{
       const evs=scheds().filter(x=>x.date===d).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
       const dow=new Date(d+'T00:00:00').getDay();
       const isToday=d===today, isSun=dow===0, isSat=dow===6;
       return `
-      <div style="margin-bottom:4px">
-        <div style="display:flex;align-items:baseline;gap:7px;margin:0 2px 7px">
-          <b style="font-family:var(--mono);font-size:12.5px;color:${isSun?'var(--berry)':isSat?'#2E6FD8':'var(--ink)'}">${d.slice(8)}日（${['日','月','火','水','木','金','土'][dow]}）</b>
-          ${isToday?'<span style="background:var(--berry);color:#fff;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700">今日</span>':''}
+      <div style="break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;display:inline-block;width:100%;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:6px;margin:0 2px 3px">
+          <b style="font-family:var(--mono);font-size:12.5px;color:${(isSun||isSat)?'var(--berry)':'var(--ink)'}">${d.slice(8)}日（${['日','月','火','水','木','金','土'][dow]}）</b>
+          ${isToday?'<span style="background:var(--berry);color:#fff;border-radius:5px;padding:1px 6px;font-size:9.5px;font-weight:700">今日</span>':''}
+          <button onclick="schedNewOpen('${d}')" style="margin-left:auto;border:1px dashed var(--grape);background:#F8F5FC;color:var(--grape);border-radius:8px;padding:2px 9px;font-size:10.5px;font-weight:700;line-height:1.6">＋ 予定</button>
         </div>
         ${evs.length?evs.map(ev=>`
-          <div class="card" style="padding:9px 10px;margin-bottom:7px">
+          <div class="card" style="padding:8px 10px;margin-bottom:5px">
             <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
               <div style="flex:1;min-width:0">
                 ${ev.time?`<span style="font-family:var(--mono);font-size:12px;color:var(--berry);font-weight:700">${esc(ev.time)}</span>`:''}
@@ -4310,8 +4311,8 @@ function renderSched(){
               <button class="wide" style="margin:0;flex:1;padding:10px 4px;font-size:12px;background:var(--grape);color:#fff"
                 onclick="schedGuests('${d}','${esc(ev.title).replace(/'/g,"\\'")}')">👥 客数を見る</button>
             </div>
-          </div>`).join('')+`<button onclick="schedNewOpen('${d}')" style="width:100%;border:1px dashed var(--line);background:#fff;color:var(--mute);border-radius:9px;padding:7px;font-size:11px">＋ この日に予定を作る</button>`
-        :`<button onclick="schedNewOpen('${d}')" style="width:100%;border:1px dashed var(--grape);background:#F8F5FC;color:var(--grape);border-radius:10px;padding:11px;text-align:center;font-size:12.5px;font-weight:700">＋ 予定を作る</button>`}
+          </div>`).join('')
+        :''}
       </div>`}).join('')}
     </div>
     ${isAdmin()?`<button class="wide ghost" style="margin-top:14px" onclick="gcalImport()">📥 Googleカレンダーから読み取る（${label}）</button>
