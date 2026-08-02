@@ -3412,7 +3412,7 @@ function parseCsvText(text){
   if(cell||row.length){row.push(cell);rows.push(row)}
   return rows.filter(r=>r.length>1);
 }
-const TICKET_RE=/定期|会場|ライブ|live|チケット|ファンミ|クラウドファンディング|レンタル|オフ会|撮影会|ファンクラブ/i;
+const TICKET_RE=/チケット|ご飯会|ドリンク/i;
 window.gCsvPick=()=>{if(!needAdmin())return;$('#gCsvFile').click()};
 async function gCsvImport(file){
   if(isTalent()){toast('タレントは閲覧のみです');return}
