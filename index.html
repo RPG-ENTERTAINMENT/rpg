@@ -123,25 +123,11 @@ main{padding:10px 12px 20px}
 .tick.ship-pre{border-color:#B9AECB;background:#F4F0FA;color:#6C5E82}
 .tick.ship-ready{border-color:#E2A400;background:#FFF3D1;color:#8A6400}
 .tick.ship-done{border-color:var(--lime);background:var(--lime);color:#fff}
-.tick.ship-cancel{border-color:#B4B4BE;background:#D8D8E0;color:#55555F}
-.stub.cx{opacity:1;background:#EDEDF1;border-color:#C8C8D2}
-.stub.cx .txt{filter:grayscale(1)}
-.stub.cx .no{background:#A6A6B0;color:#fff}
-.stub.cx .no.gno{background:#A6A6B0;color:#fff}
-.stub.cx .no.gno .gd{color:#EFEFF3}
-.stub.cx .nm{color:#7C7C88;text-decoration:line-through;text-decoration-color:#B0B0BA}
-.stub.cx .sub,.stub.cx .sub .t,.stub.cx .sub .a,.stub.cx .nm .a{color:#8C8C98}
-.stub.cx .perf{border-left-color:#C8C8D2}
-.stub.cx .perf::before,.stub.cx .perf::after{background:var(--paper);border-color:#C8C8D2}
-#evDetailHost.inev{border-left:3px solid var(--berry);padding-left:9px;margin:2px 0 16px}
-.stub.bank{border:2px solid #E23A4E;background:#ECECF0}
-.stub.bank .no.gno{background:#B03050}
-.stub.bank .perf{border-left-color:#E23A4E}
-.stub.bank .perf::before,.stub.bank .perf::after{border-color:#E23A4E}
-.bkwarn{margin-top:3px;font-size:10.5px;font-weight:800;color:#C4102A;
-  font-family:var(--gothic);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cxbadge{background:#6E6E7A;color:#fff;border-radius:6px;padding:1px 7px;font-size:9.5px;
-  font-weight:800;font-family:var(--gothic);margin-left:5px;vertical-align:2px;letter-spacing:.04em}
+.stub.cancel{background:#221B2E;border-color:#3A3147}
+.stub.cancel .nm,.stub.cancel .sub,.stub.cancel .sub .t{color:#8F86A3!important}
+.stub.cancel .nm .a,.stub.cancel .a{color:#8F86A3!important;text-decoration:line-through}
+.stub.cancel .no{background:#3A3147!important;color:#8F86A3!important}
+.stub.cancel .no .gd{color:#6D6480!important}
 .tick.ent{width:auto;height:auto;border-radius:999px;padding:8px 11px;font-size:12px;white-space:nowrap}
 .empty{
   border:1px dashed var(--line);border-radius:12px;padding:30px 18px;text-align:center;color:var(--mute);font-size:13px
@@ -319,20 +305,18 @@ body.staff .admin-only{display:none!important}
     </div>
     <div id="siteList"></div>
     <div class="filter" id="evChips" style="display:none"></div>
-    <div id="evDetailHost">
-      <button class="wide" id="btnPos" style="margin:0 0 10px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
-        onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
-      <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
-      <div class="filter" id="filters">
-        <button class="on" data-f="all">全員</button>
-        <button data-f="yet">未受付</button>
-        <button data-f="done">受付済</button>
-        <button data-f="meal">ご飯会</button>
-      </div>
-      <div id="memberList"></div>
-      <div id="list"></div>
-      <div id="buyList"></div>
+    <div class="filter" id="filters">
+      <button class="on" data-f="all">全員</button>
+      <button data-f="yet">未受付</button>
+      <button data-f="done">受付済</button>
+      <button data-f="meal">ご飯会</button>
     </div>
+    <button class="wide" id="btnPos" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
+      onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
+    <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
+    <div id="memberList"></div>
+    <div id="list"></div>
+    <div id="buyList"></div>
   </section>
 
   <!-- 追加 -->
@@ -570,10 +554,8 @@ function targetEv(sel){
   const v=$(sel)&&$(sel).value; if(v)return v;
   const a=monthEvents(); return a.length?a[0].id:null;
 }
-const isCx=x=>!!(x&&x.cancel);
-const curPeopleAll=()=>DB.people.filter(p=>inScope(p.ev));
-const curPeople=()=>curPeopleAll().filter(p=>!isCx(p));
-function nextNo(){const a=curPeopleAll();return a.length?Math.max(...a.map(p=>p.no||0))+1:1}
+const curPeople=()=>DB.people.filter(p=>inScope(p.ev));
+function nextNo(){const a=curPeople();return a.length?Math.max(...a.map(p=>p.no||0))+1:1}
 
 /* ---------- render ---------- */
 function renderEvents(){
@@ -586,7 +568,7 @@ function renderEvents(){
   const evs=monthEvents();
   if(evFilter){
     const fe=DB.events.find(e=>e.id===evFilter);
-    const keep=fe&&(DB.curM==='ALL'||(()=>{let m=DB.curM;for(let i=0;i<3;i++){if(evMonth(fe)===m)return true;m=prevMonth(m)}return false})());
+    const keep=fe&&(()=>{let m=DB.curM;for(let i=0;i<3;i++){if(evMonth(fe)===m)return true;m=prevMonth(m)}return false})();
     if(!keep)evFilter='';
   }
   $('#evChips').innerHTML = evs.length>1
@@ -621,7 +603,7 @@ function renderList(){
     renderBuys();
     return;
   }
-  let a=curPeopleAll();
+  let a=curPeople();
   if(window.memFilter)a=a.filter(p=>p.talent===window.memFilter);
   if(filter==='yet')a=a.filter(p=>!p.in);
   if(filter==='done')a=a.filter(p=>p.in);
@@ -642,14 +624,14 @@ function card(p){
   if(rk<2)bits.push(`<span class="v">${rk===0?'VIP':'S'}</span>`);
   if(p.meal)bits.push(`<span class="m">飯${p.drink?'・'+esc(p.drink):''}</span>`);
   bits.push(`<span class="a">${yen(p.amount)}</span>`);
-  return `<div class="stub ${isCx(p)?'cx':(p.in?'done':'')}">
+  return `<div class="stub ${p.in?'done':''}">
     <div class="no">${p.no}</div><div class="perf"></div>
     <div class="body">
       <div class="txt" onclick="detail('${p.id}')">
-        <div class="nm">${esc(p.name)}${p.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(p.sns)}</span>`:''}${isCx(p)?'<span class="cxbadge">キャンセル</span>':''}</div>
+        <div class="nm">${esc(p.name)}${p.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(p.sns)}</span>`:''}</div>
         <div class="sub">${bits.join('<span style="opacity:.4">/</span>')}</div>
       </div>
-      <button class="tick ent ${isCx(p)?'ship-cancel':''}" onclick="toggle('${p.id}')" aria-label="${isCx(p)?'キャンセルを解除':(p.in?'入場前に戻す':'入場済にする')}">${isCx(p)?'キャンセル':(p.in?'入場済':'入場前')}</button>
+      <button class="tick ent" onclick="toggle('${p.id}')" aria-label="${p.in?'入場前に戻す':'入場済にする'}">${p.in?'入場済':'入場前'}</button>
     </div>
   </div>`;
 }
@@ -713,11 +695,6 @@ function renderAll(){renderEvents();renderList();renderSum();if($('#talBody'))re
 /* ---------- actions ---------- */
 window.toggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const p=DB.people.find(x=>x.id===id);if(!p)return;
-  if(isCx(p)){
-    if(!await ask('キャンセル済みを解除して、通常の来場者に戻しますか？'))return;
-    p.cancel=false;p.cxManual=true;
-    await save();renderAll();toast('キャンセルを解除しました');return;
-  }
   p.in=!p.in;p.inAt=p.in?new Date().toISOString():'';
   await save();renderList();renderSum();
   toast(p.in?`${p.name} さん 受付しました`:'受付を取り消しました');
@@ -729,26 +706,15 @@ window.detail=id=>{
     <div class="card" style="margin-top:12px">
       ${[['受付番号',p.no],['SNSのお名前',p.sns],['指名タレント',p.talent],['チケット',p.ticket],['ご飯会',p.meal?'参加':'なし'],
          ['ドリンク',p.drink],['金額',yen(p.amount)],['決済',p.pay],['注文ID',p.order],['注文日',p.date],
-         ...(isTalent()?[]:[['電話',p.tel],['メール',p.mail]]),['メモ',p.note],['受付',p.in?'済':'未'],['状態',isCx(p)?'キャンセル済み':'']]
+         ...(isTalent()?[]:[['電話',p.tel],['メール',p.mail]]),['メモ',p.note],['受付',p.in?'済':'未']]
         .filter(r=>r[1]!==''&&r[1]!=null)
         .map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span><b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
     </div>
     ${p.tel&&isAdmin()?`<a class="wide ghost" style="display:block;text-align:center;text-decoration:none;line-height:1.4" href="tel:${esc(p.tel)}">電話をかける</a>`:''}
     <button class="wide dark admin-only" onclick="editP('${p.id}')">内容を編集する</button>
-    <button class="wide ghost admin-only" onclick="pCancel('${p.id}')"
-      style="${isCx(p)?'':'border-color:#8C8C98;color:#55555F'}">${isCx(p)?'キャンセルを解除する':'この来場者をキャンセル済みにする'}</button>
     <button class="wide danger admin-only" onclick="delP('${p.id}')">この来場者を削除</button>
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
-};
-window.pCancel=async id=>{
-  if(!needAdmin())return;
-  const p=DB.people.find(x=>x.id===id);if(!p)return;
-  const to=!isCx(p);
-  if(!await ask(to?'この来場者をキャンセル済み（灰色）にします。人数・売上・タレント報酬から外れます。よろしいですか？':'キャンセル済みを解除して、通常の来場者に戻しますか？'))return;
-  p.cancel=to;p.cxManual=true;
-  await save();renderAll();closeSheet();
-  toast(to?'キャンセル済みにしました':'キャンセルを解除しました');
 };
 window.closeSheet=()=>$('#sheet').classList.remove('on');
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()});
@@ -804,8 +770,8 @@ function fillEvForm(){renderEvents()}
 
 /* 書き出し */
 function csv(){
-  const h=['番号','お名前','SNS名','指名タレント','チケット','ご飯会','ドリンク','金額','決済方法','注文ID','注文日','電話','メール','メモ','受付','状態'];
-  const rows=curPeopleAll().sort((a,b)=>a.no-b.no).map(p=>[p.no,p.name,p.sns||'',p.talent,p.ticket,p.meal?'参加':'',p.drink,p.amount,p.pay,p.order,p.date,p.tel,p.mail,p.note,p.in?'済':'未',isCx(p)?'キャンセル':'']);
+  const h=['番号','お名前','SNS名','指名タレント','チケット','ご飯会','ドリンク','金額','決済方法','注文ID','注文日','電話','メール','メモ','受付'];
+  const rows=curPeople().sort((a,b)=>a.no-b.no).map(p=>[p.no,p.name,p.sns||'',p.talent,p.ticket,p.meal?'参加':'',p.drink,p.amount,p.pay,p.order,p.date,p.tel,p.mail,p.note,p.in?'済':'未']);
   return [h,...rows].map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
 }
 $('#btnCsv').onclick=()=>{
@@ -839,31 +805,34 @@ function applyGSeed(){
   });
   return n;
 }
-const curGoodsAll=()=>(DB.goods||[]).filter(g=>inScope(g.ev));
-const curGoods=()=>curGoodsAll().filter(g=>!isCx(g));
+const curGoods=()=>(DB.goods||[]).filter(g=>inScope(g.ev));
 const gTotal=g=>(Number(g.amount)||0);
 
 function renderGoods(){
+  const _gqFocus=document.activeElement&&document.activeElement.id==='gq';
+  const _gqPos=_gqFocus?document.activeElement.selectionStart:0;
   const tf=window.goodsTeam||'';
   const tal=tf?(window.goodsTal||''):'';
   if(!tf)window.goodsTal='';
   const inTeam=n=>!tf||teamOf(tf).members.includes(n);
   let base;
   if(isTalent()){const _ef=evFilter;evFilter='';base=curGoods();evFilter=_ef}
-  else base=curGoodsAll();
+  else base=curGoods();
   if(window.goodsLimit===undefined)window.goodsLimit=200;
-  const a0=base.filter(g=>inTeam(g.talent)&&(!tal||g.talent===tal))
+  const gq=qNorm(String(window.goodsQ||'').trim());
+  const hitQ=g=>!gq||qNorm([g.name,g.sns,g.talent,g.item,g.option,g.order,g.tel,g.mail,g.addr,g.pay,g.note].filter(Boolean).join(' ')).includes(gq);
+  const a=base.filter(g=>inTeam(g.talent)&&(!tal||g.talent===tal)&&hitQ(g))
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
-  const cxList=a0.filter(isCx);
-  const cxN=cxList.length,cxAmt=cxList.reduce((s,g)=>s+(Number(g.amount)||0),0);
-  const a=window.goodsCxOnly?cxList:a0;
-  const ordN=a0.length-cxN;
-  const item=a0.reduce((s,g)=>s+(isCx(g)?0:(Number(g.amount)||0)),0);
+  const live=a.filter(g=>!g.cancel);
+  const item=live.reduce((s,g)=>s+(Number(g.amount)||0),0);
   $('#goodsBody').innerHTML=`
     ${isAdmin()?`<div class="oseg" style="display:flex;gap:6px;margin-bottom:10px">
       <button class="on" style="flex:1;border:0;background:var(--grape);color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📦 グッズ注文</button>
       <button onclick="go('stock')" style="flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700">📋 在庫</button>
     </div>`:''}
+    <input type="search" id="gq" placeholder="お客様の名前・SNS・住所・電話・注文ID・商品名で検索" value="${esc(window.goodsQ||'')}"
+      oninput="window.goodsQ=this.value;clearTimeout(window._gqT);window._gqT=setTimeout(()=>renderGoods(),250)"
+      style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;margin-bottom:9px;background:#fff">
     <div class="chips" style="margin-bottom:8px">
       <button class="chip ${!tf?'on':''}" onclick="window.goodsTeam='';window.goodsTal='';renderGoods()">全員</button>
       ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
@@ -874,10 +843,10 @@ function renderGoods(){
       ${(teamOf(tf).members||[]).map(m=>`<button class="chip mem ${tal===m?'on':''}"
         onclick="window.goodsTal='${esc(m).replace(/'/g,"\\'")}';renderGoods()">${esc(talShort(m))}</button>`).join('')}
     </div>`:''}
-    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v">${ordN}</div></div></div>`
+    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v">${live.length}</div></div></div>`
     :`<div class="grid">
       <div class="kpi hi"><div class="k">GOODS SALES${tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
-      <div class="kpi"><div class="k">ORDERS</div><div class="v">${ordN}</div></div>
+      <div class="kpi"><div class="k">ORDERS</div><div class="v">${live.length}${a.length>live.length?`<span style="font-size:11px;color:var(--mute)">　＋キャンセル${a.length-live.length}</span>`:''}</div></div>
     </div>`}
     <button class="wide admin-only" style="margin:0 0 4px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
       onclick="gCsvPick()">📥 BASEのCSVから反映</button>
@@ -887,17 +856,16 @@ function renderGoods(){
       :'<b style="color:var(--ink)">まだ取り込みがありません</b>'}</p>
     <div class="card" style="padding:10px 12px;${isTalent()?'display:none':''}">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
-      <div class="bar"><span>制作前</span><b style="font-family:var(--mono)">${a0.filter(g=>gShip(g)==='pre').length}件</b></div>
-      <div class="bar"><span>発送前（制作済み）</span><b style="font-family:var(--mono)">${a0.filter(g=>gShip(g)==='ready').length}件</b></div>
-      <div class="bar"><span>発送済み</span><b style="font-family:var(--mono)">${a0.filter(g=>gShip(g)==='done').length}件</b></div>
-      <div class="bar tapbar" style="cursor:pointer" onclick="window.goodsCxOnly=!window.goodsCxOnly;renderGoods()">
-        <span>キャンセル済み <span style="color:#A6A6B0">■</span>${window.goodsCxOnly?'<span style="color:var(--berry);font-weight:700">（表示中・タップで戻す）</span>':''}</span>
-        <b style="font-family:var(--mono)">${cxN}件${cxN?'　'+yen(cxAmt):''}</b></div>
+      <div class="bar"><span>制作前</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='pre').length}件</b></div>
+      <div class="bar"><span>発送前（制作済み）</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='ready').length}件</b></div>
+      <div class="bar"><span>発送済み</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='done').length}件</b></div>
       <div class="bar"><span>タレント反映済み <span style="color:var(--berry)">■</span></span>
-        <b style="font-family:var(--mono)">${a0.filter(g=>g.tdone).length} / ${ordN}件</b></div>
+        <b style="font-family:var(--mono)">${a.filter(g=>g.tdone).length} / ${a.length}件</b></div>
+
+      <p class="hint" style="margin:6px 0 0">左の番号をタップすると紫になり「タレントに反映済み」の印。右のボタンはタップするたびに 制作前 → 発送前 → 発送済 と切り替わります。</p>
     </div>
     ${a.length?(window.goodsLimit&&a.length>window.goodsLimit?a.slice(0,window.goodsLimit):a).map(g=>`
-      <div class="stub ${isCx(g)?'cx':(g.sent?'done':'')} ${!isCx(g)&&isBank(g)?'bank':''}">
+      <div class="stub ${g.cancel?'cancel':(g.sent?'done':'')}">
         <div class="no gno ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
           role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">
           <b>${g.no}</b>
@@ -907,13 +875,12 @@ function renderGoods(){
           <div class="txt" onclick="gDetail('${g.id}')">
             <div class="nm">${esc(g.name)}${g.sns?`　<span style="font-size:inherit;font-family:var(--mincho)">@${esc(g.sns)}</span>`:''}
               ${g.isNew?`<span style="background:linear-gradient(135deg,#E8B923,#FFD966 55%,#C9970F);color:#3A2A00;border-radius:6px;padding:1px 7px;font-size:9.5px;font-weight:800;font-family:var(--gothic);margin-left:5px;vertical-align:2px;box-shadow:0 1px 2px rgba(180,140,20,.4)">NEW${g.date?"　"+esc(String(g.date).slice(5,10).replace("-","/")):""}</span>`:''}
-              ${isCx(g)?'<span class="cxbadge">キャンセル</span>':''}
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
             <div class="sub">${teamBadge(g.talent)}<span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
-            ${!isCx(g)&&isBank(g)?'<div class="bkwarn">⚠️ 銀行振込 ─ 入金済みか確認してください</div>':''}
           </div>
-          ${isTalent()?'':(st=>`<button class="tick ship-${st}" onclick="gToggle('${g.id}')" aria-label="タップで状態を切り替え（制作前→発送前→発送済）">${SHIP_LABEL[st]}</button>`)(gShip(g))}
+          ${g.cancel?`<span style="flex:none;background:#111;color:#fff;border-radius:8px;padding:7px 9px;font-size:10.5px;font-weight:800">キャンセル</span>`
+            :isTalent()?'':(st=>`<button class="tick ship-${st}" onclick="gToggle('${g.id}')" aria-label="タップで状態を切り替え（制作前→発送前→発送済）">${SHIP_LABEL[st]}</button>`)(gShip(g))}
         </div>
       </div>`).join('')+(a.length>200?(window.goodsLimit
         ?`<button class="wide ghost" onclick="window.goodsLimit=0;renderGoods()">すべて表示する（あと ${a.length-window.goodsLimit} 件）</button>
@@ -944,32 +911,18 @@ function renderGoods(){
       <button class="wide" onclick="gSave()">グッズ注文を追加</button>
     </details>
     ${isTalent()?'':`<button class="wide ghost" onclick="gCsv()">グッズ売上のCSVを書き出す</button>`}`;
+  if(_gqFocus){const el=$('#gq');if(el){el.focus();try{el.setSelectionRange(_gqPos,_gqPos)}catch(e){}}}
 }
 
 /* 注文の進行状態: pre(制作前) → ready(発送前) → done(発送済み) */
-const isBank=g=>/銀行振込|銀行振り込み/.test((g&&g.pay)||'');
-const gShip=g=>isCx(g)?'cancel':(g.ship||(g.sent?'done':'pre'));
-const SHIP_LABEL={pre:'制作前',ready:'発送前',done:'発送済',cancel:'キャンセル'};
+const gShip=g=>g.ship||(g.sent?'done':'pre');
+const SHIP_LABEL={pre:'制作前',ready:'発送前',done:'発送済'};
 window.gToggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
-  if(isCx(g)){
-    if(!await ask('キャンセル済みを解除して、通常の注文に戻しますか？'))return;
-    g.cancel=false;g.cxManual=true;
-    await save();renderAll();toast('キャンセルを解除しました');return;
-  }
   const next={pre:'ready',ready:'done',done:'pre'}[gShip(g)];
   g.ship=next;
   g.sent=(next==='done');
   await save();renderGoods();toast(SHIP_LABEL[next]+'にしました');
-};
-/* キャンセル済みの切り替え（手動で付けた印はCSV取り込みでも上書きしない） */
-window.gCancel=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
-  const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
-  const to=!isCx(g);
-  if(!await ask(to?'この注文をキャンセル済み（灰色）にします。売上・報酬・在庫から外れます。よろしいですか？':'キャンセル済みを解除して、通常の注文に戻しますか？'))return;
-  g.cancel=to;g.cxManual=true;
-  await save();renderAll();closeSheet();
-  toast(to?'キャンセル済みにしました':'キャンセルを解除しました');
 };
 window.gDetail=id=>{
   const g=(DB.goods||[]).find(x=>x.id===id);if(!g)return;
@@ -985,7 +938,7 @@ window.gDetail=id=>{
       ?[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],['金額',yen(g.amount)],['注文日',g.date]]
       :[['商品',g.item],['オプション',g.option],['タレント',g.talent],['SNS名',g.sns],
        ['金額',yen(g.amount)],['決済',g.pay],
-       ['注文ID',g.order],['注文日',g.date],['状態',SHIP_LABEL[gShip(g)]],
+       ['注文ID',g.order],['注文日',g.date],
        ['お届け先',g.addr],['電話',g.tel],['メール',g.mail],
        ['発送',g.sent?'済':'未']]).filter(r=>r[1]!==''&&r[1]!=null)
       .map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span><b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
@@ -998,8 +951,6 @@ window.gDetail=id=>{
       </select>
       <button class="wide ghost" onclick="gSetTal('${g.id}')">タレントを保存</button>
     </div>`:''}
-    ${isTalent()?'':`<button class="wide ghost" onclick="gCancel('${g.id}')"
-      style="${isCx(g)?'':'border-color:#8C8C98;color:#55555F'}">${isCx(g)?'キャンセルを解除する':'この注文をキャンセル済みにする'}</button>`}
     ${isTalent()?'':`<button class="wide danger" onclick="gDel('${g.id}')">この注文を削除</button>`}
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
@@ -1036,8 +987,8 @@ window.gSave=async()=>{if(isTalent()){toast('タレントは閲覧のみです')
   await save();renderGoods();renderTal();toast(`${name} さんの注文を追加しました`);
 };
 window.gCsv=()=>{if(isTalent()){toast('タレントは閲覧のみです');return}
-  const h=['番号','注文日','お名前','SNS名','タレント','商品','オプション','金額','決済','注文ID','お届け先','電話','メール','発送','状態'];
-  const rows=curGoodsAll().sort((a,b)=>a.no-b.no).map(g=>[g.no,g.date,g.name,g.sns,g.talent,g.item,g.option,g.amount,g.pay,g.order,g.addr,g.tel,g.mail,g.sent?'済':'未',SHIP_LABEL[gShip(g)]]);
+  const h=['番号','注文日','お名前','SNS名','タレント','商品','オプション','金額','決済','注文ID','お届け先','電話','メール','発送'];
+  const rows=curGoods().sort((a,b)=>a.no-b.no).map(g=>[g.no,g.date,g.name,g.sns,g.talent,g.item,g.option,g.amount,g.pay,g.order,g.addr,g.tel,g.mail,g.sent?'済':'未']);
   const csvTxt=[h,...rows].map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob(['\ufeff'+csvTxt],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -2082,7 +2033,7 @@ window.siteApply=async()=>{
 /* ===== 現場（イベント）カード ===== */
 function evStats(id){
   const ppl=DB.people.filter(p=>p.ev===id);
-  const gd=(DB.goods||[]).filter(g=>g.ev===id&&!isCx(g));
+  const gd=(DB.goods||[]).filter(g=>g.ev===id);
   const mn=(DB.manual||[]).filter(m=>m.ev===id);
   return {n:ppl.length+mn.reduce((a,b)=>a+(Number(b.guests)||0),0),
     amt:ppl.reduce((a,b)=>a+(Number(b.amount)||0),0)+gd.reduce((a,b)=>a+(Number(b.amount)||0),0)
@@ -2092,10 +2043,6 @@ function evStats(id){
 function renderSiteCards(){
   updatePosBtn();
   const box=$('#siteList');if(!box)return;
-  /* 来場者ブロックは前回カードの下に差し込まれている場合があるので、
-     innerHTML を書き換える前にいったん外へ退避する（消えるのを防ぐ） */
-  {const h0=$('#evDetailHost');
-   if(h0&&box.contains(h0))box.parentNode.insertBefore(h0,box.nextSibling);}
   const evs=monthEvents();
   const head=$('#siteHead');
   if(head)head.innerHTML=`
@@ -2113,7 +2060,7 @@ function renderSiteCards(){
   const cardOf=e=>{
     const st=evStats(e.id), on=evFilter===e.id;
     const d=(e.date||'').slice(5).replace('-','/');
-    return `<div class="sc ${on?'on':''}" data-ev="${e.id}" onclick="setEvFilter('${on?'':e.id}')">
+    return `<div class="sc ${on?'on':''}" onclick="setEvFilter('${on?'':e.id}')">
       <div style="display:flex;flex-direction:column;gap:4px;flex:none">
         <div class="d">${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
         <button class="admin-only" onclick="event.stopPropagation();evEdit('${e.id}')"
@@ -2132,13 +2079,6 @@ function renderSiteCards(){
     ${(i===0&&DB.curM!=='ALL')?'':`<div style="font-family:var(--mincho);font-size:13px;font-weight:600;color:var(--mute);margin:${i===0?'0':'14px'} 2px 6px">${mLabel(g.m)}</div>`}
     ${g.evs.map(cardOf).join('')}`).join('')
     :'<div class="empty">直近3ヶ月の現場がありません。「＋ 現場を追加」から作ってください。</div>';
-  /* 選んだ現場カードのすぐ下に、来場者リストなどを差し込む */
-  const host=$('#evDetailHost');
-  if(host){
-    const card=evFilter?box.querySelector(`.sc[data-ev="${evFilter}"]`):null;
-    if(card){card.insertAdjacentElement('afterend',host);host.classList.add('inev')}
-    else{box.insertAdjacentElement('afterend',host);host.classList.remove('inev')}
-  }
 }
 let evFormOpen=false;
 window.evFormToggle=()=>{if(isTalent()){toast('タレントは閲覧のみです');return}evFormOpen=!evFormOpen;renderEvForm()};
@@ -3065,7 +3005,7 @@ function renderBuys(){
   if(!evFilter){el.innerHTML='';return}
   const ev=DB.events.find(e=>e.id===evFilter);if(!ev){el.innerHTML='';return}
   /* BASE通販の注文（注文IDあり）はグッズページに任せ、ここは当日物販・手入力分だけ */
-  const gd=(DB.goods||[]).filter(g=>g.ev===evFilter&&!g.order);
+  const gd=(DB.goods||[]).filter(g=>g.ev===evFilter&&!g.order&&!g.cancel);
   const mn=(DB.manual||[]).filter(m=>m.ev===evFilter);
   const notes=(DB.notes||[]).filter(n=>n.ev===evFilter&&!n.done);
   if(!gd.length&&!mn.length&&!notes.length){el.innerHTML='';return}
@@ -3482,23 +3422,13 @@ async function gCsvImport(file){
   const t=parseCsvText(txt);
   if(!t.length||t[0].indexOf('注文ID')<0){toast('BASEの注文CSVではないようです');return}
   const H=t[0],ix=n=>H.indexOf(n),g=(r,n)=>{const i=ix(n);return i<0?'':(r[i]||'')};
-  /* キャンセル判定: 見出しに「キャンセル/取消/ステータス/状態」を含む列を自動で探す */
-  const cxCols=H.map((h,i)=>[String(h||''),i]).filter(([h])=>/キャンセル|取消|ステータス|状態|状況|status/i.test(h));
-  const NOCX=/^(0|-|—|ー|なし|無し|無|未|false|no|none|通常|有効)$/i;
-  const rowCx=r=>cxCols.some(([h,i])=>{
-    const v=String(r[i]||'').trim();
-    if(!v||NOCX.test(v))return false;
-    if(/キャンセル|取消|cancel/i.test(v))return true;
-    return /キャンセル|取消/.test(h); /* 「キャンセル日時」など、値が入っていればキャンセル */
-  });
   const orders={};
   t.slice(1).forEach(r=>{
     const id=g(r,'注文ID');if(!id)return;
-    const o=orders[id]||(orders[id]={id,d:g(r,'注文日時').slice(0,16),
+    const o=orders[id]||(orders[id]={id,st:g(r,'発送状況'),d:g(r,'注文日時').slice(0,16),
       n:(g(r,'氏(請求先)')+' '+g(r,'名(請求先)')).trim(),items:[],opts:{},opt:0,ship:0,
       pay:g(r,'支払い方法'),tel:g(r,'電話番号(請求先)'),mail:g(r,'メールアドレス(請求先)'),
       addr:g(r,'都道府県(配送先)')+g(r,'住所(配送先)')+g(r,'住所2(配送先)')});
-    if(rowCx(r))o.cx=true;
     const amt=Number(g(r,'合計金額')||0), nm=g(r,'商品名');
     o.ship=Math.max(o.ship,Number(g(r,'送料')||0));
     if(nm.startsWith('商品オプション')){
@@ -3523,29 +3453,17 @@ async function gCsvImport(file){
     if(/ないん|矢澤/.test(x))return '矢澤ないん';
     return '';
   };
-  let add=0,skip=0,tk=0,cxNew=0,cxUpd=0,cxAll=0;
+  let add=0,skip=0,tk=0,upd=0;
   (DB.goods||[]).forEach(g=>{delete g.isNew});
   const known=new Set([...(DB.goods||[]).map(x=>x.order),...DB.people.map(x=>x.order)].filter(Boolean));
   Object.values(orders).forEach(o=>{
     const goodsItems=o.items.filter(i=>!TICKET_RE.test(i.n));
-    if(!goodsItems.length){
-      tk++;
-      if(o.cx){cxAll++;
-        if(cxCols.length)DB.people.forEach(x=>{
-          if(x.order!==o.id||x.cxManual)return;
-          if(!x.cancel){x.cancel=true;cxUpd++}
-        });
-      }
-      return;
-    }
-    if(o.cx)cxAll++;
+    if(!goodsItems.length){tk++;return}
+    const isCancel=/キャンセル/.test(o.st||'');
     if(known.has(o.id)){
-      skip++;
-      if(cxCols.length)(DB.goods||[]).forEach(x=>{
-        if(x.order!==o.id||x.cxManual)return;
-        if(!!x.cancel!==!!o.cx){x.cancel=!!o.cx;cxUpd++}
-      });
-      return;
+      const ex=(DB.goods||[]).find(x=>x.order===o.id);
+      if(ex&&isCancel&&!ex.cancel){ex.cancel=true;upd++}
+      skip++;return
     }
     const total=goodsItems.reduce((a,b)=>a+b.t,0)+o.opt+o.ship;
     const m=o.d.slice(0,7),mn=Number(m.slice(5))||0;
@@ -3559,15 +3477,14 @@ async function gCsvImport(file){
       name:o.n,sns:sns?sns[1]:'',talent:guess((optTal?optTal[1]:'')+goodsItems.map(i=>i.n).join(' ')),
       item:goodsItems.map(i=>i.n).join('／'),
       option:Object.entries(o.opts).filter(([k])=>!/SNS|タレント|推し|押し/.test(k)).map(([k,v])=>`${k}: ${v}`).join('／'),
-      amount:total,pay:o.pay,order:o.id,date:o.d,addr:o.addr,tel:o.tel,mail:o.mail,note:'',sent:false,isNew:true,cancel:!!o.cx});
-    add++;if(o.cx)cxNew++;
+      amount:total,pay:o.pay,order:o.id,date:o.d,addr:o.addr,tel:o.tel,mail:o.mail,note:'',
+      cancel:/キャンセル/.test(o.st||''),
+      ship:/発送済/.test(o.st||'')?'done':'pre',sent:/発送済/.test(o.st||''),isNew:true});
+    add++;
   });
   DB.gCsvAt=new Date().toISOString();DB.gCsvNew=add;
   await save();renderAll();
-  const cxMsg=cxCols.length
-    ? `／キャンセル${cxAll}件（新規${cxNew}・既存を更新${cxUpd}）`
-    : '／キャンセル列が見つかりませんでした';
-  toast(`グッズ${add}件を追加しました（重複${skip}件・チケットのみ${tk}件はスキップ）${cxMsg}`);
+  toast(`グッズ${add}件を追加しました（重複${skip}件・チケットのみ${tk}件スキップ${upd?'・キャンセル反映'+upd+'件':''}）`);
 }
 
 /* ---- 現場の編集（名前タップ） / 日程変更（日付タップ） ---- */
@@ -3919,7 +3836,7 @@ function stocks(){DB.stock=DB.stock||[];return DB.stock}
 function stockCatalog(){
   const cnt={};
   (DB.goods||[]).forEach(g=>{
-    if(isCx(g))return;
+    if(g.cancel)return;
     String(g.item||'').split('／').forEach(tok=>{
       tok=tok.trim();if(!tok)return;
       const m=tok.match(/^(.*?)[×x]\s*(\d+)\s*$/);
@@ -3945,7 +3862,7 @@ function stockSold(it){
   if(!kw)return 0;
   let n=0;
   (DB.goods||[]).forEach(g=>{
-    if(isCx(g))return;
+    if(g.cancel)return;
     String(g.item||'').split('／').forEach(tok=>{
       tok=tok.trim();if(!tok)return;
       if(!tok.includes(kw))return;
@@ -4510,6 +4427,7 @@ $('#q').oninput=renderList;
   {(DB.teams||[]).forEach(t=>{t.members=(t.members||[]).map(m=>(m==='うか'||m==='星乃うか')?'星乃羽華':m)});
    [DB.people,DB.goods||[],DB.manual||[],DB.tips||[]].forEach(arr=>arr.forEach(r=>{if(r.talent==='うか'||r.talent==='星乃うか')r.talent='星乃羽華'}));
    (DB.goods||[]).forEach(g=>{if(g.order==='72D14DEA08EABD19')g.talent='星乃羽華'});
+
   /* スキャナー用AIキー（1回だけ設定・以後は設定値を優先） */
   if(!DB.migScanKey){
     DB.scanKey='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';
@@ -4611,33 +4529,6 @@ $('#q').oninput=renderList;
       if(!DB.gCsvAt||new Date(DB.gCsvAt)<new Date('2026-07-30'))DB.gCsvAt=new Date().toISOString();}
   }
 
-  /* 2026-08-02 BASE注文の反映（注文IDで重複防止・キャンセル分は灰色） */
-  if(!DB.migBase0802){
-    const SEED0802=[{"name":"村守 純","sns":"","talent":"","item":"【自撮りグッズ】パーカー","option":"パーカーサイズ: L(フリーサイズ)／サインオプションつけますか？【＋2000円】: つけない／カラー: ブラック／TikTokのｽﾄｰﾘｰで名前とお礼: つけない","amount":7100,"pay":"PayPay","order":"DBC9AA4C59030426","date":"2026-08-01 01:58","addr":"神奈川県厚木市長谷374-1 レオパレスぴゅあ204号室","tel":"08079765531","mail":"genomeatsugi@gmail.com"},{"name":"平岡 愛翔","sns":"","talent":"","item":"【エンビル】メンバー名入り公式Tシャツ","option":"Tサイズ: XL／カラー: ブラック／あなたのニックネーム名: なち／【天使or悪魔】どちらのデザインにしますか？: 悪魔モチーフ／【Tシャツ】オプションつけますか？: いいえ［Tシャツのみ］／【エンビルの誰？】名前をお書きください。: エンビル　れいか","amount":10000,"pay":"PayPay","order":"80A2B1BE3A9BEDA3","date":"2026-08-01 00:27","addr":"茨城県結城市結城6934シャトーデュボヌールB103","tel":"08081190215","mail":"maa15too@gmail.com"},{"name":"細井 利音","sns":"","talent":"中島沙也加","item":"フルフル【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: M","amount":5500,"pay":"PAY ID あと払い","order":"72AAEED0EF3F90C2","date":"2026-07-31 21:23","addr":"埼玉県さいたま市見沼区島町41-2 向かって左側のドア","tel":"07015558124","mail":"rio.h@ezweb.ne.jp"},{"name":"多賀谷 翼","sns":"つっつん","talent":"中島沙也加","item":"フルフル【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: L","amount":5500,"pay":"コンビニ決済・Pay-easy","order":"F697438C569DCFA1","date":"2026-07-31 10:44","addr":"千葉県流山市美田209-49","tel":"08084907748","mail":"tubasas15@yahoo.co.jp"},{"name":"委文 大斗","sns":"YAMA","talent":"","item":"個人コスプレソロチェキ6枚セット","option":"入れて欲しいあなたの名前を書いて！: やまと／サインオプションつけますか？【＋2000円】: サイン有り！","amount":10100,"pay":"クレジットカード決済","order":"6E1453DCC31F01F0","date":"2026-07-30 20:20","addr":"栃木県栃木市本町14-37-2 Leo.AK-B","tel":"08099766535","mail":"yamato.s.0669@gmail.com"},{"name":"大沢 裕太","sns":"","talent":"中島沙也加","item":"FRUITS FRUITSメンバートレカ","option":"サインオプションつけますか？【＋2000円】: サイン有り！","amount":3000,"pay":"コンビニ決済・Pay-easy","order":"DE70CB36F1DD0630","date":"2026-07-29 00:28","addr":"福島県二本松市油井字台61-4","tel":"08082040487","mail":"yuta.oosawa.1016@gmail.com"},{"name":"池田 亮","sns":"pillow","talent":"中島沙也加","item":"フルフル【完全受注生産限定！】さやか生誕Tシャツ／フルフル【完全受注生産限定！】さやか生誕Tシャツ／フルフル【完全受注生産限定！】さやか生誕Tシャツ／フルフル【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: 3XL","amount":22000,"pay":"銀行振込","order":"31C7A5D9A6034B85","date":"2026-07-29 00:16","addr":"大阪府茨木市沢良宜浜1丁目17-19 ラ ドゥーセル南茨木 710号室","tel":"09060675880","mail":"o5ryo3@iCloud.com"},{"name":"鈴木 倫人","sns":"みっちゃん","talent":"星乃羽華","item":"個人コスプレソロチェキ6枚セット","option":"入れて欲しいあなたの名前を書いて！: みっちゃん／サインオプションつけますか？【＋2000円】: サイン有り！","amount":10100,"pay":"クレジットカード決済","order":"72D14DEA08EABD19","date":"2026-07-28 17:18","addr":"栃木県栃木市藤岡町藤岡4053-1 メゾン宮前106","tel":"08049568526","mail":"my-dear-pig-is@hotmail.co.jp"},{"name":"土井 浩平","sns":"とーる","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: L","amount":5500,"pay":"クレジットカード決済","order":"45970498A9B64ACB","date":"2026-07-25 20:22","addr":"神奈川県相模原市中央区淵野辺2-29-23メゾンヴェール3-102","tel":"08066254645","mail":"kou.genesis@gmail.com"},{"name":"早川 星矢","sns":"ハヤト","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: XL","amount":5500,"pay":"クレジットカード決済","order":"2D1590C7F7B5555D","date":"2026-07-25 11:20","addr":"千葉県木更津市真里谷2127-1","tel":"09030021779","mail":"seiya04192@gmail.com"},{"name":"菊地 貴洋","sns":"のあぴ","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: XL","amount":5500,"pay":"クレジットカード決済","order":"7DA453C6915A5D68","date":"2026-07-23 18:17","addr":"愛知県岡崎市蓑川新町1丁目6-1 コーポNKD A101","tel":"09059564533","mail":"kiku0507@icloud.com"},{"name":"早川 星矢","sns":"せーたん","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: 3XL","amount":5500,"pay":"クレジットカード決済","order":"E9D81A60B4D5F1C3","date":"2026-07-23 01:20","addr":"千葉県木更津市真里谷2127-1","tel":"09030021779","mail":"seiya04192@gmail.com"},{"name":"大下 哲","sns":"むにょ。","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: 3XL","amount":5500,"pay":"クレジットカード決済","order":"95A7DA9432B33D3A","date":"2026-07-23 01:03","addr":"和歌山県紀の川市名手市場1381ニューヴェルデ1-201","tel":"09067747489","mail":"satoru071961@gmail.com"},{"name":"大塚 尚","sns":"くまモン２号","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: 3XL","amount":5500,"pay":"クレジットカード決済","order":"8FAA3EF5779A4A2A","date":"2026-07-23 00:39","addr":"熊本県熊本市中央区帯山１丁目５番地２号","tel":"08034414604","mail":"kesaran.pasaran.203@gmail.com"},{"name":"中島 淳子","sns":"","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: XL","amount":5200,"pay":"PAY ID あと払い","order":"CBC0D2E80D9023C5","date":"2026-07-23 00:22","addr":"熊本県熊本市北区鹿子木町132-1鹿子木団地3-403","tel":"09015132497","mail":"saya.38.717chiharu@gmail.com"},{"name":"今西 凜","sns":"","talent":"うさのみゆ","item":"うさのみゆ羽ばたきたいTシャツ","option":"サインオプションつけますか？【＋2000円】: つけない","amount":3500,"pay":"PayPay","order":"327E5BF4254FC5DF","date":"2026-07-22 23:42","addr":"東京都大田区久が原2丁目21-10モカネスト久が原610号室","tel":"07083557422","mail":"linj11788@gmail.com"},{"name":"大沢 裕太","sns":"ユウソラ","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: 3XL","amount":5500,"pay":"コンビニ決済・Pay-easy","order":"BED65D098CC8B333","date":"2026-07-21 23:57","addr":"福島県二本松市油井61-4","tel":"08082040487","mail":"yuta.oosawa.1016@gmail.com"},{"name":"土井 浩平","sns":"とーる","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: XL","amount":5500,"pay":"クレジットカード決済","order":"AD1B57FDAC080A92","date":"2026-07-20 18:22","addr":"神奈川県相模原市中央区淵野辺2-29-23メゾンヴェール3-102","tel":"08066254645","mail":"kou.genesis@gmail.com"},{"name":"山内 徹","sns":"むー","talent":"中島沙也加","item":"【完全受注生産限定！】さやか生誕Tシャツ","option":"Tシャツサイズはこちらから: XL","amount":5500,"pay":"Amazon Pay","order":"5C61946D3108716C","date":"2026-07-20 16:19","addr":"東京都小金井市緑町５丁目２０－１８ ","tel":"09016003509","mail":"y.toru1120@gmail.com"},{"name":"土井 浩平","sns":"とーる","talent":"","item":"個人コスプレソロチェキ6枚セット","option":"入れて欲しいあなたの名前を書いて！: とーる／サインオプションつけますか？【＋2000円】: サイン有り！","amount":10100,"pay":"クレジットカード決済","order":"FC09295DBCFAB93D","date":"2026-07-17 23:30","addr":"神奈川県相模原市中央区淵野辺2-29-23メゾンヴェール3-102","tel":"08066254645","mail":"kou.genesis@gmail.com"}];
-    const CX0802=["BE450EC7486F5DF1","E5E330AE430F6DB9"];
-    DB.goods=DB.goods||[];
-    const known=new Set([...DB.goods.map(x=>x.order),...DB.people.map(x=>x.order)].filter(Boolean));
-    let added=0;
-    SEED0802.forEach(o=>{
-      if(known.has(o.order))return;
-      const m=o.date.slice(0,7),mn=Number(m.slice(5))||0;
-      const title=`${mn}月定期FruitFruitファンミ＆ミニライブ`;
-      let ev=DB.events.find(e=>e.title===title&&evMonth(e)===m);
-      if(!ev){ev={id:uid(),title,date:'',venue:'',month:m};DB.events.push(ev)}
-      if(!added)DB.goods.forEach(g=>{delete g.isNew});
-      DB.goods.push({id:uid(),ev:ev.id,no:(DB.goods.filter(x=>x.ev===ev.id).length)+1,
-        note:'',sent:false,isNew:true,...o});
-      added++;
-    });
-    /* コンビニ未入金などでキャンセルになったチケット注文を灰色にする */
-    CX0802.forEach(oid=>{
-      DB.people.forEach(x=>{if(x.order===oid&&!x.cxManual)x.cancel=true});
-      DB.goods.forEach(x=>{if(x.order===oid&&!x.cxManual)x.cancel=true});
-    });
-    if(added){DB.gCsvNew=added;DB.gCsvAt=new Date().toISOString();}
-    DB.migBase0802=true;
-  }
-
    DB.teams=(DB.teams||[]).filter(t=>!(t.id==='tm3'&&(!t.members||!t.members.length)));
    const t2=(DB.teams||[]).find(t=>t.id==='tm2'||/エンビル|ENVIL/i.test(t.name||''));
    if(t2&&(!t2.members||!t2.members.length)){
@@ -4659,9 +4550,15 @@ $('#q').oninput=renderList;
   }
 DB.bills=DB.bills||[];DB.payees=DB.payees||[];
   Object.values(DB.talents).forEach(t=>{if(Number(t.rate)===100)t.rate=30});
-  (DB.goods||[]).forEach(g=>{if(typeof g.ship==='number')delete g.ship}); /* 昔の「送料」の数値だけ消す（発送状態は残す） */
+  (DB.goods||[]).forEach(g=>{delete g.ship}); /* 送料は管理しない */
   DB.tipRate=DB.tipRate||{};Object.keys(DB.tipRate).forEach(k=>{if(Number(DB.tipRate[k])===1)delete DB.tipRate[k]});
   const n=applySeed()+applyGSeed()+applyMSeed()+applyTSeed();applyPSeed();await applyOSeed();
+  /* BASEでキャンセルになった注文に印を付ける（冪等） */
+  {
+    const CANCEL_IDS=new Set(["04688F19A2F741EA","05E577B9A05AC993","09135C7F07BF1762","09ED6DDDEF234800","0C1FE9867707503B","0CAEE779F2199DA5","0F5A6F969C3CA336","0FEE2DDDBAAAE330","118D91C6C228EA88","188124D25FF8E852","1B3C4ECF7313DCC5","1DB182F95F85604D","1E5C97D714EB1319","21E36EF6BCA6C0ED","24EC2FBA9A83047A","2658DA1E5E42D3C6","2715840D0DEEE2F0","28799E0E96098D6C","296A2BDB13C524E6","2B0895E9438B06F1","2B08A592B657D6CC","2B9283906D910E19","302FAA499A418011","313F3071A027CBE5","393600276AF49D12","3D803DFC247D1CC7","3EE54C8124C6B065","425E7C4B157B7982","44B5D1983EE1F763","47B42000CB586D00","4BFD0C398FEA9787","4C19DAF287137F2E","4C486D2E687C031D","4CCAA4D5708CB91D","4F444F1D87B109EA","504962068F6D8170","54C6C480DD61B20E","56A35B677F5CAE41","58C61DAED4C3B2D2","590F6F28A844EE5A","5CABBAABCC589589","602F59442AEE7854","60A1AD7D76F4FA24","619EB54865729498","62C3EA631FAD1894","645C75FF9746A355","645D63E71D9728C5","65708E345AE465B8","6910154FF6A7AE20","6F047D9634E4CB1E","6F24C624C9185D24","7034A76720D1EB29","7062AC564548DB60","73D01C65D0E24096","7A022DF6EC2410B1","7B429481904540C5","7CD6590CF7FFD9C2","7F9D483DB514820A","80655379D9E56AFB","807CB82D8A852EAE","815B114B8D94AD3F","81CD8299AAC55301","81DC732384C817E4","882779516A38DCFC","8A9C061428DF6D62","8B015ED77F2D2D51","8ED0BD16C26BDB18","8F15625E3C9CABDA","93FF050FF9DCB153","9544EA9F85642FB1","9C688A02243094F8","A070923E93744176","A15DE84EB62AD2B5","A1C7379E659CF06A","A2C0DB0ECB8C7902","A319E9BCD7C02990","A6067F8C9CD01B7F","ABB724F75000650A","ACBCDBCE9087390A","AD49A92FA0E75416","AE69D4A11B612C21","B05E3406A1BC9743","B4FA188E2A7E8479","B77421643541B758","BA871F817D4F0F4E","BE4B4D693148FE40","C1FE94358D49AD54","C7A4A2255E117B50","C90A64BAEC93C039","CD4D636B26945DC8","CFD6C41A73EFF4A2","D3732FABE86595E4","D3CE782B886189B5","D74C8E4B1BACFA53","DA899706E193EC70","DD4B1A945E894D35","DE9163123A8FAFD0","DEC072DDABA57CA5","DEC876F5E2C4FD91","DF3600C87A12038C","E1C9E93DB4C0A382","E679070225621A02","E6EE030227DF6E6C","EAB2756CE0A330D4","EB062B51F73FF816","F0926B85DDB6671D","F4EC359CCF48DDA7","F7B14C4EDB3078E8","FA16E0C58E2A44DC","FF2813B5855FE9A9"]);
+    (DB.goods||[]).forEach(g=>{if(g.order&&CANCEL_IDS.has(g.order))g.cancel=true});
+  }
+
   /* 開催日が未設定の現場に、タイトルや注文日から日付を推定して設定（1回だけ・編集で上書き可） */
   if(!DB.migEvDates4){
     DB.events.forEach(e=>{
