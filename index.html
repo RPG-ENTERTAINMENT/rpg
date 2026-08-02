@@ -304,6 +304,9 @@ body.staff .admin-only{display:none!important}
       <input type="text" id="q" placeholder="名前・カナ・タレント・注文IDで検索" autocomplete="off">
     </div>
     <div id="siteList"></div>
+    <button class="wide" id="btnPos" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
+      onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
+    <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
     <div class="filter" id="evChips" style="display:none"></div>
     <div class="filter" id="filters">
       <button class="on" data-f="all">全員</button>
@@ -311,9 +314,6 @@ body.staff .admin-only{display:none!important}
       <button data-f="done">受付済</button>
       <button data-f="meal">ご飯会</button>
     </div>
-    <button class="wide" id="btnPos" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
-      onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
-    <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
     <div id="memberList"></div>
     <div id="list"></div>
     <div id="buyList"></div>
@@ -568,7 +568,7 @@ function renderEvents(){
   const evs=monthEvents();
   if(evFilter){
     const fe=DB.events.find(e=>e.id===evFilter);
-    const keep=fe&&(()=>{let m=DB.curM;for(let i=0;i<3;i++){if(evMonth(fe)===m)return true;m=prevMonth(m)}return false})();
+    const keep=fe&&(DB.curM==='ALL'||(()=>{let m=DB.curM;for(let i=0;i<3;i++){if(evMonth(fe)===m)return true;m=prevMonth(m)}return false})());
     if(!keep)evFilter='';
   }
   $('#evChips').innerHTML = evs.length>1
@@ -582,7 +582,8 @@ function renderEvents(){
   });
   renderSiteCards();
 }
-window.setEvFilter=id=>{window.memFilter='';evFilter=id;renderEvents();renderList();renderSum();renderGoods();renderTal()};
+window.setEvFilter=id=>{window.memFilter='';evFilter=id;renderEvents();renderList();renderSum();renderGoods();renderTal();
+  if(id)setTimeout(()=>{const el=document.querySelector('#siteList .sc.on')||$('#btnPos');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},80)};
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
 
@@ -808,6 +809,13 @@ function applyGSeed(){
 const curGoods=()=>(DB.goods||[]).filter(g=>inScope(g.ev));
 const gTotal=g=>(Number(g.amount)||0);
 
+/* クラファン判定（商品名・オプション・現場名のいずれかに該当） */
+const CF_RE=/クラファン|クラウドファンディング|支援|新衣装|目標/i;
+const isCF=g=>CF_RE.test([g.item,g.option,((DB.events||[]).find(e=>e.id===g.ev)||{}).title].filter(Boolean).join(' '));
+/* 個撮（個人撮影）判定 */
+const PS_RE=/個撮|個人撮影|撮影会|個人コスプレ|チェキ/i;
+const PS_NG=/チェキ入り/i;   /* 「チェキ入り落書きスマホケース」などのグッズは除外 */
+const isPS=g=>{const t=String(g.item||'');return PS_RE.test(t)&&!PS_NG.test(t)};
 function renderGoods(){
   const _gqFocus=document.activeElement&&document.activeElement.id==='gq';
   const _gqPos=_gqFocus?document.activeElement.selectionStart:0;
@@ -815,13 +823,15 @@ function renderGoods(){
   const tal=tf?(window.goodsTal||''):'';
   if(!tf)window.goodsTal='';
   const inTeam=n=>!tf||teamOf(tf).members.includes(n);
+  const cf=!!window.goodsCF, ps=!!window.goodsPS;
   let base;
-  if(isTalent()){const _ef=evFilter;evFilter='';base=curGoods();evFilter=_ef}
+  if(cf||ps)base=(DB.goods||[]).slice();
+  else if(isTalent()){const _ef=evFilter;evFilter='';base=curGoods();evFilter=_ef}
   else base=curGoods();
   if(window.goodsLimit===undefined)window.goodsLimit=200;
   const gq=qNorm(String(window.goodsQ||'').trim());
   const hitQ=g=>!gq||qNorm([g.name,g.sns,g.talent,g.item,g.option,g.order,g.tel,g.mail,g.addr,g.pay,g.note].filter(Boolean).join(' ')).includes(gq);
-  const a=base.filter(g=>inTeam(g.talent)&&(!tal||g.talent===tal)&&hitQ(g))
+  const a=base.filter(g=>(cf?isCF(g):ps?isPS(g):(inTeam(g.talent)&&(!tal||g.talent===tal)))&&hitQ(g))
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
   const live=a.filter(g=>!g.cancel);
   const item=live.reduce((s,g)=>s+(Number(g.amount)||0),0);
@@ -834,18 +844,20 @@ function renderGoods(){
       oninput="window.goodsQ=this.value;clearTimeout(window._gqT);window._gqT=setTimeout(()=>renderGoods(),250)"
       style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;margin-bottom:9px;background:#fff">
     <div class="chips" style="margin-bottom:8px">
-      <button class="chip ${!tf?'on':''}" onclick="window.goodsTeam='';window.goodsTal='';renderGoods()">全員</button>
-      ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
-        onclick="window.goodsTeam='${t.id}';window.goodsTal='';renderGoods()">${esc(t.name)}</button>`).join('')}
+      <button class="chip ${(!tf&&!cf&&!ps)?'on':''}" onclick="window.goodsCF=false;window.goodsPS=false;window.goodsTeam='';window.goodsTal='';renderGoods()">全員</button>
+      ${teams().map(t=>`<button class="chip ${(!cf&&!ps&&tf===t.id)?'on':''}"
+        onclick="window.goodsCF=false;window.goodsPS=false;window.goodsTeam='${t.id}';window.goodsTal='';renderGoods()">${esc(t.name)}</button>`).join('')}
+      <button class="chip ${cf?'on':''}" onclick="window.goodsCF=true;window.goodsPS=false;window.goodsTeam='';window.goodsTal='';renderGoods()">クラファン</button>
+      <button class="chip ${ps?'on':''}" onclick="window.goodsPS=true;window.goodsCF=false;window.goodsTeam='';window.goodsTal='';renderGoods()">個撮</button>
     </div>
-    ${tf?`<div class="chips" style="margin:-2px 0 10px">
+    ${(tf&&!cf&&!ps)?`<div class="chips" style="margin:-2px 0 10px">
       <button class="chip mem ${!tal?'on':''}" onclick="window.goodsTal='';renderGoods()">${esc(teamOf(tf).name)}全体</button>
       ${(teamOf(tf).members||[]).map(m=>`<button class="chip mem ${tal===m?'on':''}"
         onclick="window.goodsTal='${esc(m).replace(/'/g,"\\'")}';renderGoods()">${esc(talShort(m))}</button>`).join('')}
     </div>`:''}
-    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v">${live.length}</div></div></div>`
+    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${cf?"　クラファン":ps?"　個撮":tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v">${live.length}</div></div></div>`
     :`<div class="grid">
-      <div class="kpi hi"><div class="k">GOODS SALES${tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
+      <div class="kpi hi"><div class="k">GOODS SALES${cf?"　クラファン":ps?"　個撮":tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
       <div class="kpi"><div class="k">ORDERS</div><div class="v">${live.length}${a.length>live.length?`<span style="font-size:11px;color:var(--mute)">　＋キャンセル${a.length-live.length}</span>`:''}</div></div>
     </div>`}
     <button class="wide admin-only" style="margin:0 0 4px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
@@ -854,7 +866,7 @@ function renderGoods(){
       CSV最終取り込み ${DB.gCsvAt?`<b style="font-family:var(--mono);color:var(--ink)">${new Date(DB.gCsvAt).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</b>
       ${DB.gCsvNew?`<span style="background:linear-gradient(135deg,#E8B923,#FFD966 55%,#C9970F);color:#3A2A00;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;margin-left:6px;box-shadow:0 1px 2px rgba(180,140,20,.4)">NEW ${DB.gCsvNew}件</span>`:''}`
       :'<b style="color:var(--ink)">まだ取り込みがありません</b>'}</p>
-    <div class="card" style="padding:10px 12px;${isTalent()?'display:none':''}">
+    <div class="card" style="padding:10px 12px;display:none">
       <div class="bar"><span>商品代</span><b style="font-family:var(--mono)">${yen(item)}</b></div>
       <div class="bar"><span>制作前</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='pre').length}件</b></div>
       <div class="bar"><span>発送前（制作済み）</span><b style="font-family:var(--mono)">${a.filter(g=>gShip(g)==='ready').length}件</b></div>
@@ -2073,12 +2085,17 @@ function renderSiteCards(){
         <button class="admin-only" onclick="event.stopPropagation();evDelete('${e.id}')"
           style="margin-top:5px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 9px;font-size:10.5px;color:var(--berry)">削除</button>
       </div>
-    </div>`};
+    </div>${on?'<div id="evSlot"></div>':''}`};
   const groups=m3.map(m=>({m,evs:evsOf(m)})).filter(g=>g.evs.length);
   box.innerHTML=groups.length?groups.map((g,i)=>`
     ${(i===0&&DB.curM!=='ALL')?'':`<div style="font-family:var(--mincho);font-size:13px;font-weight:600;color:var(--mute);margin:${i===0?'0':'14px'} 2px 6px">${mLabel(g.m)}</div>`}
     ${g.evs.map(cardOf).join('')}`).join('')
     :'<div class="empty">直近3ヶ月の現場がありません。「＋ 現場を追加」から作ってください。</div>';
+  /* 選んだ現場のすぐ下に「当日グッズ販売」と来場者リストを差し込む */
+  const slot=document.getElementById('evSlot')||document.getElementById('v-rec');
+  ['btnPos','posHint','filters','memberList','list','buyList'].forEach(id=>{
+    const el=document.getElementById(id);if(el)slot.appendChild(el);
+  });
 }
 let evFormOpen=false;
 window.evFormToggle=()=>{if(isTalent()){toast('タレントは閲覧のみです');return}evFormOpen=!evFormOpen;renderEvForm()};
