@@ -4409,6 +4409,8 @@ function go(v){
     window._goodsAllDone=true;
     if(DB.curM!=='ALL'){DB.curM='ALL';renderEvents();}
   }
+  /* 現場タブ以外に移るときは現場の絞り込みを解除（グッズ等が1現場分だけになるのを防ぐ） */
+  if(v!=='rec'&&evFilter){evFilter='';window.memFilter='';renderEvents();renderList();renderSum();}
   const navV=v==='stock'?'goods':(v==='set'?'':v);
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===navV));
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
