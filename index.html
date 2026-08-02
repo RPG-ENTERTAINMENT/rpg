@@ -133,6 +133,13 @@ main{padding:10px 12px 20px}
 .stub.cx .sub,.stub.cx .sub .t,.stub.cx .sub .a,.stub.cx .nm .a{color:#8C8C98}
 .stub.cx .perf{border-left-color:#C8C8D2}
 .stub.cx .perf::before,.stub.cx .perf::after{background:var(--paper);border-color:#C8C8D2}
+#evDetailHost.inev{border-left:3px solid var(--berry);padding-left:9px;margin:2px 0 16px}
+.stub.bank{border:2px solid #E23A4E;background:#ECECF0}
+.stub.bank .no.gno{background:#B03050}
+.stub.bank .perf{border-left-color:#E23A4E}
+.stub.bank .perf::before,.stub.bank .perf::after{border-color:#E23A4E}
+.bkwarn{margin-top:3px;font-size:10.5px;font-weight:800;color:#C4102A;
+  font-family:var(--gothic);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cxbadge{background:#6E6E7A;color:#fff;border-radius:6px;padding:1px 7px;font-size:9.5px;
   font-weight:800;font-family:var(--gothic);margin-left:5px;vertical-align:2px;letter-spacing:.04em}
 .tick.ent{width:auto;height:auto;border-radius:999px;padding:8px 11px;font-size:12px;white-space:nowrap}
@@ -312,18 +319,20 @@ body.staff .admin-only{display:none!important}
     </div>
     <div id="siteList"></div>
     <div class="filter" id="evChips" style="display:none"></div>
-    <div class="filter" id="filters">
-      <button class="on" data-f="all">全員</button>
-      <button data-f="yet">未受付</button>
-      <button data-f="done">受付済</button>
-      <button data-f="meal">ご飯会</button>
+    <div id="evDetailHost">
+      <button class="wide" id="btnPos" style="margin:0 0 10px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
+        onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
+      <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
+      <div class="filter" id="filters">
+        <button class="on" data-f="all">全員</button>
+        <button data-f="yet">未受付</button>
+        <button data-f="done">受付済</button>
+        <button data-f="meal">ご飯会</button>
+      </div>
+      <div id="memberList"></div>
+      <div id="list"></div>
+      <div id="buyList"></div>
     </div>
-    <button class="wide" id="btnPos" style="margin:0 0 12px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
-      onclick="openPos()">🛍 当日グッズ販売　＋追加する</button>
-    <p class="hint" id="posHint" style="display:none;text-align:center;margin:-6px 0 12px">現場を選ぶと「当日グッズ販売」が使えます。</p>
-    <div id="memberList"></div>
-    <div id="list"></div>
-    <div id="buyList"></div>
   </section>
 
   <!-- 追加 -->
@@ -577,7 +586,7 @@ function renderEvents(){
   const evs=monthEvents();
   if(evFilter){
     const fe=DB.events.find(e=>e.id===evFilter);
-    const keep=fe&&(()=>{let m=DB.curM;for(let i=0;i<3;i++){if(evMonth(fe)===m)return true;m=prevMonth(m)}return false})();
+    const keep=fe&&(DB.curM==='ALL'||(()=>{let m=DB.curM;for(let i=0;i<3;i++){if(evMonth(fe)===m)return true;m=prevMonth(m)}return false})());
     if(!keep)evFilter='';
   }
   $('#evChips').innerHTML = evs.length>1
@@ -888,7 +897,7 @@ function renderGoods(){
         <b style="font-family:var(--mono)">${a0.filter(g=>g.tdone).length} / ${ordN}件</b></div>
     </div>
     ${a.length?(window.goodsLimit&&a.length>window.goodsLimit?a.slice(0,window.goodsLimit):a).map(g=>`
-      <div class="stub ${isCx(g)?'cx':(g.sent?'done':'')}">
+      <div class="stub ${isCx(g)?'cx':(g.sent?'done':'')} ${!isCx(g)&&isBank(g)?'bank':''}">
         <div class="no gno ${g.tdone?'tdone':''}" onclick="gTalDone('${g.id}')"
           role="button" aria-label="${g.tdone?'タレント反映済みを解除':'タレント反映済みにする'}">
           <b>${g.no}</b>
@@ -902,6 +911,7 @@ function renderGoods(){
               <span class="a" style="float:right;font-size:15px">${yen(gTotal(g))}</span></div>
             <div class="sub">${teamBadge(g.talent)}<span class="t">${esc(g.talent||'-')}</span><span style="opacity:.4">/</span>
               <span>${esc(g.item)}</span></div>
+            ${!isCx(g)&&isBank(g)?'<div class="bkwarn">⚠️ 銀行振込 ─ 入金済みか確認してください</div>':''}
           </div>
           ${isTalent()?'':(st=>`<button class="tick ship-${st}" onclick="gToggle('${g.id}')" aria-label="タップで状態を切り替え（制作前→発送前→発送済）">${SHIP_LABEL[st]}</button>`)(gShip(g))}
         </div>
@@ -937,6 +947,7 @@ function renderGoods(){
 }
 
 /* 注文の進行状態: pre(制作前) → ready(発送前) → done(発送済み) */
+const isBank=g=>/銀行振込|銀行振り込み/.test((g&&g.pay)||'');
 const gShip=g=>isCx(g)?'cancel':(g.ship||(g.sent?'done':'pre'));
 const SHIP_LABEL={pre:'制作前',ready:'発送前',done:'発送済',cancel:'キャンセル'};
 window.gToggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
@@ -2081,6 +2092,10 @@ function evStats(id){
 function renderSiteCards(){
   updatePosBtn();
   const box=$('#siteList');if(!box)return;
+  /* 来場者ブロックは前回カードの下に差し込まれている場合があるので、
+     innerHTML を書き換える前にいったん外へ退避する（消えるのを防ぐ） */
+  {const h0=$('#evDetailHost');
+   if(h0&&box.contains(h0))box.parentNode.insertBefore(h0,box.nextSibling);}
   const evs=monthEvents();
   const head=$('#siteHead');
   if(head)head.innerHTML=`
@@ -2098,7 +2113,7 @@ function renderSiteCards(){
   const cardOf=e=>{
     const st=evStats(e.id), on=evFilter===e.id;
     const d=(e.date||'').slice(5).replace('-','/');
-    return `<div class="sc ${on?'on':''}" onclick="setEvFilter('${on?'':e.id}')">
+    return `<div class="sc ${on?'on':''}" data-ev="${e.id}" onclick="setEvFilter('${on?'':e.id}')">
       <div style="display:flex;flex-direction:column;gap:4px;flex:none">
         <div class="d">${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
         <button class="admin-only" onclick="event.stopPropagation();evEdit('${e.id}')"
@@ -2117,6 +2132,13 @@ function renderSiteCards(){
     ${(i===0&&DB.curM!=='ALL')?'':`<div style="font-family:var(--mincho);font-size:13px;font-weight:600;color:var(--mute);margin:${i===0?'0':'14px'} 2px 6px">${mLabel(g.m)}</div>`}
     ${g.evs.map(cardOf).join('')}`).join('')
     :'<div class="empty">直近3ヶ月の現場がありません。「＋ 現場を追加」から作ってください。</div>';
+  /* 選んだ現場カードのすぐ下に、来場者リストなどを差し込む */
+  const host=$('#evDetailHost');
+  if(host){
+    const card=evFilter?box.querySelector(`.sc[data-ev="${evFilter}"]`):null;
+    if(card){card.insertAdjacentElement('afterend',host);host.classList.add('inev')}
+    else{box.insertAdjacentElement('afterend',host);host.classList.remove('inev')}
+  }
 }
 let evFormOpen=false;
 window.evFormToggle=()=>{if(isTalent()){toast('タレントは閲覧のみです');return}evFormOpen=!evFormOpen;renderEvForm()};
