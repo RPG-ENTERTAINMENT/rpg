@@ -36,6 +36,11 @@
     white-space:nowrap;cursor:pointer}
   .tab[aria-selected="true"]{background:var(--gold);color:#3A2A12;border-color:var(--gold)}
   .tab .cnt{font-family:var(--mono);font-size:10px;opacity:.8;margin-left:5px}
+  .tab .bd{font-size:9.5px;font-weight:700;border-radius:999px;padding:2px 6px;margin-left:5px;
+    letter-spacing:.02em}
+  .tab .bd.td{background:var(--today);color:#fff}
+  .tab .bd.tm{background:var(--gold);color:#3A2A12}
+  .tab[aria-selected="true"] .bd.tm{background:#3A2A12;color:var(--gold)}
   .namebar{margin-top:6px;background:var(--navy-2);border-radius:9px;padding:7px 11px}
   .nb-top{display:flex;align-items:center;gap:8px}
   .page-name{flex:1;border:0;background:transparent;color:#fff;font-family:var(--gothic);
@@ -48,6 +53,10 @@
     color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
     border-radius:7px;padding:2px 4px}
   .nb-goal .left{margin-left:auto;font-family:var(--mono);font-weight:700}
+  .nb-edit{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#BDB2DC}
+  .nb-edit input{flex:1;min-width:0;font-size:13px;color:#fff;background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:3px 8px;font-family:var(--gothic)}
+  .nb-edit input::placeholder{color:#8E82B4}
   .nb-goal .left.ok{color:#8FE0C6}
   .nb-goal .left.ng{color:#FFC48F}
 
@@ -81,13 +90,14 @@
   .col{display:flex;flex-direction:column;justify-content:space-between;min-height:0}
   .day{display:flex;align-items:center;gap:5px;padding:1px 3px;border-radius:7px;
     border-bottom:1px solid #F4F1FA}
-  .day.is-today{background:#FFF1F4}
+  .day.is-today{background:transparent;border-bottom-color:transparent;border-radius:8px;
+    box-shadow:inset 0 0 0 1.5px var(--today)}
   .dlabel{display:flex;align-items:center;gap:5px;border:0;background:transparent;
     padding:3px 0;cursor:pointer;flex:1;min-width:0;text-align:left}
   .dnum{font-family:var(--mono);font-size:13.5px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
   .day.wk .dnum{color:var(--red)}
   .today-tag{background:var(--today);color:#fff;font-size:9px;font-weight:700;
-    padding:1px 5px;border-radius:5px}
+    padding:1px 5px;border-radius:5px;white-space:nowrap;flex:0 0 auto}
   .more{font-family:var(--mono);font-size:10px;color:var(--ink-60);border:0;background:transparent;
     cursor:pointer;padding:2px}
   .marks{display:flex;gap:4px;flex:0 0 auto}
@@ -164,6 +174,11 @@
       <span>本</span>
       <span class="left" id="goalLeft"></span>
     </div>
+    <div class="nb-edit">
+      <span>動画制作担当</span>
+      <input id="ed0" maxlength="12" placeholder="制作担当1" aria-label="動画制作担当1">
+      <input id="ed1" maxlength="12" placeholder="制作担当2" aria-label="動画制作担当2">
+    </div>
   </div>
 </header>
 
@@ -239,7 +254,7 @@
   /* ---- オンライン同期（GitHub） ---- */
   var CFG_KEY="rpg-video-sync-cfg";
   var cfg={repo:"RPG-ENTERTAINMENT/talent-app-data",path:"data/unyou.json",branch:"main",token:""};
-  var sha=null, syncing=false, pushTimer=null;
+  var sha=null, syncing=false, pushTimer=null, etag=null, dirty=false;
 
   function loadCfg(){
     try{ var c=JSON.parse(localStorage.getItem(CFG_KEY)||"null"); if(c) cfg=Object.assign(cfg,c); }catch(e){}
@@ -266,9 +281,12 @@
   function ghHeaders(){
     return {"Authorization":"Bearer "+cfg.token,"Accept":"application/vnd.github+json"};
   }
-  async function ghGet(){
-    var r=await fetch(ghUrl()+"?ref="+encodeURIComponent(cfg.branch||"main")+"&t="+Date.now(),
-      {headers:ghHeaders(),cache:"no-store"});
+  async function ghGet(useEtag){
+    var h=ghHeaders();
+    if(useEtag&&etag) h["If-None-Match"]=etag;
+    var r=await fetch(ghUrl()+"?ref="+encodeURIComponent(cfg.branch||"main"),
+      {headers:h,cache:"no-store"});
+    if(r.status===304) return "same";
     if(r.status===404){
       var chk=await fetch("https://api.github.com/repos/"+cfg.repo,{headers:ghHeaders(),cache:"no-store"});
       if(chk.status===404) throw new Error("リポジトリが見つからない／トークンの対象に入っていません");
@@ -278,6 +296,7 @@
     if(r.status===401) throw new Error("トークンが無効・期限切れ");
     if(r.status===403) throw new Error("権限不足（Contents読み書きを確認）");
     if(!r.ok) throw new Error("取得失敗 "+r.status);
+    etag=r.headers.get("ETag");
     var j=await r.json();
     sha=j.sha;
     try{ return JSON.parse(b64dec(j.content)); }catch(e){ return null; }
@@ -314,8 +333,10 @@
       var items=Object.keys(map).map(function(k){ return map[k]; })
         .sort(function(x,y){ return x.date<y.date?-1:1; });
       var goal=((pa.goalUp||0)>(pb.goalUp||0))?pa.goal:(pb.goal!==undefined?pb.goal:pa.goal);
+      var eds=((pa.editorsUp||0)>(pb.editorsUp||0))?pa.editors:(pb.editors||pa.editors);
       out.pages.push({name:name,nameUp:Math.max(pa.nameUp||0,pb.nameUp||0),
-        goal:(goal||0),goalUp:Math.max(pa.goalUp||0,pb.goalUp||0),items:items});
+        goal:(goal||0),goalUp:Math.max(pa.goalUp||0,pb.goalUp||0),
+        editors:(eds||["",""]),editorsUp:Math.max(pa.editorsUp||0,pb.editorsUp||0),items:items});
     }
     return out;
   }
@@ -323,12 +344,19 @@
     if(!cfgReady()||syncing) return;
     syncing=true; setStatus("同期中…");
     try{
-      var remote=await ghGet();
+      var remote=await ghGet(!dirty);
+      if(remote==="same"){
+        setStatus("同期済み "+hhmm(new Date()));
+        syncing=false; return;
+      }
+      var before=JSON.stringify(state);
       if(remote) state=mergeStates(remote,state);
-      await ghPut(state);
+      var after=JSON.stringify(state);
+      var needPush = dirty || !remote || after!==JSON.stringify(remote);
+      if(needPush){ await ghPut(state); dirty=false; etag=null; }
       try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
       setStatus("同期済み "+hhmm(new Date()));
-      renderAll(); if(openDate) renderSheet();
+      if(after!==before||needPush){ renderAll(); if(openDate) renderSheet(); }
     }catch(err){
       setStatus("同期エラー");
       if(!silent) toast("同期エラー：" + err.message);
@@ -360,6 +388,7 @@
   function dayItems(date){ return state.pages[active].items.filter(function(e){ return e.date===date; }); }
 
   function scheduleSave(){
+    dirty=true;
     setStatus(cfgReady()?"同期待ち…":"保存中…");
     schedulePush();
     clearTimeout(saveTimer);
@@ -379,8 +408,10 @@
   function todayISO(){ var d=new Date(); return iso(d.getFullYear(),d.getMonth(),d.getDate()); }
   function shiftISO(n){ var d=new Date(); d.setDate(d.getDate()+n); return iso(d.getFullYear(),d.getMonth(),d.getDate()); }
   function defaultState(){
-    return {pages:[{name:"アカウント①",goal:0,items:[]},{name:"アカウント②",goal:0,items:[]},
-                   {name:"アカウント③",goal:0,items:[]},{name:"アカウント④",goal:0,items:[]}]};
+    return {pages:[{name:"アカウント①",goal:0,editors:["",""],items:[]},
+                   {name:"アカウント②",goal:0,editors:["",""],items:[]},
+                   {name:"アカウント③",goal:0,editors:["",""],items:[]},
+                   {name:"アカウント④",goal:0,editors:["",""],items:[]}]};
   }
   function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -396,6 +427,7 @@
            memo:"",made:false,posted:false,up:Date.now()};
     arr.push(e); return e;
   }
+  function planned(e){ return !!(e && !e.posted && (e.made||e.no||(e.memo||"").trim())); }
   function used(e){ return !!(e && (e.made||e.posted||e.no||(e.memo||"").trim())); }
 
   function monthNumbered(){
@@ -422,6 +454,7 @@
   }
 
   function scheduleSave(){
+    dirty=true;
     setStatus(cfgReady()?"同期待ち…":"保存中…");
     schedulePush();
     clearTimeout(saveTimer);
@@ -440,7 +473,11 @@
       b.setAttribute("aria-selected", i===active?"true":"false");
       var pre=view.getFullYear()+"-"+p2(view.getMonth()+1);
       var posted=p.items.filter(function(e){ return e.posted&&e.date.indexOf(pre)===0; }).length;
-      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(p.goal?"/"+p.goal:"")+'</span>';
+      var td=p.items.filter(function(e){ return planned(e)&&e.date===todayISO(); }).length;
+      var tm=p.items.filter(function(e){ return planned(e)&&e.date===shiftISO(1); }).length;
+      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(p.goal?"/"+p.goal:"")+'</span>'+
+        (td?'<span class="bd td">今日'+td+'</span>':'')+
+        (tm?'<span class="bd tm">明日'+tm+'</span>':'');
       b.onclick=function(){ active=i; renderAll(); };
       t.appendChild(b);
     });
@@ -448,6 +485,11 @@
     document.getElementById("pageName").value=pg.name;
     var g=document.getElementById("goal");
     if(document.activeElement!==g) g.value=pg.goal||"";
+    if(!pg.editors) pg.editors=["",""];
+    [0,1].forEach(function(i){
+      var el=document.getElementById("ed"+i);
+      if(document.activeElement!==el) el.value=pg.editors[i]||"";
+    });
     var mi=monthItems();
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var made=mi.filter(function(e){ return e.made&&!e.posted; }).length;
@@ -614,6 +656,14 @@
     state.pages[active].goal=isNaN(v)?0:Math.max(0,v);
     state.pages[active].goalUp=Date.now();
     scheduleSave(); renderHeader(); });
+  [0,1].forEach(function(i){
+    document.getElementById("ed"+i).addEventListener("input",function(e){
+      var pg=state.pages[active];
+      if(!pg.editors) pg.editors=["",""];
+      pg.editors[i]=e.target.value; pg.editorsUp=Date.now();
+      scheduleSave();
+    });
+  });
   document.getElementById("prevM").onclick=function(){ view=new Date(view.getFullYear(),view.getMonth()-1,1); renderAll(); };
   document.getElementById("nextM").onclick=function(){ view=new Date(view.getFullYear(),view.getMonth()+1,1); renderAll(); };
   document.getElementById("todayBtn").onclick=function(){ view=new Date(); renderAll(); };
@@ -626,8 +676,9 @@
     var mi=monthItems().filter(used).sort(function(a,b){
       return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); });
     var posted=mi.filter(function(e){ return e.posted; }).length;
+    var eds=(p.editors||[]).filter(Boolean).join("・");
     var txt="【"+p.name+"】"+view.getFullYear()+"年"+(view.getMonth()+1)+"月"+
-      "（投稿 "+posted+(p.goal?" / 最低 "+p.goal+"本":"")+"）\n"+
+      "（投稿 "+posted+(p.goal?" / 最低 "+p.goal+"本":"")+(eds?" / 動画制作担当 "+eds:"")+"）\n"+
       (mi.length?mi.map(function(e){
         var d=new Date(e.date+"T00:00:00");
         return (d.getMonth()+1)+"/"+d.getDate()+"（"+WD[d.getDay()]+"）"+(e.slot||1)+"本目 制作"+
@@ -646,11 +697,12 @@
   }
 
   document.getElementById("csvBtn").onclick=function(){
-    var rows=[["ページ","最低投稿数","日付","本目","制作済み","投稿済み","メモ"]];
+    var rows=[["ページ","動画制作担当","最低投稿数","日付","本目","制作済み","投稿済み","メモ"]];
     state.pages.forEach(function(p){
       p.items.filter(used).slice().sort(function(a,b){
         return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); }).forEach(function(e){
-        rows.push([p.name,p.goal||"",e.date,(e.slot||1),e.made?"1":"",e.posted?"1":"",e.memo]);
+        rows.push([p.name,(p.editors||[]).filter(Boolean).join("・"),p.goal||"",e.date,
+                   (e.slot||1),e.made?"1":"",e.posted?"1":"",e.memo]);
       });
     });
     var csv="\uFEFF"+rows.map(function(c){ return c.map(function(v){
@@ -662,17 +714,30 @@
     toast("CSVを書き出しました");
   };
 
-  (async function(){
+  (function(){
     loadCfg(); refreshBanner();
-    var saved=await store.load();
+    var saved=null;
+    try{ saved=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){}
     state=(saved&&saved.pages&&saved.pages.length===4&&saved.pages[0].items)?saved:defaultState();
     state.pages.forEach(function(p){ if(typeof p.goal!=="number") p.goal=0; });
     renderAll();
-    if(cfgReady()){
-      syncNow(true);
-      setInterval(function(){ if(!document.hidden) syncNow(true); },60000);
-      window.addEventListener("focus",function(){ syncNow(true); });
-    } else setStatus("自動保存（この端末のみ）");
+    if(!cfgReady()) setStatus("自動保存（この端末のみ）");
+
+    requestAnimationFrame(function(){ setTimeout(async function(){
+      if(!saved){
+        var s2=await store.load();
+        if(s2&&s2.pages&&s2.pages.length===4&&s2.pages[0].items){
+          state=s2;
+          state.pages.forEach(function(p){ if(typeof p.goal!=="number") p.goal=0; });
+          renderAll();
+        }
+      }
+      if(cfgReady()){
+        syncNow(true);
+        setInterval(function(){ if(!document.hidden) syncNow(true); },60000);
+        window.addEventListener("focus",function(){ syncNow(true); });
+      }
+    },0); });
   })();
 })();
 </script>
