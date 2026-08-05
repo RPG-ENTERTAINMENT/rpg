@@ -158,7 +158,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v6</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v8</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 同期</button>
   </div>
@@ -360,7 +360,8 @@
       if(after!==before||needPush){ renderAll(); if(openDate) renderSheet(); }
     }catch(err){
       setStatus("同期エラー");
-      if(!silent) toast("同期エラー：" + err.message);
+      showError("同期 "+(err&&err.message||err));
+      if(!silent) toast("同期エラー：" + (err&&err.message||err));
     }
     syncing=false;
   }
@@ -383,29 +384,6 @@
     if(cfgReady()){ b.hidden=true; return; }
     b.hidden=false;
     b.textContent="⚠️ トークン未入力のため、この端末のデータは共有されていません。タップして入力 →";
-  }
-
-  function p2(n){ return (n<10?"0":"")+n; }
-  function iso(y,m,d){ return y+"-"+p2(m+1)+"-"+p2(d); }
-  function todayISO(){ var d=new Date(); return iso(d.getFullYear(),d.getMonth(),d.getDate()); }
-  function defaultState(){
-    return {pages:[{name:"アカウント①",items:[]},{name:"アカウント②",items:[]},
-                   {name:"アカウント③",items:[]},{name:"アカウント④",items:[]}]};
-  }
-  function isLate(e){ return !e.posted && e.postDate && e.postDate<todayISO(); }
-  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-  function dayItems(date){ return state.pages[active].items.filter(function(e){ return e.date===date; }); }
-
-  function scheduleSave(){
-    dirty=true;
-    setStatus(cfgReady()?"同期待ち…":"保存中…");
-    schedulePush();
-    clearTimeout(saveTimer);
-    saveTimer=setTimeout(async function(){
-      var ok=await store.save(state);
-      if(!cfgReady()) setStatus(ok?"自動保存済み（この端末のみ）":"保存不可");
-    },300);
   }
 
   function monthItems(){
@@ -526,8 +504,8 @@
     var mi=monthItems();
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var made=mi.filter(function(e){ return e.made&&!e.posted; }).length;
-    var planned=mi.filter(function(e){ return e.no; }).length;
-    document.getElementById("stat").innerHTML='日程 '+planned+(pg.goal?'/'+pg.goal:'')+
+    var slotted=mi.filter(function(e){ return e.no; }).length;
+    document.getElementById("stat").innerHTML='日程 '+slotted+(pg.goal?'/'+pg.goal:'')+
       '　投稿 <b>'+posted+'</b>'+(pg.goal?' / '+pg.goal+'本':'');
     var left=document.getElementById("goalLeft");
     if(pg.goal){
