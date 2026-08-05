@@ -158,7 +158,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール</h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v4</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 同期</button>
   </div>
@@ -574,6 +574,8 @@
 
   var repaired=false;
   function renderAll(){
+    if(!state||!Array.isArray(state.pages)||state.pages.length!==4||!state.pages[0]||!Array.isArray(state.pages[0].items))
+      state=normalize(state);
     try{ renderHeader(); renderMonth(); renderNotice(); }
     catch(err){
       if(repaired) throw err;
