@@ -158,7 +158,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v5</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v6</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 同期</button>
   </div>
@@ -369,6 +369,15 @@
     clearTimeout(pushTimer);
     pushTimer=setTimeout(function(){ syncNow(true); },2500);
   }
+  function showError(msg){
+    var b=document.getElementById("banner");
+    if(!b) return;
+    b.hidden=false;
+    b.style.background="#FFE3D7"; b.style.color="#A8391A";
+    b.textContent="エラー: "+msg;
+  }
+  window.onerror=function(m,src,line,col){ showError(m+" ("+line+":"+col+")"); };
+
   function refreshBanner(){
     var b=document.getElementById("banner");
     if(cfgReady()){ b.hidden=true; return; }
@@ -578,7 +587,7 @@
       state=normalize(state);
     try{ renderHeader(); renderMonth(); renderNotice(); }
     catch(err){
-      if(repaired) throw err;
+      if(repaired){ showError("描画 "+(err&&err.message||err)); return; }
       repaired=true;
       state=normalize(state);
       renderHeader(); renderMonth(); renderNotice();
@@ -751,11 +760,14 @@
   };
 
   (function(){
+    if(location.search.indexOf("reset=1")>=0){
+      try{ localStorage.removeItem(KEY); }catch(e){}
+    }
     loadCfg(); refreshBanner();
     var saved=null;
     try{ saved=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){}
-    state=normalize(saved);
-    renderAll();
+    try{ state=normalize(saved); }catch(e){ showError("整形 "+(e&&e.message||e)); state=defaultState(); }
+    try{ renderAll(); }catch(e){ showError("初期描画 "+(e&&e.message||e)); }
     setStatus(cfgReady()?"起動OK":"自動保存（この端末のみ）");
 
     requestAnimationFrame(function(){ setTimeout(async function(){
