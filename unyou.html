@@ -158,7 +158,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v4</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v5</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 同期</button>
   </div>
@@ -756,7 +756,7 @@
     try{ saved=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){}
     state=normalize(saved);
     renderAll();
-    if(!cfgReady()) setStatus("自動保存（この端末のみ）");
+    setStatus(cfgReady()?"起動OK":"自動保存（この端末のみ）");
 
     requestAnimationFrame(function(){ setTimeout(async function(){
       if(!saved){
