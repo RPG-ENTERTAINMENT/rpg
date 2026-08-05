@@ -153,8 +153,12 @@
   .del-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
   .del-row span{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .del-row small{font-family:var(--mono);font-size:11px;color:var(--ink-60)}
-  .del-row button{border:1px solid #F0B49B;background:#FFF3EF;color:var(--alert);
+  .del-row button.del{border:1px solid #F0B49B;background:#FFF3EF;color:var(--alert);
     font-size:13px;font-weight:700;padding:8px 14px;border-radius:9px;cursor:pointer}
+  .ord{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
+  .ord button{border:1px solid var(--line);background:#fff;color:var(--navy);
+    font-size:11px;line-height:1;padding:4px 8px;border-radius:6px;cursor:pointer}
+  .ord button:disabled{opacity:.3}
   .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(8px);
     background:var(--ink);color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;
     opacity:0;pointer-events:none;transition:.2s;z-index:50}
@@ -166,7 +170,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v9</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v10</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -235,8 +239,8 @@
     <button id="cClose">閉じる</button>
     <button id="cSave" class="primary">保存して同期</button>
   </div>
-  <p class="cfg-sec">アカウントの削除</p>
-  <p class="cfg-note">選んだアカウントの予定・最低投稿数・担当がすべて消えます。他の端末からも消えます。</p>
+  <p class="cfg-sec">アカウントの並び替え・削除</p>
+  <p class="cfg-note">↑↓でタブの表示順を変更できます。削除すると、そのアカウントの予定・最低投稿数・担当がすべて消え、他の端末からも消えます。</p>
   <div id="delList"></div>
 </div>
 
@@ -430,6 +434,13 @@
            memo:"",made:false,posted:false,up:Date.now()};
     arr.push(e); return e;
   }
+  function orderOf(){
+    var o=(state&&Array.isArray(state.order))?state.order.slice():[];
+    o=o.filter(function(v,i){ return typeof v==="number"&&v>=0&&v<4&&o.indexOf(v)===i; });
+    for(var i=0;i<4;i++) if(o.indexOf(i)<0) o.push(i);
+    return o;
+  }
+
   function normalize(st){
     var d=defaultState();
     var src=(st&&Array.isArray(st.pages))?st.pages:[];
@@ -452,6 +463,10 @@
                   memo:String(e.memo||""), up:Number(e.up)||0, del:!!e.del};
         });
     }
+    var o=(st&&Array.isArray(st.order))?st.order.slice():[];
+    o=o.filter(function(v,i){ return typeof v==="number"&&v>=0&&v<4&&o.indexOf(v)===i; });
+    for(var i=0;i<4;i++) if(o.indexOf(i)<0) o.push(i);
+    d.order=o; d.orderUp=Number(st&&st.orderUp)||0;
     return d;
   }
 
@@ -496,7 +511,8 @@
   /* ---------- header ---------- */
   function renderHeader(){
     var t=document.getElementById("tabs"); t.innerHTML="";
-    state.pages.forEach(function(p,i){
+    orderOf().forEach(function(i){
+      var p=state.pages[i];
       var b=document.createElement("button");
       b.className="tab"; b.setAttribute("role","tab");
       b.setAttribute("aria-selected", i===active?"true":"false");
@@ -667,13 +683,19 @@
   function renderDelList(){
     var box=document.getElementById("delList");
     box.innerHTML="";
-    state.pages.forEach(function(p,i){
+    var ord=orderOf();
+    ord.forEach(function(i,pos){
+      var p=state.pages[i];
       var n=itemsOf(p).filter(used).length;
       var row=document.createElement("div");
       row.className="del-row";
-      row.innerHTML='<span>'+esc(p.name||("アカウント"+(i+1)))+'</span>'+
-        '<small>'+n+'件</small><button>削除</button>';
-      row.querySelector("button").onclick=function(){
+      row.innerHTML='<span class="ord"><button class="up" aria-label="上へ"'+(pos===0?" disabled":"")+'>▲</button>'+
+        '<button class="down" aria-label="下へ"'+(pos===3?" disabled":"")+'>▼</button></span>'+
+        '<span>'+esc(p.name||("アカウント"+(i+1)))+'</span>'+
+        '<small>'+n+'件</small><button class="del">削除</button>';
+      row.querySelector(".up").onclick=function(){ moveAccount(pos,-1); };
+      row.querySelector(".down").onclick=function(){ moveAccount(pos,1); };
+      row.querySelector(".del").onclick=function(){
         var nm=p.name||("アカウント"+(i+1));
         if(!confirm("「"+nm+"」を削除します。\n予定 "+n+"件・最低投稿数・担当がすべて消え、他の端末からも消えます。\n削除しますか？")) return;
         if(!confirm("本当に削除してよろしいですか？この操作は元に戻せません。")) return;
@@ -682,12 +704,20 @@
         p.name="アカウント"+["①","②","③","④"][i]; p.nameUp=now;
         p.goal=0; p.goalUp=now;
         p.editors=["",""]; p.editorsUp=now;
-        active=0;
+        active=orderOf()[0];
         scheduleSave(); renderAll(); renderDelList();
         toast("「"+nm+"」を削除しました");
       };
       box.appendChild(row);
     });
+  }
+
+  function moveAccount(pos,dir){
+    var o=orderOf(), to=pos+dir;
+    if(to<0||to>3) return;
+    var t=o[pos]; o[pos]=o[to]; o[to]=t;
+    state.order=o; state.orderUp=Date.now();
+    scheduleSave(); renderAll(); renderDelList();
   }
 
   function openCfg(){
