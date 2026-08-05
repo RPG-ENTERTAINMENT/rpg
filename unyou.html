@@ -147,6 +147,14 @@
   .cfg-actions button{flex:1;padding:13px;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;
     border:1px solid var(--line);background:#fff;color:var(--ink)}
   .cfg-actions button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .cfg-sec{font-family:var(--mincho);font-size:15px;font-weight:600;margin:22px 0 10px;
+    padding-top:14px;border-top:1px solid var(--line)}
+  .cfg-sec:first-of-type{margin-top:4px;padding-top:0;border-top:0}
+  .del-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .del-row span{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .del-row small{font-family:var(--mono);font-size:11px;color:var(--ink-60)}
+  .del-row button{border:1px solid #F0B49B;background:#FFF3EF;color:var(--alert);
+    font-size:13px;font-weight:700;padding:8px 14px;border-radius:9px;cursor:pointer}
   .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(8px);
     background:var(--ink);color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;
     opacity:0;pointer-events:none;transition:.2s;z-index:50}
@@ -158,9 +166,9 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v8</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v9</span></h1>
     <span class="save-state" id="saveState"></span>
-    <button class="gear" id="cfgBtn">⚙ 同期</button>
+    <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div class="namebar">
@@ -212,7 +220,8 @@
 </div>
 
 <div class="sheet" id="cfgSheet" role="dialog" aria-modal="true">
-  <h2>オンライン同期の設定</h2>
+  <h2>設定</h2>
+  <p class="cfg-sec">オンライン同期</p>
   <div class="cfg-row"><label class="f-label">リポジトリ（owner/repo）</label>
     <input id="cOwner" placeholder="RPG-ENTERTAINMENT/talent-app-data" autocapitalize="off" autocorrect="off"></div>
   <div class="cfg-row"><label class="f-label">保存ファイルのパス</label>
@@ -226,6 +235,9 @@
     <button id="cClose">閉じる</button>
     <button id="cSave" class="primary">保存して同期</button>
   </div>
+  <p class="cfg-sec">アカウントの削除</p>
+  <p class="cfg-note">選んだアカウントの予定・最低投稿数・担当がすべて消えます。他の端末からも消えます。</p>
+  <div id="delList"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -388,7 +400,7 @@
 
   function monthItems(){
     var pre=view.getFullYear()+"-"+p2(view.getMonth()+1);
-    return state.pages[active].items.filter(function(e){ return e.date.indexOf(pre)===0; });
+    return itemsOf(state.pages[active]).filter(function(e){ return e.date.indexOf(pre)===0; });
   }
 
   function p2(n){ return (n<10?"0":"")+n; }
@@ -404,12 +416,15 @@
   function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function dayItems(date){
-    return state.pages[active].items.filter(function(e){ return e.date===date; })
+    return itemsOf(state.pages[active]).filter(function(e){ return e.date===date; })
       .sort(function(a,b){ return (a.slot||1)-(b.slot||1); });
   }
   function slotItem(date,n,create){
     var arr=state.pages[active].items;
-    for(var i=0;i<arr.length;i++) if(arr[i].date===date&&(arr[i].slot||1)===n) return arr[i];
+    for(var i=0;i<arr.length;i++) if(arr[i].date===date&&(arr[i].slot||1)===n){
+      if(arr[i].del){ if(!create) continue; arr[i].del=false; arr[i].up=Date.now(); }
+      return arr[i];
+    }
     if(!create) return null;
     var e={id:Date.now()+"-"+Math.random().toString(36).slice(2,6),date:date,slot:n,
            memo:"",made:false,posted:false,up:Date.now()};
@@ -426,18 +441,21 @@
       np.goalUp=Number(p.goalUp)||0;
       np.editors=Array.isArray(p.editors)?[String(p.editors[0]||""),String(p.editors[1]||"")]:["",""];
       np.editorsUp=Number(p.editorsUp)||0;
+      var cutoff=Date.now()-1000*60*60*24*90;
       np.items=(Array.isArray(p.items)?p.items:[]).filter(function(e){ return e&&e.date; })
+        .filter(function(e){ return !(e.del && (Number(e.up)||0) < cutoff); })
         .map(function(e){
           return {id:String(e.id||(e.date+"-"+(e.slot||1)+"-"+i+"-"+Math.random().toString(36).slice(2,6))),
                   date:String(e.date).slice(0,10),
                   slot:Number(e.slot)||1, no:Number(e.no)||0,
                   made:!!e.made, posted:!!e.posted,
-                  memo:String(e.memo||""), up:Number(e.up)||0};
+                  memo:String(e.memo||""), up:Number(e.up)||0, del:!!e.del};
         });
     }
     return d;
   }
 
+  function itemsOf(p){ return (p.items||[]).filter(function(e){ return !e.del; }); }
   function planned(e){ return !!(e && !e.posted && (e.made||e.no||(e.memo||"").trim())); }
   function used(e){ return !!(e && (e.made||e.posted||e.no||(e.memo||"").trim())); }
 
@@ -450,7 +468,7 @@
   }
   function cleanup(){
     var arr=state.pages[active].items;
-    for(var i=arr.length-1;i>=0;i--) if(!used(arr[i])) arr.splice(i,1);
+    for(var i=arr.length-1;i>=0;i--) if(!arr[i].del&&!used(arr[i])) arr.splice(i,1);
   }
   function toggleNo(date){
     var e=slotItem(date,1,true);
@@ -483,9 +501,10 @@
       b.className="tab"; b.setAttribute("role","tab");
       b.setAttribute("aria-selected", i===active?"true":"false");
       var pre=view.getFullYear()+"-"+p2(view.getMonth()+1);
-      var posted=p.items.filter(function(e){ return e.posted&&e.date.indexOf(pre)===0; }).length;
-      var td=p.items.filter(function(e){ return planned(e)&&e.date===todayISO(); }).length;
-      var tm=p.items.filter(function(e){ return planned(e)&&e.date===shiftISO(1); }).length;
+      var pit=itemsOf(p);
+      var posted=pit.filter(function(e){ return e.posted&&e.date.indexOf(pre)===0; }).length;
+      var td=pit.filter(function(e){ return planned(e)&&e.date===todayISO(); }).length;
+      var tm=pit.filter(function(e){ return planned(e)&&e.date===shiftISO(1); }).length;
       b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(p.goal?"/"+p.goal:"")+'</span>'+
         (td?'<span class="bd td">今日'+td+'</span>':'')+
         (tm?'<span class="bd tm">明日'+tm+'</span>':'');
@@ -578,7 +597,7 @@
     var box=document.getElementById("notice");
     var t=todayISO(), tm=shiftISO(1), hits=[];
     state.pages.forEach(function(p,pi){
-      p.items.forEach(function(e){
+      itemsOf(p).forEach(function(e){
         if(e.posted) return;
         if(!(e.made||(e.memo||"").trim())) return;
         if(e.date<t)        hits.push({k:"over",rank:0,label:"投稿日すぎ",e:e,pi:pi,p:p});
@@ -645,11 +664,38 @@
   document.getElementById("sheetClose").onclick=closeSheet;
 
   /* ---------- config sheet ---------- */
+  function renderDelList(){
+    var box=document.getElementById("delList");
+    box.innerHTML="";
+    state.pages.forEach(function(p,i){
+      var n=itemsOf(p).filter(used).length;
+      var row=document.createElement("div");
+      row.className="del-row";
+      row.innerHTML='<span>'+esc(p.name||("アカウント"+(i+1)))+'</span>'+
+        '<small>'+n+'件</small><button>削除</button>';
+      row.querySelector("button").onclick=function(){
+        var nm=p.name||("アカウント"+(i+1));
+        if(!confirm("「"+nm+"」を削除します。\n予定 "+n+"件・最低投稿数・担当がすべて消え、他の端末からも消えます。\n削除しますか？")) return;
+        if(!confirm("本当に削除してよろしいですか？この操作は元に戻せません。")) return;
+        var now=Date.now();
+        (p.items||[]).forEach(function(e){ e.del=true; e.up=now; });
+        p.name="アカウント"+["①","②","③","④"][i]; p.nameUp=now;
+        p.goal=0; p.goalUp=now;
+        p.editors=["",""]; p.editorsUp=now;
+        active=0;
+        scheduleSave(); renderAll(); renderDelList();
+        toast("「"+nm+"」を削除しました");
+      };
+      box.appendChild(row);
+    });
+  }
+
   function openCfg(){
     document.getElementById("cOwner").value=cfg.repo;
     document.getElementById("cPath").value=cfg.path;
     document.getElementById("cBranch").value=cfg.branch;
     document.getElementById("cToken").value=cfg.token;
+    renderDelList();
     document.getElementById("scrim").classList.add("show");
     document.getElementById("cfgSheet").classList.add("show");
   }
@@ -722,7 +768,7 @@
   document.getElementById("csvBtn").onclick=function(){
     var rows=[["ページ","動画制作担当","最低投稿数","日付","本目","制作済み","投稿済み","メモ"]];
     state.pages.forEach(function(p){
-      p.items.filter(used).slice().sort(function(a,b){
+      itemsOf(p).filter(used).slice().sort(function(a,b){
         return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); }).forEach(function(e){
         rows.push([p.name,(p.editors||[]).filter(Boolean).join("・"),p.goal||"",e.date,
                    (e.slot||1),e.made?"1":"",e.posted?"1":"",e.memo]);
