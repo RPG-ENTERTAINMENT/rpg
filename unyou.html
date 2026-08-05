@@ -350,7 +350,8 @@
         syncing=false; return;
       }
       var before=JSON.stringify(state);
-      if(remote) state=mergeStates(remote,state);
+      if(remote) remote=normalize(remote);
+      if(remote) state=normalize(mergeStates(remote,state));
       var after=JSON.stringify(state);
       var needPush = dirty || !remote || after!==JSON.stringify(remote);
       if(needPush){ await ghPut(state); dirty=false; etag=null; }
@@ -427,6 +428,29 @@
            memo:"",made:false,posted:false,up:Date.now()};
     arr.push(e); return e;
   }
+  function normalize(st){
+    var d=defaultState();
+    var src=(st&&Array.isArray(st.pages))?st.pages:[];
+    for(var i=0;i<4;i++){
+      var p=src[i]||{}, np=d.pages[i];
+      if(typeof p.name==="string"&&p.name) np.name=p.name;
+      np.nameUp=Number(p.nameUp)||0;
+      np.goal=Number(p.goal)||0;
+      np.goalUp=Number(p.goalUp)||0;
+      np.editors=Array.isArray(p.editors)?[String(p.editors[0]||""),String(p.editors[1]||"")]:["",""];
+      np.editorsUp=Number(p.editorsUp)||0;
+      np.items=(Array.isArray(p.items)?p.items:[]).filter(function(e){ return e&&e.date; })
+        .map(function(e){
+          return {id:String(e.id||(e.date+"-"+(e.slot||1)+"-"+i+"-"+Math.random().toString(36).slice(2,6))),
+                  date:String(e.date).slice(0,10),
+                  slot:Number(e.slot)||1, no:Number(e.no)||0,
+                  made:!!e.made, posted:!!e.posted,
+                  memo:String(e.memo||""), up:Number(e.up)||0};
+        });
+    }
+    return d;
+  }
+
   function planned(e){ return !!(e && !e.posted && (e.made||e.no||(e.memo||"").trim())); }
   function used(e){ return !!(e && (e.made||e.posted||e.no||(e.memo||"").trim())); }
 
@@ -548,7 +572,17 @@
     scheduleSave(); renderAll(); if(openDate) renderSheet();
   }
 
-  function renderAll(){ renderHeader(); renderMonth(); renderNotice(); }
+  var repaired=false;
+  function renderAll(){
+    try{ renderHeader(); renderMonth(); renderNotice(); }
+    catch(err){
+      if(repaired) throw err;
+      repaired=true;
+      state=normalize(state);
+      renderHeader(); renderMonth(); renderNotice();
+      repaired=false;
+    }
+  }
 
   /* ---------- notice ---------- */
   function renderNotice(){
@@ -718,19 +752,14 @@
     loadCfg(); refreshBanner();
     var saved=null;
     try{ saved=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){}
-    state=(saved&&saved.pages&&saved.pages.length===4&&saved.pages[0].items)?saved:defaultState();
-    state.pages.forEach(function(p){ if(typeof p.goal!=="number") p.goal=0; });
+    state=normalize(saved);
     renderAll();
     if(!cfgReady()) setStatus("自動保存（この端末のみ）");
 
     requestAnimationFrame(function(){ setTimeout(async function(){
       if(!saved){
         var s2=await store.load();
-        if(s2&&s2.pages&&s2.pages.length===4&&s2.pages[0].items){
-          state=s2;
-          state.pages.forEach(function(p){ if(typeof p.goal!=="number") p.goal=0; });
-          renderAll();
-        }
+        if(s2&&s2.pages){ state=normalize(s2); renderAll(); }
       }
       if(cfgReady()){
         syncNow(true);
