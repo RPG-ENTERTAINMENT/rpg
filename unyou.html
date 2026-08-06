@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:15-->
+<!--build:25-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -45,29 +45,32 @@
   .tab .bd.td{background:var(--today);color:#fff}
   .tab .bd.tm{background:var(--gold);color:#3A2A12}
   .tab[aria-selected="true"] .bd.tm{background:#3A2A12;color:var(--gold)}
-  .namebar{margin-top:6px;background:var(--navy-2);border-radius:9px;padding:7px 11px}
-  .nb-top{display:flex;align-items:center;gap:8px}
-  .page-name{flex:1;border:0;background:transparent;color:#fff;font-family:var(--gothic);
-    font-size:14px;font-weight:600;padding:0;min-width:0}
-  .page-name:focus{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
-  .stat{font-family:var(--mono);font-size:12px;color:#CFC5E8;white-space:nowrap}
-  .stat b{color:var(--gold)}
-  .nb-goal{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#BDB2DC}
-  .nb-goal input{width:46px;font-family:var(--mono);font-size:14px;font-weight:700;text-align:center;
-    color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
-    border-radius:7px;padding:2px 4px}
-  .nb-goal .left{margin-left:auto;font-family:var(--mono);font-weight:700}
-  .nb-edit{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#BDB2DC}
-  .nb-edit input{flex:1;min-width:0;font-size:13px;color:#fff;background:rgba(255,255,255,.12);
-    border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:3px 8px;font-family:var(--gothic)}
-  .nb-edit input::placeholder{color:#8E82B4}
-  .nb-date{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#BDB2DC}
-  .nb-date input{flex:1;min-width:0;font-family:var(--mono);font-size:13px;color:#fff;
-    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
-    border-radius:7px;padding:3px 8px}
-  .nb-date input.miss{border-color:var(--gold);background:rgba(242,193,78,.18)}
-  .nb-goal .left.ok{color:#8FE0C6}
-  .nb-goal .left.ng{color:#FFC48F}
+  .namebar{margin-top:7px;background:var(--navy-2);border-radius:11px;padding:8px 10px}
+  .nb-stats{display:flex;gap:6px;flex-wrap:wrap}
+  .nb-stats span{font-size:10px;color:#BDB2DC;background:rgba(255,255,255,.10);
+    border-radius:7px;padding:3px 8px;white-space:nowrap}
+  .nb-stats b{font-family:var(--mono);font-size:12.5px;color:#fff;font-weight:700;margin:0 1px}
+  .nb-stats span.warn{background:rgba(242,193,78,.22);color:#FFDFA0}
+  .nb-stats span.warn b{color:var(--gold)}
+  .nb-stats span.ok b{color:#8FE0C6}
+  .nb-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-top:6px;
+    padding-top:6px;border-top:1px solid rgba(255,255,255,.14)}
+  .fld{display:flex;align-items:center;gap:5px;min-width:0}
+  .fld>span{flex:0 0 auto;font-size:10px;color:#BDB2DC;white-space:nowrap}
+  .fld>em{font-style:normal;font-size:10px;color:#BDB2DC}
+  .fld input{flex:1;min-width:0;width:100%;color:#fff;background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:3px 6px;
+    font-family:var(--gothic);font-size:13.5px}
+  .fld input[type="number"]{font-family:var(--mono);font-weight:700;text-align:center;flex:0 0 46px}
+  .fld.sm>span{font-size:9.5px}
+  .fld.sm input[type="date"]{font-family:var(--mono);font-size:11px;padding:2px 3px;
+    flex:1 1 0;width:100%;min-width:0}
+  .fld-row{grid-column:1 / -1;display:flex;gap:7px;min-width:0}
+  .fld-row .fld{flex:1 1 0;min-width:0}
+  .fld-row .fld.sm{flex:1 1 0}
+  .fld input.miss{border-color:var(--gold);background:rgba(242,193,78,.16)}
+  .fld input::placeholder{color:#8E82B4}
+  .fld input:focus{outline:2px solid var(--gold);outline-offset:1px}
 
   .banner{flex:0 0 auto;display:block;width:100%;text-align:left;border:0;cursor:pointer;
     background:#FDF3D3;color:#7A5B10;font-size:12px;font-weight:600;line-height:1.5;
@@ -102,22 +105,35 @@
   .total .ng b{color:var(--alert)}
   .grid{flex:1 1 auto;display:grid;grid-template-columns:1fr 1px 1fr;gap:0 10px;
     padding:0 12px 4px;overflow:hidden;min-height:0}
+  .grid.scrolls{overflow-y:auto}
   .divider{background:var(--line)}
   .col{display:flex;flex-direction:column;justify-content:space-between;min-height:0}
-  .day{display:flex;align-items:center;gap:5px;padding:1px 3px;border-radius:7px;
+  .day{display:flex;align-items:center;gap:5px;
+    padding:calc(1px * var(--dscale,1)) 3px;border-radius:7px;
     border-bottom:1px solid #F4F1FA}
+  .day.is-shoot{border-bottom-color:transparent;border-radius:8px;
+    box-shadow:inset 0 0 0 1.5px var(--made);background:#F2F6FC}
+  .day.is-meet{border-bottom-color:transparent;border-radius:8px;
+    box-shadow:inset 0 0 0 1.5px #B8AFD2}
   .day.is-today{background:transparent;border-bottom-color:transparent;border-radius:8px;
     box-shadow:inset 0 0 0 1.5px var(--today)}
+  .day.is-today.is-shoot{background:#FFF6F8;
+    box-shadow:inset 0 0 0 1.5px var(--today), inset 0 0 0 4px rgba(63,107,181,.30)}
+  .shoot-tag{background:var(--made);color:#fff;font-size:9px;font-weight:700;
+    padding:1px 5px;border-radius:5px;white-space:nowrap;flex:0 0 auto}
+  .meet-tag{background:#E7E2F3;color:#5A4E86;font-size:9px;font-weight:700;
+    padding:1px 5px;border-radius:5px;white-space:nowrap;flex:0 0 auto}
   .dlabel{display:flex;align-items:center;gap:5px;border:0;background:transparent;
-    padding:3px 0;cursor:pointer;flex:1;min-width:0;text-align:left}
-  .dnum{font-family:var(--mono);font-size:13.5px;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+    padding:calc(3px * var(--dscale,1)) 0;cursor:pointer;flex:1;min-width:0;text-align:left}
+  .dnum{font-family:var(--mono);font-size:calc(13.5px * var(--dscale,1));font-weight:700;letter-spacing:-.02em;white-space:nowrap}
   .day.wk .dnum{color:var(--red)}
   .today-tag{background:var(--today);color:#fff;font-size:9px;font-weight:700;
     padding:1px 5px;border-radius:5px;white-space:nowrap;flex:0 0 auto}
   .more{font-family:var(--mono);font-size:10px;color:var(--ink-60);border:0;background:transparent;
     cursor:pointer;padding:2px}
   .marks{display:flex;gap:4px;flex:0 0 auto}
-  .tg{font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;cursor:pointer;
+  .tg{font-size:calc(11px * var(--dscale,1));font-weight:700;border-radius:6px;
+    padding:calc(3px * var(--dscale,1)) calc(8px * var(--dscale,1));cursor:pointer;
     border:1px dashed #C3BADB;background:var(--soft);color:#8E82B4}
   .tg.on{border-style:solid}
   .tg.made.on{background:var(--made);border-color:var(--made);color:#fff}
@@ -167,7 +183,9 @@
     padding-top:14px;border-top:1px solid var(--line)}
   .cfg-sec:first-of-type{margin-top:4px;padding-top:0;border-top:0}
   .del-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
-  .del-row span{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .del-row input.nm{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;background:#FBFAFE;padding:7px 9px;
+    font-family:var(--gothic)}
   .del-row small{font-family:var(--mono);font-size:11px;color:var(--ink-60)}
   .del-row button.del{border:1px solid #F0B49B;background:#FFF3EF;color:var(--alert);
     font-size:13px;font-weight:700;padding:8px 14px;border-radius:9px;cursor:pointer}
@@ -186,36 +204,24 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v15</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v25</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div class="namebar">
-    <div class="nb-top">
-      <input class="page-name" id="pageName" maxlength="20" aria-label="ページ名">
-      <span class="stat" id="stat"></span>
-    </div>
-    <div class="nb-goal">
-      <span>今月の契約本数</span>
-      <input type="number" id="goal" min="0" max="200" inputmode="numeric" aria-label="今月の最低投稿数">
-      <span>本</span>
-      <span class="left" id="goalLeft"></span>
-    </div>
-    <div class="nb-goal">
-      <span>契約総本数</span>
-      <input type="number" id="totalGoal" min="0" max="9999" inputmode="numeric" aria-label="契約総本数">
-      <span>本</span>
-      <span class="left" id="totalLeft"></span>
-    </div>
-    <div class="nb-date">
-      <span>打合せ</span><input type="date" id="dMeet" aria-label="打ち合わせ日">
-      <span>撮影</span><input type="date" id="dShoot" aria-label="撮影日">
-    </div>
-    <div class="nb-edit">
-      <span>動画制作担当</span>
-      <input id="ed0" maxlength="12" placeholder="制作担当1" aria-label="動画制作担当1">
-      <input id="ed1" maxlength="12" placeholder="制作担当2" aria-label="動画制作担当2">
+    <div class="nb-stats" id="stat"></div>
+    <div class="nb-grid">
+      <label class="fld"><span>今月の契約</span>
+        <input type="number" id="goal" min="0" max="200" inputmode="numeric"><em>本</em></label>
+      <label class="fld"><span>契約総数</span>
+        <input type="number" id="totalGoal" min="0" max="9999" inputmode="numeric"><em>本</em></label>
+      <div class="fld-row">
+        <label class="fld"><span>担当</span>
+          <input id="ed0" maxlength="14" placeholder="制作担当"></label>
+        <label class="fld sm"><span>打合</span><input type="date" id="dMeet"></label>
+        <label class="fld sm"><span>撮影</span><input type="date" id="dShoot"></label>
+      </div>
     </div>
   </div>
 </header>
@@ -267,8 +273,13 @@
     <button id="cClose">閉じる</button>
     <button id="cSave" class="primary">保存して同期</button>
   </div>
+  <p class="cfg-sec">効果音</p>
+  <div class="del-row" style="border-bottom:0">
+    <span style="flex:1;font-size:14px;font-weight:600">ボタンの音</span>
+    <button id="sndBtn"></button>
+  </div>
   <p class="cfg-sec">アカウントの並び替え・削除</p>
-  <p class="cfg-note">↑↓でタブの表示順を変更できます。削除すると、そのアカウントの予定・最低投稿数・担当がすべて消え、他の端末からも消えます。</p>
+  <p class="cfg-note">名前はここで変更できます。↑↓でタブの表示順を変更できます。削除すると、そのアカウントの予定・最低投稿数・担当がすべて消え、他の端末からも消えます。</p>
   <div id="delList"></div>
 </div>
 
@@ -294,7 +305,40 @@
   };
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=15, lastCheck=0;
+  var BUILD=25, lastCheck=0;
+
+  /* ---- 効果音 ---- */
+  var SND_KEY="unyou-sound", sndOn=true, actx=null;
+  try{ sndOn=(localStorage.getItem(SND_KEY)||"1")==="1"; }catch(e){}
+  function beep(freq,dur,vol,type){
+    if(!sndOn) return;
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return;
+      if(!actx) actx=new AC();
+      if(actx.state==="suspended") actx.resume();
+      var o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime;
+      o.type=type||"sine"; o.frequency.setValueAtTime(freq,t);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol||0.06,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.09));
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); o.stop(t+(dur||0.09)+0.02);
+    }catch(e){}
+  }
+  function clickSound(el){
+    if(!el) return;
+    var on=el.classList.contains("on");
+    if(el.classList.contains("del")) { beep(300,0.10,0.06,"triangle"); setTimeout(function(){ beep(200,0.12,0.05,"triangle"); },90); return; }
+    if(el.classList.contains("tg")||el.classList.contains("chip")) return beep(on?420:760,0.07,0.05,"sine");
+    if(el.classList.contains("tab")) return beep(620,0.06,0.04,"sine");
+    if(el.classList.contains("nchip")) return beep(700,0.07,0.045,"sine");
+    beep(540,0.06,0.04,"sine");
+  }
+  document.addEventListener("click",function(ev){
+    var b=ev.target.closest?ev.target.closest("button"):null;
+    if(b) clickSound(b);
+  },true);
 
   /* 最新版の自動取り込み */
   async function checkUpdate(){
@@ -433,7 +477,6 @@
       if(after!==before||needPush){ renderAll(); if(openDate) renderSheet(); }
     }catch(err){
       setStatus("同期エラー");
-      showError("同期 "+(err&&err.message||err));
       if(!silent) toast("同期エラー：" + (err&&err.message||err));
     }
     syncing=false;
@@ -454,9 +497,7 @@
 
   function refreshBanner(){
     var b=document.getElementById("banner");
-    if(cfgReady()){ b.hidden=true; return; }
-    b.hidden=false;
-    b.textContent="⚠️ トークン未入力のため、この端末のデータは共有されていません。タップして入力 →";
+    if(b) b.hidden=true;
   }
 
   function monthItems(){
@@ -572,9 +613,9 @@
     var e=slotItem(date,1,true);
     if(e.no){ e.no=0; e.up=Date.now(); cleanup(); renumber(); }
     else{
-      var goal=state.pages[active].goal||0;
+      var goal=goalFor(state.pages[active],monthKey());
       var n=monthNumbered().length;
-      if(goal&&n>=goal){ toast("今月の最低投稿数 "+goal+"本ぶん、すでに日程が決まっています"); cleanup(); return; }
+      if(goal&&n>=goal){ toast("今月の契約本数 "+goal+"本ぶん、すでに日程が決まっています"); cleanup(); return; }
       e.no=n+1; e.up=Date.now();
     }
     scheduleSave(); renderAll(); if(openDate) renderSheet();
@@ -594,70 +635,58 @@
   /* ---------- header ---------- */
   function renderHeader(){
     var t=document.getElementById("tabs"); t.innerHTML="";
+    var pre=monthKey();
     orderOf().forEach(function(i){
       var p=state.pages[i];
       var b=document.createElement("button");
       b.className="tab"; b.setAttribute("role","tab");
       b.setAttribute("aria-selected", i===active?"true":"false");
-      var pre=view.getFullYear()+"-"+p2(view.getMonth()+1);
       var pit=itemsOf(p);
       var posted=pit.filter(function(e){ return e.posted&&e.date.indexOf(pre)===0; }).length;
       var td=pit.filter(function(e){ return planned(e)&&e.date===todayISO(); }).length;
       var tm=pit.filter(function(e){ return planned(e)&&e.date===shiftISO(1); }).length;
-      var pg2=goalFor(p,pre);
-      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(pg2?"/"+pg2:"")+'</span>'+
+      var pgoal=goalFor(p,pre);
+      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(pgoal?"/"+pgoal:"")+'</span>'+
         (td?'<span class="bd td">今日'+td+'</span>':'')+
         (tm?'<span class="bd tm">明日'+tm+'</span>':'');
       b.onclick=function(){ active=i; renderAll(); };
       t.appendChild(b);
     });
-    var pg=state.pages[active];
-    document.getElementById("pageName").value=pg.name;
-    var mk=monthKey(), gnow=goalFor(pg,mk);
+
+    var pg=state.pages[active], mk=monthKey();
+
+    var gnow=goalFor(pg,mk);
     var g=document.getElementById("goal");
     if(document.activeElement!==g) g.value=gnow||"";
-    if(!pg.editors) pg.editors=["",""];
-    [0,1].forEach(function(i){
-      var el=document.getElementById("ed"+i);
-      if(document.activeElement!==el) el.value=pg.editors[i]||"";
-    });
-    var mi=monthItems();
-    var posted=mi.filter(function(e){ return e.posted; }).length;
-    var made=mi.filter(function(e){ return e.made&&!e.posted; }).length;
-    var pl=planOf(pg,monthKey(),false);
-    document.getElementById("totalGoal").addEventListener("input",function(e){
-    var v=parseInt(e.target.value,10);
-    state.pages[active].total=isNaN(v)?0:Math.max(0,v);
-    state.pages[active].totalUp=Date.now();
-    scheduleSave(); renderHeader(); });
+    g.classList.toggle("miss",!gnow);
 
-  [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
+    var tg=document.getElementById("totalGoal");
+    if(document.activeElement!==tg) tg.value=pg.total||"";
+    tg.classList.toggle("miss",!pg.total);
+
+    if(!pg.editors) pg.editors=["",""];
+    var e0=document.getElementById("ed0");
+    if(document.activeElement!==e0) e0.value=pg.editors[0]||"";
+    e0.classList.toggle("miss",!pg.editors[0]);
+
+    var pl=planOf(pg,mk,false);
+    [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
       var el=document.getElementById(x[0]);
       if(document.activeElement!==el) el.value=pl[x[1]]||"";
       el.classList.toggle("miss",!pl[x[1]]);
     });
+
+    var mi=monthItems();
+    var posted=mi.filter(function(e){ return e.posted; }).length;
     var slotted=mi.filter(function(e){ return e.no; }).length;
     var allPosted=itemsOf(pg).filter(function(e){ return e.posted; }).length;
-    var allGoal=0;
-    if(pg.plans) Object.keys(pg.plans).forEach(function(k){ allGoal+=Number(pg.plans[k].goal)||0; });
-    document.getElementById("stat").innerHTML='日程 '+slotted+(gnow?'/'+gnow:'')+
-      '　投稿 <b>'+posted+'</b>'+(gnow?' / '+gnow+'本':'')+
-      '　累計 <b>'+allPosted+'</b>'+(allGoal?' / '+allGoal:'')+'本';
-    var left=document.getElementById("goalLeft");
-    if(gnow){
-      var rest=gnow-posted;
-      left.className="left "+(rest<=0?"ok":"ng");
-      left.textContent=rest<=0?"今月の残り 0本（達成）":"今月の残り "+rest+" 本";
-    } else { left.className="left"; left.textContent="今月の残り －"; }
-
-    var tg=document.getElementById("totalGoal");
-    if(document.activeElement!==tg) tg.value=pg.total||"";
-    var tleft=document.getElementById("totalLeft");
-    if(pg.total){
-      var trest=pg.total-allPosted;
-      tleft.className="left "+(trest<=0?"ok":"ng");
-      tleft.textContent=trest<=0?"契約の残り 0本（完了）":"契約の残り "+trest+" 本";
-    } else { tleft.className="left"; tleft.textContent="契約の残り －"; }
+    var restNow=gnow?gnow-posted:0, restAll=pg.total?pg.total-allPosted:0;
+    var html='<span>今月 <b>'+posted+'</b>'+(gnow?'/'+gnow:'')+'</span>';
+    if(gnow) html+='<span class="'+(restNow<=0?"ok":"warn")+'">今月の残り <b>'+(restNow>0?restNow:0)+'</b></span>';
+    html+='<span>日程 <b>'+slotted+'</b>'+(gnow?'/'+gnow:'')+'</span>';
+    html+='<span>累計 <b>'+allPosted+'</b>'+(pg.total?'/'+pg.total:'')+'</span>';
+    if(pg.total) html+='<span class="'+(restAll<=0?"ok":"warn")+'">契約の残り <b>'+(restAll>0?restAll:0)+'</b></span>';
+    document.getElementById("stat").innerHTML=html;
   }
 
   /* ---------- month grid ---------- */
@@ -665,6 +694,7 @@
     var y=view.getFullYear(), m=view.getMonth(), now=new Date();
     document.getElementById("monthLabel").innerHTML=
       y+"年"+(m+1)+"月"+((y===now.getFullYear()&&m===now.getMonth())?'<span class="now">今月</span>':'');
+    var pl=planOf(state.pages[active],monthKey(),false);
     var last=new Date(y,m+1,0).getDate(), half=Math.ceil(last/2);
     var L=document.getElementById("colL"), R=document.getElementById("colR");
     L.innerHTML=""; R.innerHTML="";
@@ -673,9 +703,13 @@
       var first=slotItem(date,1,false), extra=dayItems(date).filter(function(e){
         return (e.slot||1)>1 && used(e); }).length;
       var cell=document.createElement("div");
-      cell.className="day"+((wd===0||wd===6)?" wk":"")+((date===todayISO())?" is-today":"");
+      cell.className="day"+((wd===0||wd===6)?" wk":"")+
+        ((date===pl.shoot)?" is-shoot":"")+((date===pl.meet)?" is-meet":"")+
+        ((date===todayISO())?" is-today":"");
       cell.innerHTML='<button class="dlabel"><span class="dnum">'+p2(d)+'日（'+WD[wd]+'）</span>'+
         (date===todayISO()?'<span class="today-tag">今日</span>':'')+
+        (date===pl.shoot?'<span class="shoot-tag">撮影</span>':'')+
+        (date===pl.meet?'<span class="meet-tag">打合</span>':'')+
         (extra?'<span class="more">+'+extra+'</span>':'')+'</button>'+
         '<div class="marks">'+
         '<button class="tg num'+(first&&first.no?" on":"")+'" data-k="no">'+
@@ -721,10 +755,33 @@
       '<span class="'+(rest<=0?"ok":"ng")+'">残り <b>'+(rest>0?rest:0)+'</b>本</span>';
   }
 
+  function fitGrid(){
+    var grid=document.querySelector(".grid");
+    var L=document.getElementById("colL"), R=document.getElementById("colR");
+    if(!grid||!L) return;
+    var avail=grid.clientHeight;
+    if(!avail) return;
+    var root=document.documentElement;
+    for(var pass=0;pass<3;pass++){
+      var cur=parseFloat(getComputedStyle(root).getPropertyValue("--dscale"))||1;
+      var need=Math.max(L.scrollHeight,R.scrollHeight);
+      if(!need) return;
+      if(need<=avail && cur>=1) break;
+      var k=cur*(avail/need);
+      if(k>1) k=1;
+      if(k<0.62) k=0.62;
+      if(Math.abs(k-cur)<0.01) break;
+      root.style.setProperty("--dscale",k.toFixed(3));
+    }
+    var over=Math.max(L.scrollHeight,R.scrollHeight)>avail+2;
+    grid.classList.toggle("scrolls",over);
+  }
+
   function renderAll(){
     if(!state||!Array.isArray(state.pages)||state.pages.length!==4||!state.pages[0]||!Array.isArray(state.pages[0].items))
       state=normalize(state);
-    try{ renderHeader(); renderMonth(); renderNotice(); renderTotal(); }
+    try{ renderHeader(); renderMonth(); renderNotice(); renderTotal();
+      if(window.requestAnimationFrame) requestAnimationFrame(fitGrid); else fitGrid(); }
     catch(err){
       if(repaired){ showError("描画 "+(err&&err.message||err)); return; }
       repaired=true;
@@ -831,6 +888,20 @@
   document.getElementById("sheetClose").onclick=closeSheet;
 
   /* ---------- config sheet ---------- */
+  function refreshSndBtn(){
+    var b=document.getElementById("sndBtn");
+    b.textContent=sndOn?"オン":"オフ";
+    b.style.cssText="border:1px solid "+(sndOn?"var(--navy)":"var(--line)")+
+      ";background:"+(sndOn?"var(--navy)":"#fff")+";color:"+(sndOn?"#fff":"var(--ink-60)")+
+      ";font-size:13px;font-weight:700;padding:8px 20px;border-radius:9px;cursor:pointer";
+  }
+  document.getElementById("sndBtn").onclick=function(){
+    sndOn=!sndOn;
+    try{ localStorage.setItem(SND_KEY,sndOn?"1":"0"); }catch(e){}
+    refreshSndBtn();
+    if(sndOn) beep(760,0.08,0.06,"sine");
+  };
+
   function renderDelList(){
     var box=document.getElementById("delList");
     box.innerHTML="";
@@ -842,8 +913,12 @@
       row.className="del-row";
       row.innerHTML='<span class="ord"><button class="up" aria-label="上へ"'+(pos===0?" disabled":"")+'>▲</button>'+
         '<button class="down" aria-label="下へ"'+(pos===3?" disabled":"")+'>▼</button></span>'+
-        '<span>'+esc(p.name||("アカウント"+(i+1)))+'</span>'+
+        '<input class="nm" maxlength="20" value="'+esc(p.name||("アカウント"+(i+1)))+'">'+
         '<small>'+n+'件</small><button class="del">削除</button>';
+      row.querySelector(".nm").addEventListener("input",function(ev){
+        p.name=ev.target.value; p.nameUp=Date.now();
+        scheduleSave(); renderHeader(); renderNotice();
+      });
       row.querySelector(".up").onclick=function(){ moveAccount(pos,-1); };
       row.querySelector(".down").onclick=function(){ moveAccount(pos,1); };
       row.querySelector(".del").onclick=function(){
@@ -876,6 +951,7 @@
     document.getElementById("cPath").value=cfg.path;
     document.getElementById("cBranch").value=cfg.branch;
     document.getElementById("cToken").value=cfg.token;
+    refreshSndBtn();
     renderDelList();
     document.getElementById("scrim").classList.add("show");
     document.getElementById("cfgSheet").classList.add("show");
@@ -898,9 +974,6 @@
   document.getElementById("scrim").onclick=function(){ closeSheet(); closeCfg(); };
 
   /* ---------- controls ---------- */
-  document.getElementById("pageName").addEventListener("input",function(e){
-    state.pages[active].name=e.target.value; state.pages[active].nameUp=Date.now();
-    scheduleSave(); renderHeader(); renderNotice(); });
   document.getElementById("goal").addEventListener("input",function(e){
     var v=parseInt(e.target.value,10); v=isNaN(v)?0:Math.max(0,v);
     var pg=state.pages[active], now=Date.now();
@@ -908,13 +981,11 @@
     pl.goal=v; pl.up=now;
     pg.goal=v; pg.goalUp=now;
     scheduleSave(); renderHeader(); renderNotice(); renderTotal(); });
-  [0,1].forEach(function(i){
-    document.getElementById("ed"+i).addEventListener("input",function(e){
-      var pg=state.pages[active];
-      if(!pg.editors) pg.editors=["",""];
-      pg.editors[i]=e.target.value; pg.editorsUp=Date.now();
-      scheduleSave();
-    });
+  document.getElementById("ed0").addEventListener("input",function(e){
+    var pg=state.pages[active];
+    if(!pg.editors) pg.editors=["",""];
+    pg.editors[0]=e.target.value; pg.editorsUp=Date.now();
+    scheduleSave();
   });
   document.getElementById("totalGoal").addEventListener("input",function(e){
     var v=parseInt(e.target.value,10);
@@ -926,9 +997,15 @@
     document.getElementById(x[0]).addEventListener("change",function(e){
       var pl=planOf(state.pages[active],monthKey(),true);
       pl[x[1]]=e.target.value; pl.up=Date.now();
-      scheduleSave(); renderHeader(); renderNotice();
+      scheduleSave(); renderAll();
     });
   });
+  document.getElementById("totalGoal").addEventListener("input",function(e){
+    var v=parseInt(e.target.value,10);
+    state.pages[active].total=isNaN(v)?0:Math.max(0,v);
+    state.pages[active].totalUp=Date.now();
+    scheduleSave(); renderHeader(); });
+
   document.getElementById("prevM").onclick=function(){ view=new Date(view.getFullYear(),view.getMonth()-1,1); renderAll(); };
   document.getElementById("nextM").onclick=function(){ view=new Date(view.getFullYear(),view.getMonth()+1,1); renderAll(); };
   document.getElementById("todayBtn").onclick=function(){ view=new Date(); renderAll(); };
@@ -1006,6 +1083,8 @@
         checkUpdate();
         if(cfgReady()) syncNow(true);
       });
+      window.addEventListener("resize",fitGrid);
+      window.addEventListener("orientationchange",function(){ setTimeout(fitGrid,300); });
       window.addEventListener("pageshow",function(ev){
         if(ev.persisted){ checkUpdate(); if(cfgReady()) syncNow(true); }
       });
