@@ -57,6 +57,11 @@
   .nb-edit input{flex:1;min-width:0;font-size:13px;color:#fff;background:rgba(255,255,255,.12);
     border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:3px 8px;font-family:var(--gothic)}
   .nb-edit input::placeholder{color:#8E82B4}
+  .nb-date{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11px;color:#BDB2DC}
+  .nb-date input{flex:1;min-width:0;font-family:var(--mono);font-size:13px;color:#fff;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+    border-radius:7px;padding:3px 8px}
+  .nb-date input.miss{border-color:var(--gold);background:rgba(242,193,78,.18)}
   .nb-goal .left.ok{color:#8FE0C6}
   .nb-goal .left.ng{color:#FFC48F}
 
@@ -76,6 +81,8 @@
   .nchip.today{background:var(--today);color:#fff}
   .nchip.tomo{background:#FFE9B8;color:#7A4E06;border-color:#F2C14E}
   .nchip.over{background:#FFE3D7;color:#A8391A;border-color:#F0B49B}
+  .nchip.left{background:#3A2E6E;color:#fff}
+  .nchip.need{background:#fff;color:#7A4E06;border-color:var(--gold)}
 
   .monthbar{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:8px 12px}
   .navbtn{width:42px;height:32px;border:1px solid var(--line);background:#fff;border-radius:9px;
@@ -84,6 +91,11 @@
   .month{font-family:var(--mincho);font-size:19px;font-weight:600;flex:1;text-align:center}
   .month .now{font-family:var(--gothic);font-size:12px;color:var(--red);margin-left:7px;font-weight:700}
 
+  .total{flex:0 0 auto;display:flex;gap:14px;justify-content:center;align-items:baseline;
+    padding:0 12px 7px;font-family:var(--mono);font-size:11.5px;color:var(--ink-60)}
+  .total b{font-size:14px;color:var(--ink)}
+  .total .ok b{color:var(--done)}
+  .total .ng b{color:var(--alert)}
   .grid{flex:1 1 auto;display:grid;grid-template-columns:1fr 1px 1fr;gap:0 10px;
     padding:0 12px 4px;overflow:hidden;min-height:0}
   .divider{background:var(--line)}
@@ -170,7 +182,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v10</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v13</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -181,10 +193,14 @@
       <span class="stat" id="stat"></span>
     </div>
     <div class="nb-goal">
-      <span>今月の最低投稿数</span>
+      <span>今月の契約本数</span>
       <input type="number" id="goal" min="0" max="200" inputmode="numeric" aria-label="今月の最低投稿数">
       <span>本</span>
       <span class="left" id="goalLeft"></span>
+    </div>
+    <div class="nb-date">
+      <span>打合せ</span><input type="date" id="dMeet" aria-label="打ち合わせ日">
+      <span>撮影</span><input type="date" id="dShoot" aria-label="撮影日">
     </div>
     <div class="nb-edit">
       <span>動画制作担当</span>
@@ -202,6 +218,8 @@
   <div class="month" id="monthLabel"></div>
   <button class="navbtn" id="nextM" aria-label="次の月">›</button>
 </div>
+
+<div class="total" id="total"></div>
 
 <div class="grid">
   <div class="col" id="colL"></div>
@@ -350,9 +368,15 @@
         .sort(function(x,y){ return x.date<y.date?-1:1; });
       var goal=((pa.goalUp||0)>(pb.goalUp||0))?pa.goal:(pb.goal!==undefined?pb.goal:pa.goal);
       var eds=((pa.editorsUp||0)>(pb.editorsUp||0))?pa.editors:(pb.editors||pa.editors);
+      var plans={}, pl1=pa.plans||{}, pl2=pb.plans||{};
+      Object.keys(pl1).forEach(function(k){ plans[k]=pl1[k]; });
+      Object.keys(pl2).forEach(function(k){
+        if(!plans[k] || (pl2[k].up||0)>=(plans[k].up||0)) plans[k]=pl2[k];
+      });
       out.pages.push({name:name,nameUp:Math.max(pa.nameUp||0,pb.nameUp||0),
         goal:(goal||0),goalUp:Math.max(pa.goalUp||0,pb.goalUp||0),
-        editors:(eds||["",""]),editorsUp:Math.max(pa.editorsUp||0,pb.editorsUp||0),items:items});
+        editors:(eds||["",""]),editorsUp:Math.max(pa.editorsUp||0,pb.editorsUp||0),
+        plans:plans,items:items});
     }
     return out;
   }
@@ -412,10 +436,10 @@
   function todayISO(){ var d=new Date(); return iso(d.getFullYear(),d.getMonth(),d.getDate()); }
   function shiftISO(n){ var d=new Date(); d.setDate(d.getDate()+n); return iso(d.getFullYear(),d.getMonth(),d.getDate()); }
   function defaultState(){
-    return {pages:[{name:"アカウント①",goal:0,editors:["",""],items:[]},
-                   {name:"アカウント②",goal:0,editors:["",""],items:[]},
-                   {name:"アカウント③",goal:0,editors:["",""],items:[]},
-                   {name:"アカウント④",goal:0,editors:["",""],items:[]}]};
+    return {pages:[{name:"アカウント①",goal:0,editors:["",""],plans:{},items:[]},
+                   {name:"アカウント②",goal:0,editors:["",""],plans:{},items:[]},
+                   {name:"アカウント③",goal:0,editors:["",""],plans:{},items:[]},
+                   {name:"アカウント④",goal:0,editors:["",""],plans:{},items:[]}]};
   }
   function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -452,6 +476,16 @@
       np.goalUp=Number(p.goalUp)||0;
       np.editors=Array.isArray(p.editors)?[String(p.editors[0]||""),String(p.editors[1]||"")]:["",""];
       np.editorsUp=Number(p.editorsUp)||0;
+      np.plans={};
+      if(p.plans&&typeof p.plans==="object"){
+        Object.keys(p.plans).forEach(function(k){
+          var v=p.plans[k]||{};
+          np.plans[k]={meet:String(v.meet||"").slice(0,10),
+                       shoot:String(v.shoot||"").slice(0,10),
+                       goal:Number(v.goal)||0,
+                       up:Number(v.up)||0};
+        });
+      }
       var cutoff=Date.now()-1000*60*60*24*90;
       np.items=(Array.isArray(p.items)?p.items:[]).filter(function(e){ return e&&e.date; })
         .filter(function(e){ return !(e.del && (Number(e.up)||0) < cutoff); })
@@ -470,6 +504,20 @@
     return d;
   }
 
+  function monthKey(){ return view.getFullYear()+"-"+p2(view.getMonth()+1); }
+  function planOf(p,key,create){
+    if(!p.plans) p.plans={};
+    if(!p.plans[key]){
+      if(!create) return {meet:"",shoot:"",goal:0,up:0};
+      p.plans[key]={meet:"",shoot:"",goal:0,up:0};
+    }
+    return p.plans[key];
+  }
+  function goalFor(p,key){
+    var pl=(p.plans&&p.plans[key])||null;
+    if(pl&&Number(pl.goal)>0) return Number(pl.goal);
+    return Number(p.goal)||0;
+  }
   function itemsOf(p){ return (p.items||[]).filter(function(e){ return !e.del; }); }
   function planned(e){ return !!(e && !e.posted && (e.made||e.no||(e.memo||"").trim())); }
   function used(e){ return !!(e && (e.made||e.posted||e.no||(e.memo||"").trim())); }
@@ -521,7 +569,8 @@
       var posted=pit.filter(function(e){ return e.posted&&e.date.indexOf(pre)===0; }).length;
       var td=pit.filter(function(e){ return planned(e)&&e.date===todayISO(); }).length;
       var tm=pit.filter(function(e){ return planned(e)&&e.date===shiftISO(1); }).length;
-      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(p.goal?"/"+p.goal:"")+'</span>'+
+      var pg2=goalFor(p,pre);
+      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(pg2?"/"+pg2:"")+'</span>'+
         (td?'<span class="bd td">今日'+td+'</span>':'')+
         (tm?'<span class="bd tm">明日'+tm+'</span>':'');
       b.onclick=function(){ active=i; renderAll(); };
@@ -529,8 +578,9 @@
     });
     var pg=state.pages[active];
     document.getElementById("pageName").value=pg.name;
+    var mk=monthKey(), gnow=goalFor(pg,mk);
     var g=document.getElementById("goal");
-    if(document.activeElement!==g) g.value=pg.goal||"";
+    if(document.activeElement!==g) g.value=gnow||"";
     if(!pg.editors) pg.editors=["",""];
     [0,1].forEach(function(i){
       var el=document.getElementById("ed"+i);
@@ -539,12 +589,22 @@
     var mi=monthItems();
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var made=mi.filter(function(e){ return e.made&&!e.posted; }).length;
+    var pl=planOf(pg,monthKey(),false);
+    [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
+      var el=document.getElementById(x[0]);
+      if(document.activeElement!==el) el.value=pl[x[1]]||"";
+      el.classList.toggle("miss",!pl[x[1]]);
+    });
     var slotted=mi.filter(function(e){ return e.no; }).length;
-    document.getElementById("stat").innerHTML='日程 '+slotted+(pg.goal?'/'+pg.goal:'')+
-      '　投稿 <b>'+posted+'</b>'+(pg.goal?' / '+pg.goal+'本':'');
+    var allPosted=itemsOf(pg).filter(function(e){ return e.posted; }).length;
+    var allGoal=0;
+    if(pg.plans) Object.keys(pg.plans).forEach(function(k){ allGoal+=Number(pg.plans[k].goal)||0; });
+    document.getElementById("stat").innerHTML='日程 '+slotted+(gnow?'/'+gnow:'')+
+      '　投稿 <b>'+posted+'</b>'+(gnow?' / '+gnow+'本':'')+
+      '　累計 <b>'+allPosted+'</b>'+(allGoal?' / '+allGoal:'')+'本';
     var left=document.getElementById("goalLeft");
-    if(pg.goal){
-      var rest=pg.goal-posted;
+    if(gnow){
+      var rest=gnow-posted;
       left.className="left "+(rest<=0?"ok":"ng");
       left.textContent=rest<=0?"達成！":"あと "+rest+" 本";
     } else { left.className="left"; left.textContent=""; }
@@ -595,15 +655,31 @@
   }
 
   var repaired=false;
+  function renderTotal(){
+    var key=monthKey(), goal=0, posted=0, made=0;
+    state.pages.forEach(function(p){
+      goal+=goalFor(p,key);
+      var mi=itemsOf(p).filter(function(e){ return e.date.indexOf(key)===0; });
+      posted+=mi.filter(function(e){ return e.posted; }).length;
+      made+=mi.filter(function(e){ return e.made&&!e.posted; }).length;
+    });
+    var rest=goal-posted;
+    document.getElementById("total").innerHTML=
+      '<span>契約 <b>'+goal+'</b>本</span>'+
+      '<span>投稿 <b>'+posted+'</b>本</span>'+
+      '<span>制作待ち <b>'+made+'</b>本</span>'+
+      '<span class="'+(rest<=0?"ok":"ng")+'">残り <b>'+(rest>0?rest:0)+'</b>本</span>';
+  }
+
   function renderAll(){
     if(!state||!Array.isArray(state.pages)||state.pages.length!==4||!state.pages[0]||!Array.isArray(state.pages[0].items))
       state=normalize(state);
-    try{ renderHeader(); renderMonth(); renderNotice(); }
+    try{ renderHeader(); renderMonth(); renderNotice(); renderTotal(); }
     catch(err){
       if(repaired){ showError("描画 "+(err&&err.message||err)); return; }
       repaired=true;
       state=normalize(state);
-      renderHeader(); renderMonth(); renderNotice();
+      renderHeader(); renderMonth(); renderNotice(); renderTotal();
       repaired=false;
     }
   }
@@ -621,9 +697,34 @@
         else if(e.date===tm)hits.push({k:"tomo",rank:2,label:"投稿1日前",e:e,pi:pi,p:p});
       });
     });
-    if(!hits.length){ box.hidden=true; box.innerHTML=""; return; }
+    var extras=[], key=monthKey();
+    state.pages.forEach(function(p,pi){
+      var mi=itemsOf(p).filter(function(e){ return e.date.indexOf(key)===0; });
+      var posted=mi.filter(function(e){ return e.posted; }).length;
+      var gl=goalFor(p,key);
+      if(gl){
+        var rest=gl-posted;
+        if(rest>0&&rest<=3) extras.push({cls:"left",txt:"残り "+rest+"本",who:p.name,pi:pi});
+      }
+      var pl=planOf(p,key,false);
+      if(gl&&(!pl.meet||!pl.shoot)){
+        var miss=(!pl.meet&&!pl.shoot)?"打ち合わせ日・撮影日":(!pl.meet?"打ち合わせ日":"撮影日");
+        extras.push({cls:"need",txt:miss+"を設定してください",who:p.name,pi:pi,focus:!pl.meet?"dMeet":"dShoot"});
+      }
+    });
+    if(!hits.length&&!extras.length){ box.hidden=true; box.innerHTML=""; return; }
     hits.sort(function(a,b){ return a.rank-b.rank || (a.e.date<b.e.date?-1:1); });
     box.hidden=false; box.innerHTML="";
+    extras.forEach(function(x){
+      var b=document.createElement("button");
+      b.className="nchip "+x.cls;
+      b.innerHTML=esc(x.txt)+'<span class="who">'+esc(x.who)+'</span>';
+      b.onclick=function(){
+        active=x.pi; renderAll();
+        if(x.focus){ var el=document.getElementById(x.focus); el.focus(); if(el.showPicker) try{ el.showPicker(); }catch(e){} }
+      };
+      box.appendChild(b);
+    });
     hits.forEach(function(h){
       var d=new Date(h.e.date+"T00:00:00"), memo=(h.e.memo||"").split("\n")[0];
       var b=document.createElement("button");
@@ -749,18 +850,27 @@
   /* ---------- controls ---------- */
   document.getElementById("pageName").addEventListener("input",function(e){
     state.pages[active].name=e.target.value; state.pages[active].nameUp=Date.now();
-    scheduleSave(); renderHeader(); });
+    scheduleSave(); renderHeader(); renderNotice(); });
   document.getElementById("goal").addEventListener("input",function(e){
-    var v=parseInt(e.target.value,10);
-    state.pages[active].goal=isNaN(v)?0:Math.max(0,v);
-    state.pages[active].goalUp=Date.now();
-    scheduleSave(); renderHeader(); });
+    var v=parseInt(e.target.value,10); v=isNaN(v)?0:Math.max(0,v);
+    var pg=state.pages[active], now=Date.now();
+    var pl=planOf(pg,monthKey(),true);
+    pl.goal=v; pl.up=now;
+    pg.goal=v; pg.goalUp=now;
+    scheduleSave(); renderHeader(); renderNotice(); renderTotal(); });
   [0,1].forEach(function(i){
     document.getElementById("ed"+i).addEventListener("input",function(e){
       var pg=state.pages[active];
       if(!pg.editors) pg.editors=["",""];
       pg.editors[i]=e.target.value; pg.editorsUp=Date.now();
       scheduleSave();
+    });
+  });
+  [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
+    document.getElementById(x[0]).addEventListener("change",function(e){
+      var pl=planOf(state.pages[active],monthKey(),true);
+      pl[x[1]]=e.target.value; pl.up=Date.now();
+      scheduleSave(); renderHeader(); renderNotice();
     });
   });
   document.getElementById("prevM").onclick=function(){ view=new Date(view.getFullYear(),view.getMonth()-1,1); renderAll(); };
@@ -777,7 +887,7 @@
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var eds=(p.editors||[]).filter(Boolean).join("・");
     var txt="【"+p.name+"】"+view.getFullYear()+"年"+(view.getMonth()+1)+"月"+
-      "（投稿 "+posted+(p.goal?" / 最低 "+p.goal+"本":"")+(eds?" / 動画制作担当 "+eds:"")+"）\n"+
+      "（投稿 "+posted+(goalFor(p,monthKey())?" / 契約 "+goalFor(p,monthKey())+"本":"")+(eds?" / 動画制作担当 "+eds:"")+"）\n"+
       (mi.length?mi.map(function(e){
         var d=new Date(e.date+"T00:00:00");
         return (d.getMonth()+1)+"/"+d.getDate()+"（"+WD[d.getDay()]+"）"+(e.slot||1)+"本目 制作"+
@@ -796,7 +906,7 @@
   }
 
   document.getElementById("csvBtn").onclick=function(){
-    var rows=[["ページ","動画制作担当","最低投稿数","日付","本目","制作済み","投稿済み","メモ"]];
+    var rows=[["ページ","動画制作担当","契約本数","日付","本目","制作済み","投稿済み","メモ"]];
     state.pages.forEach(function(p){
       itemsOf(p).filter(used).slice().sort(function(a,b){
         return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); }).forEach(function(e){
