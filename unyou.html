@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="Cache-Control" content="no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!--build:14-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -182,7 +186,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v13</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v14</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -284,6 +288,27 @@
   };
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
+  var BUILD=14, lastCheck=0;
+
+  /* 最新版の自動取り込み */
+  async function checkUpdate(){
+    if(location.protocol==="file:") return;
+    if(Date.now()-lastCheck<30000) return;
+    lastCheck=Date.now();
+    try{
+      var r=await fetch(location.pathname+"?cb="+Date.now(),{cache:"no-store"});
+      if(!r.ok) return;
+      var t=await r.text();
+      var m=t.match(/<!--build:(\d+)-->/);
+      if(!m) return;
+      var latest=Number(m[1]);
+      if(latest>BUILD){
+        var key="unyou-reloaded-"+latest;
+        try{ if(sessionStorage.getItem(key)) return; sessionStorage.setItem(key,"1"); }catch(e){}
+        location.replace(location.pathname+"?b="+latest);
+      }
+    }catch(e){}
+  }
 
   /* ---- オンライン同期（GitHub） ---- */
   var CFG_KEY="rpg-video-sync-cfg";
@@ -939,11 +964,20 @@
         var s2=await store.load();
         if(s2&&s2.pages){ state=normalize(s2); renderAll(); }
       }
+      checkUpdate();
       if(cfgReady()){
         syncNow(true);
         setInterval(function(){ if(!document.hidden) syncNow(true); },60000);
         window.addEventListener("focus",function(){ syncNow(true); });
       }
+      document.addEventListener("visibilitychange",function(){
+        if(document.hidden) return;
+        checkUpdate();
+        if(cfgReady()) syncNow(true);
+      });
+      window.addEventListener("pageshow",function(ev){
+        if(ev.persisted){ checkUpdate(); if(cfgReady()) syncNow(true); }
+      });
     },0); });
   })();
 })();
