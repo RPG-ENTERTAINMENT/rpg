@@ -2097,6 +2097,9 @@ function evStats(id){
         +mn.reduce((a,b)=>a+(Number(b.sales)||0),0),
     inn:ppl.filter(p=>p.in).length};
 }
+/* 現場の日付バッジの色（12色） */
+const EV_COLORS=['#D6446E','#E8743B','#E3A21A','#7FA82B','#2E9E63','#1F9D9D',
+                 '#2E6FD8','#4B4BC8','#7B3FC4','#B23FA8','#8A6A4F','#4A4458'];
 function renderSiteCards(){
   updatePosBtn();
   const box=$('#siteList');if(!box)return;
@@ -2117,9 +2120,10 @@ function renderSiteCards(){
   const cardOf=e=>{
     const st=evStats(e.id), on=evFilter===e.id;
     const d=(e.date||'').slice(5).replace('-','/');
+    const col=EV_COLORS.includes(e.color)?e.color:'';
     return `<div class="sc ${on?'on':''}" onclick="setEvFilter('${on?'':e.id}')">
       <div style="display:flex;flex-direction:column;gap:4px;flex:none">
-        <div class="d">${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
+        <div class="d" ${col?`style="background:${col}"`:''}>${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
         <button class="admin-only" onclick="event.stopPropagation();evEdit('${e.id}')"
           style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 0;width:46px;font-size:10.5px;color:var(--grape);font-weight:700">編集</button>
       </div>
@@ -3574,6 +3578,7 @@ window.evDatePick=id=>{
 window.evEdit=id=>{
   if(!needAdmin())return;
   const ev=DB.events.find(e=>e.id===id);if(!ev)return;
+  window.evColorSel=ev.color||'';
   $('#sheetIn').innerHTML=`<h2>現場を編集</h2>
     <div class="card" style="margin-top:10px">
       <label for="ee-title">現場の名前</label>
@@ -3584,11 +3589,24 @@ window.evEdit=id=>{
       </div>
       <label for="ee-month">集計する月</label>
       <input type="month" id="ee-month" value="${esc(ev.month||evMonth(ev))}">
+      <label>日付の色</label>
+      <div id="ee-colors" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        ${['',...EV_COLORS].map(c=>`<button onclick="evPickColor('${c}')" data-c="${c}"
+          style="width:38px;height:38px;border-radius:10px;flex:none;
+          background:${c||'var(--berry)'};border:${((ev.color||'')===c)?'3px solid var(--ink)':'1px solid var(--line)'};
+          color:#fff;font-size:10px;font-weight:700">${c?'':'既定'}</button>`).join('')}
+      </div>
       <button class="wide pink" onclick="evEditSave('${ev.id}')">保存する</button>
       <button class="wide ghost" onclick="closeSheet()">閉じる</button>
       <p class="hint">名前を変えても、ひもづく来場者・グッズ・売上はそのまま引き継がれます。</p>
     </div>`;
   $('#sheet').classList.add('on');
+};
+window.evPickColor=c=>{
+  window.evColorSel=c;
+  document.querySelectorAll('#ee-colors button').forEach(b=>{
+    b.style.border=(b.dataset.c===c)?'3px solid var(--ink)':'1px solid var(--line)';
+  });
 };
 window.evEditSave=async id=>{
   const ev=DB.events.find(e=>e.id===id);if(!ev)return;
@@ -3596,6 +3614,7 @@ window.evEditSave=async id=>{
   if(!t){toast('現場の名前を入れてください');return}
   ev.title=t;ev.date=$('#ee-date').value||'';ev.venue=$('#ee-venue').value.trim();
   const m=$('#ee-month').value;if(m){ev.month=m;DB.curM=m}
+  if(window.evColorSel!==undefined)ev.color=window.evColorSel;
   await save();renderAll();fillEvForm();closeSheet();toast('保存しました');
 };
 
@@ -4100,6 +4119,22 @@ function renderStock(){
 /* ---- 週間スケジュール ---- */
 window.schedOff=0;
 function scheds(){DB.sched=DB.sched||[];return DB.sched}
+/* 画像は3ヶ月経ったら非表示（データ本体からも外して容量を抑える） */
+const IMG_KEEP_DAYS=92;
+const imgFresh=d=>{
+  if(!d)return true;
+  const t=new Date(d+'T00:00:00').getTime();
+  if(isNaN(t))return true;
+  return (Date.now()-t)<IMG_KEEP_DAYS*864e5;
+};
+async function purgeOldImages(){
+  let n=0;
+  scheds().forEach(x=>{if(x.img&&!imgFresh(x.date)){x.img='';n++}});
+  (DB.events||[]).forEach(e=>{const d=e.date||(evMonth(e)?evMonth(e)+'-28':'');
+    if(e.img&&d&&!imgFresh(d)){e.img='';n++}});
+  if(n)await save();
+  return n;
+}
 function weekDays(off){
   const t=new Date();
   const m=new Date(t.getFullYear(),t.getMonth()+off,1);
@@ -4133,6 +4168,14 @@ window.schedNewOpen=(date,keep,editId)=>{
     <label>終了時間（任意）</label>
     <select id="sc-t2"><option value="">なし</option>${TIMES.map(t=>`<option value="${t}" ${k.t2===t?'selected':''}>${t}</option>`).join('')}</select>
     <label for="sc-title">内容</label><input type="text" id="sc-title" placeholder="TikTok撮影会＠事務所" value="${esc(k.title||'')}">
+    <label for="sc-url">URL（任意）</label>
+    <input type="url" id="sc-url" inputmode="url" autocapitalize="off" placeholder="https://…" value="${esc(k.url||'')}">
+    <label for="sc-evlink">紐付ける現場（任意）</label>
+    <select id="sc-evlink">
+      <option value="">紐付けない</option>
+      ${(DB.events||[]).slice().sort((a,b)=>String(evMonth(b)).localeCompare(String(evMonth(a))))
+        .map(e=>`<option value="${e.id}" ${k.evlink===e.id?'selected':''}>${esc(e.title)}${evMonth(e)?`（${mLabel(evMonth(e))}）`:''}</option>`).join('')}
+    </select>
     <label for="sc-note">メモ（任意・3000文字まで）</label>
     <textarea id="sc-note" maxlength="3000" rows="4" placeholder="私服でOK&#10;持ち物：チェキ用サインペン" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;font-family:var(--gothic);resize:vertical">${esc(k.note||'')}</textarea>
     ${editId?'':`<label style="display:flex;align-items:center;gap:8px;margin:10px 0 2px;font-size:13px;font-weight:600">
@@ -4169,13 +4212,17 @@ window.schedCreate=async(date,editId)=>{
   const time=t1?(t2?`${t1}〜${t2}`:t1):'';
   if(editId){
     const ev=scheds().find(x=>x.id===editId);
-    if(ev){ev.time=time;ev.title=title;ev.note=$('#sc-note').value.trim();ev.img=window.scNewImg||''}
+    if(ev){ev.time=time;ev.title=title;ev.note=$('#sc-note').value.trim();ev.img=window.scNewImg||'';
+      ev.evlink=($('#sc-evlink')&&$('#sc-evlink').value)||'';
+      ev.url=($('#sc-url')&&$('#sc-url').value.trim())||''}
     window.scNewImg='';
     await save();closeSheet();renderSched();toast('予定を更新しました');
     return;
   }
   const newId=uid();
-  scheds().push({id:newId,date,time,title,note:$('#sc-note').value.trim(),img:window.scNewImg||'',join:[]});
+  scheds().push({id:newId,date,time,title,note:$('#sc-note').value.trim(),img:window.scNewImg||'',
+    evlink:($('#sc-evlink')&&$('#sc-evlink').value)||'',
+    url:($('#sc-url')&&$('#sc-url').value.trim())||'',join:[]});
   const wantGcal=!!($('#sc-gcal')&&$('#sc-gcal').checked);
   let evMade=false;
   const chk=$('#sc-ev');
@@ -4197,7 +4244,7 @@ window.schedEdit=id=>{
   const ev=scheds().find(x=>x.id===id);if(!ev)return;
   window.scNewImg=ev.img||'';
   const tt=String(ev.time||'').split('〜');
-  schedNewOpen(ev.date,{t1:tt[0]||'',t2:tt[1]||'',title:ev.title,note:ev.note||''},id);
+  schedNewOpen(ev.date,{t1:tt[0]||'',t2:tt[1]||'',title:ev.title,note:ev.note||'',evlink:ev.evlink||'',url:ev.url||''},id);
 };
 window.schedDel=async id=>{
   if(isTalent()){toast('タレントは閲覧のみです');return}
@@ -4278,13 +4325,13 @@ function renderSched(){
         ${label}${window.schedOff===0?'<span style="color:var(--berry);font-size:11px">　今月</span>':''}</div>
       <button onclick="schedMove(1)" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-weight:700">›</button>
     </div>
-    <div style="column-count:2;column-gap:10px">
+    <div style="column-count:2;column-gap:18px;column-rule:1.5px solid var(--line)">
     ${days.map((d,i)=>{
       const evs=scheds().filter(x=>x.date===d).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
       const dow=new Date(d+'T00:00:00').getDay();
       const isToday=d===today, isSun=dow===0, isSat=dow===6;
       return `
-      <div style="break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;display:inline-block;width:100%;margin-bottom:7px">
+      <div style="break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;display:inline-block;width:100%;margin-bottom:7px;${isToday?'border:2px solid var(--berry);border-radius:12px;padding:6px;background:#FFF4F8':''}">
         <div style="display:flex;align-items:center;gap:6px;margin:0 2px 3px">
           <b style="font-family:var(--mono);font-size:12.5px;color:${(isSun||isSat)?'var(--berry)':'var(--ink)'}">${d.slice(8)}日（${['日','月','火','水','木','金','土'][dow]}）</b>
           ${isToday?'<span style="background:var(--berry);color:#fff;border-radius:5px;padding:1px 6px;font-size:9.5px;font-weight:700">今日</span>':''}
@@ -4297,10 +4344,12 @@ function renderSched(){
                 ${ev.time?`<span style="font-family:var(--mono);font-size:12px;color:var(--berry);font-weight:700">${esc(ev.time)}</span>`:''}
                 <b style="font-family:var(--mincho);font-size:13.5px;display:block;line-height:1.35">${esc(ev.title)}</b>
                 ${ev.note?`<div style="font-size:11px;color:var(--mute);white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical">${esc(ev.note)}</div>`:''}
+                ${ev.url?`<a href="${esc(ev.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                  style="display:inline-block;margin-top:4px;font-size:11px;color:var(--grape);font-weight:700;text-decoration:underline;word-break:break-all">🔗 ${esc(ev.url.replace(/^https?:\/\//,'').slice(0,38))}${ev.url.replace(/^https?:\/\//,'').length>38?'…':''}</a>`:''}
               </div>
 
             </div>
-            ${ev.img?`<img src="${ev.img}" onclick="imgZoom(this.src)" style="width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-top:8px;cursor:zoom-in">`:''}
+            ${(ev.img&&imgFresh(ev.date))?`<img src="${ev.img}" onclick="imgZoom(this.src)" style="width:100%;max-height:92px;object-fit:cover;border-radius:8px;margin-top:6px;cursor:zoom-in">`:''}
             <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
               ${(ev.join||[]).map(n=>`<span style="background:${isStaffName(n)?'#FDE7EF':'#F0EAF7'};color:${isStaffName(n)?'#C2185B':'var(--grape)'};border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700">${sjLabel(n)}</span>`).join('')}
               <span style="font-size:10.5px;color:var(--mute)">参加 ${(ev.join||[]).length}名</span>
@@ -4309,7 +4358,7 @@ function renderSched(){
               <button class="wide" style="margin:0;flex:1;padding:10px 4px;font-size:12px;background:var(--lime);color:#fff"
                 onclick="schedJoinOpen('${ev.id}')">🙋 参加できる！</button>
               <button class="wide" style="margin:0;flex:1;padding:10px 4px;font-size:12px;background:var(--grape);color:#fff"
-                onclick="schedGuests('${d}','${esc(ev.title).replace(/'/g,"\\'")}')">👥 客数を見る</button>
+                onclick="schedGuests('${d}','${esc(ev.title).replace(/'/g,"\\'")}','${ev.evlink||''}')">👥 客数を見る</button>
             </div>
           </div>`).join('')
         :''}
@@ -4320,11 +4369,12 @@ function renderSched(){
 }
 
 /* 予定 → その日の現場の来場者を見る */
-window.schedGuests=(d,title)=>{
+window.schedGuests=(d,title,link)=>{
   const m=String(d||'').slice(0,7);
   const evs=DB.events||[];
   const sameM=evs.filter(e=>evMonth(e)===m);
-  let ev=evs.find(e=>e.date===d)
+  let ev=(link&&evs.find(e=>e.id===link))
+    || evs.find(e=>e.date===d)
     || (/定期/.test(String(title||''))?sameM.find(e=>/定期/.test(e.title||'')):null)
     || sameM.find(e=>String(title||'').includes(String(e.title||'').slice(0,4)))
     || sameM[0];
@@ -4521,6 +4571,7 @@ $('#q').oninput=renderList;
   if(!d)d=await load();
   if(d&&d.events&&Array.isArray(d.people)){DB=d}
   DB.talents=DB.talents||{};DB.items=DB.items||[];DB.products=DB.products||[];DB.notes=DB.notes||[];
+  try{await purgeOldImages()}catch(e){}
   {(DB.teams||[]).forEach(t=>{t.members=(t.members||[]).map(m=>(m==='うか'||m==='星乃うか')?'星乃羽華':m)});
    [DB.people,DB.goods||[],DB.manual||[],DB.tips||[]].forEach(arr=>arr.forEach(r=>{if(r.talent==='うか'||r.talent==='星乃うか')r.talent='星乃羽華'}));
    (DB.goods||[]).forEach(g=>{if(g.order==='72D14DEA08EABD19')g.talent='星乃羽華'});
@@ -4763,7 +4814,7 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
     const url=await schedShrink(f);
     if(!url){toast('画像を読み込めませんでした');return}
     window.scNewImg=url;
-    const keep={t1:$('#sc-t1')?$('#sc-t1').value:'',t2:$('#sc-t2')?$('#sc-t2').value:'',
+    const keep={url:$('#sc-url')?$('#sc-url').value:'',evlink:$('#sc-evlink')?$('#sc-evlink').value:'',t1:$('#sc-t1')?$('#sc-t1').value:'',t2:$('#sc-t2')?$('#sc-t2').value:'',
       title:$('#sc-title')?$('#sc-title').value:'',note:$('#sc-note')?$('#sc-note').value:''};
     schedNewOpen(window.schedImgDate,keep,window.schedImgEdit||'');
     toast('画像を設定しました');
