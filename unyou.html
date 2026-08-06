@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:14-->
+<!--build:15-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -186,7 +186,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v14</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v15</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -201,6 +201,12 @@
       <input type="number" id="goal" min="0" max="200" inputmode="numeric" aria-label="今月の最低投稿数">
       <span>本</span>
       <span class="left" id="goalLeft"></span>
+    </div>
+    <div class="nb-goal">
+      <span>契約総本数</span>
+      <input type="number" id="totalGoal" min="0" max="9999" inputmode="numeric" aria-label="契約総本数">
+      <span>本</span>
+      <span class="left" id="totalLeft"></span>
     </div>
     <div class="nb-date">
       <span>打合せ</span><input type="date" id="dMeet" aria-label="打ち合わせ日">
@@ -288,7 +294,7 @@
   };
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=14, lastCheck=0;
+  var BUILD=15, lastCheck=0;
 
   /* 最新版の自動取り込み */
   async function checkUpdate(){
@@ -393,6 +399,7 @@
         .sort(function(x,y){ return x.date<y.date?-1:1; });
       var goal=((pa.goalUp||0)>(pb.goalUp||0))?pa.goal:(pb.goal!==undefined?pb.goal:pa.goal);
       var eds=((pa.editorsUp||0)>(pb.editorsUp||0))?pa.editors:(pb.editors||pa.editors);
+      var tot=((pa.totalUp||0)>(pb.totalUp||0))?pa.total:(pb.total!==undefined?pb.total:pa.total);
       var plans={}, pl1=pa.plans||{}, pl2=pb.plans||{};
       Object.keys(pl1).forEach(function(k){ plans[k]=pl1[k]; });
       Object.keys(pl2).forEach(function(k){
@@ -401,6 +408,7 @@
       out.pages.push({name:name,nameUp:Math.max(pa.nameUp||0,pb.nameUp||0),
         goal:(goal||0),goalUp:Math.max(pa.goalUp||0,pb.goalUp||0),
         editors:(eds||["",""]),editorsUp:Math.max(pa.editorsUp||0,pb.editorsUp||0),
+        total:(tot||0),totalUp:Math.max(pa.totalUp||0,pb.totalUp||0),
         plans:plans,items:items});
     }
     return out;
@@ -499,6 +507,8 @@
       np.nameUp=Number(p.nameUp)||0;
       np.goal=Number(p.goal)||0;
       np.goalUp=Number(p.goalUp)||0;
+      np.total=Number(p.total)||0;
+      np.totalUp=Number(p.totalUp)||0;
       np.editors=Array.isArray(p.editors)?[String(p.editors[0]||""),String(p.editors[1]||"")]:["",""];
       np.editorsUp=Number(p.editorsUp)||0;
       np.plans={};
@@ -615,7 +625,13 @@
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var made=mi.filter(function(e){ return e.made&&!e.posted; }).length;
     var pl=planOf(pg,monthKey(),false);
-    [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
+    document.getElementById("totalGoal").addEventListener("input",function(e){
+    var v=parseInt(e.target.value,10);
+    state.pages[active].total=isNaN(v)?0:Math.max(0,v);
+    state.pages[active].totalUp=Date.now();
+    scheduleSave(); renderHeader(); });
+
+  [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
       var el=document.getElementById(x[0]);
       if(document.activeElement!==el) el.value=pl[x[1]]||"";
       el.classList.toggle("miss",!pl[x[1]]);
@@ -631,8 +647,17 @@
     if(gnow){
       var rest=gnow-posted;
       left.className="left "+(rest<=0?"ok":"ng");
-      left.textContent=rest<=0?"達成！":"あと "+rest+" 本";
-    } else { left.className="left"; left.textContent=""; }
+      left.textContent=rest<=0?"今月の残り 0本（達成）":"今月の残り "+rest+" 本";
+    } else { left.className="left"; left.textContent="今月の残り －"; }
+
+    var tg=document.getElementById("totalGoal");
+    if(document.activeElement!==tg) tg.value=pg.total||"";
+    var tleft=document.getElementById("totalLeft");
+    if(pg.total){
+      var trest=pg.total-allPosted;
+      tleft.className="left "+(trest<=0?"ok":"ng");
+      tleft.textContent=trest<=0?"契約の残り 0本（完了）":"契約の残り "+trest+" 本";
+    } else { tleft.className="left"; tleft.textContent="契約の残り －"; }
   }
 
   /* ---------- month grid ---------- */
@@ -891,6 +916,12 @@
       scheduleSave();
     });
   });
+  document.getElementById("totalGoal").addEventListener("input",function(e){
+    var v=parseInt(e.target.value,10);
+    state.pages[active].total=isNaN(v)?0:Math.max(0,v);
+    state.pages[active].totalUp=Date.now();
+    scheduleSave(); renderHeader(); });
+
   [["dMeet","meet"],["dShoot","shoot"]].forEach(function(x){
     document.getElementById(x[0]).addEventListener("change",function(e){
       var pl=planOf(state.pages[active],monthKey(),true);
