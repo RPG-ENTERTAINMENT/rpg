@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:25-->
+<!--build:26-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -170,6 +170,8 @@
     border:1px solid var(--line);border-radius:9px;background:#FBFAFE;padding:9px;font-family:var(--gothic)}
   textarea{min-height:52px;resize:vertical;line-height:1.5}
   textarea:focus,input:focus{outline:2px solid var(--navy);outline-offset:1px;border-color:transparent}
+  .sheet-add{width:100%;border:1px dashed var(--ink-35);background:var(--soft);color:#4A3B6B;
+    font-size:14px;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;margin-top:12px}
   .sheet-close{width:100%;border:1px solid var(--line);background:#fff;color:var(--ink);
     font-size:14px;font-weight:700;padding:13px;border-radius:11px;cursor:pointer}
   .cfg-row{margin-bottom:10px}
@@ -204,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v25</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v26</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -281,6 +283,7 @@
   <p class="cfg-sec">アカウントの並び替え・削除</p>
   <p class="cfg-note">名前はここで変更できます。↑↓でタブの表示順を変更できます。削除すると、そのアカウントの予定・最低投稿数・担当がすべて消え、他の端末からも消えます。</p>
   <div id="delList"></div>
+  <button class="sheet-add" id="addAcct">＋ アカウントを追加</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -305,7 +308,7 @@
   };
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=25, lastCheck=0;
+  var BUILD=26, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -429,7 +432,8 @@
   }
   function mergeStates(a,b){
     var out={pages:[]};
-    for(var i=0;i<4;i++){
+    var n=Math.max((a&&a.pages&&a.pages.length)||0,(b&&b.pages&&b.pages.length)||0,1);
+    for(var i=0;i<n;i++){
       var pa=(a&&a.pages&&a.pages[i])||{name:"",nameUp:0,items:[]};
       var pb=(b&&b.pages&&b.pages[i])||{name:"",nameUp:0,items:[]};
       var name=((pa.nameUp||0)>(pb.nameUp||0))?pa.name:(pb.name||pa.name);
@@ -453,6 +457,7 @@
         goal:(goal||0),goalUp:Math.max(pa.goalUp||0,pb.goalUp||0),
         editors:(eds||["",""]),editorsUp:Math.max(pa.editorsUp||0,pb.editorsUp||0),
         total:(tot||0),totalUp:Math.max(pa.totalUp||0,pb.totalUp||0),
+        del:!!pdel,delUp:Math.max(pa.delUp||0,pb.delUp||0),
         plans:plans,items:items});
     }
     return out;
@@ -532,17 +537,27 @@
            memo:"",made:false,posted:false,up:Date.now()};
     arr.push(e); return e;
   }
+  function pageCount(){ return (state&&state.pages)?state.pages.length:0; }
   function orderOf(){
+    var n=pageCount();
     var o=(state&&Array.isArray(state.order))?state.order.slice():[];
-    o=o.filter(function(v,i){ return typeof v==="number"&&v>=0&&v<4&&o.indexOf(v)===i; });
-    for(var i=0;i<4;i++) if(o.indexOf(i)<0) o.push(i);
+    o=o.filter(function(v,i){ return typeof v==="number"&&v>=0&&v<n&&o.indexOf(v)===i; });
+    for(var i=0;i<n;i++) if(o.indexOf(i)<0) o.push(i);
     return o;
+  }
+  function liveOrder(){ return orderOf().filter(function(i){ return !state.pages[i].del; }); }
+
+  function blankPage(nm){
+    return {name:nm||"新しいアカウント",nameUp:Date.now(),goal:0,goalUp:0,
+            total:0,totalUp:0,editors:["",""],editorsUp:0,plans:{},items:[],del:false,delUp:0};
   }
 
   function normalize(st){
+    var src0=(st&&Array.isArray(st.pages))?st.pages:[];
     var d=defaultState();
-    var src=(st&&Array.isArray(st.pages))?st.pages:[];
-    for(var i=0;i<4;i++){
+    while(d.pages.length<src0.length && d.pages.length<12) d.pages.push(blankPage("アカウント"+(d.pages.length+1)));
+    var src=src0;
+    for(var i=0;i<d.pages.length;i++){
       var p=src[i]||{}, np=d.pages[i];
       if(typeof p.name==="string"&&p.name) np.name=p.name;
       np.nameUp=Number(p.nameUp)||0;
@@ -550,6 +565,7 @@
       np.goalUp=Number(p.goalUp)||0;
       np.total=Number(p.total)||0;
       np.totalUp=Number(p.totalUp)||0;
+      np.del=!!p.del; np.delUp=Number(p.delUp)||0;
       np.editors=Array.isArray(p.editors)?[String(p.editors[0]||""),String(p.editors[1]||"")]:["",""];
       np.editorsUp=Number(p.editorsUp)||0;
       np.plans={};
@@ -574,8 +590,8 @@
         });
     }
     var o=(st&&Array.isArray(st.order))?st.order.slice():[];
-    o=o.filter(function(v,i){ return typeof v==="number"&&v>=0&&v<4&&o.indexOf(v)===i; });
-    for(var i=0;i<4;i++) if(o.indexOf(i)<0) o.push(i);
+    o=o.filter(function(v,i){ return typeof v==="number"&&v>=0&&v<d.pages.length&&o.indexOf(v)===i; });
+    for(var i=0;i<d.pages.length;i++) if(o.indexOf(i)<0) o.push(i);
     d.order=o; d.orderUp=Number(st&&st.orderUp)||0;
     return d;
   }
@@ -636,7 +652,7 @@
   function renderHeader(){
     var t=document.getElementById("tabs"); t.innerHTML="";
     var pre=monthKey();
-    orderOf().forEach(function(i){
+    liveOrder().forEach(function(i){
       var p=state.pages[i];
       var b=document.createElement("button");
       b.className="tab"; b.setAttribute("role","tab");
@@ -742,6 +758,7 @@
   function renderTotal(){
     var key=monthKey(), goal=0, posted=0, made=0;
     state.pages.forEach(function(p){
+      if(p.del) return;
       goal+=goalFor(p,key);
       var mi=itemsOf(p).filter(function(e){ return e.date.indexOf(key)===0; });
       posted+=mi.filter(function(e){ return e.posted; }).length;
@@ -778,8 +795,9 @@
   }
 
   function renderAll(){
-    if(!state||!Array.isArray(state.pages)||state.pages.length!==4||!state.pages[0]||!Array.isArray(state.pages[0].items))
+    if(!state||!Array.isArray(state.pages)||!state.pages.length||!state.pages[0]||!Array.isArray(state.pages[0].items))
       state=normalize(state);
+    if(!state.pages[active]||state.pages[active].del){ var lv=liveOrder(); active=lv.length?lv[0]:0; }
     try{ renderHeader(); renderMonth(); renderNotice(); renderTotal();
       if(window.requestAnimationFrame) requestAnimationFrame(fitGrid); else fitGrid(); }
     catch(err){
@@ -796,6 +814,7 @@
     var box=document.getElementById("notice");
     var t=todayISO(), tm=shiftISO(1), hits=[];
     state.pages.forEach(function(p,pi){
+      if(p.del) return;
       itemsOf(p).forEach(function(e){
         if(e.posted) return;
         if(!(e.made||(e.memo||"").trim())) return;
@@ -806,6 +825,7 @@
     });
     var extras=[], key=monthKey();
     state.pages.forEach(function(p,pi){
+      if(p.del) return;
       var mi=itemsOf(p).filter(function(e){ return e.date.indexOf(key)===0; });
       var posted=mi.filter(function(e){ return e.posted; }).length;
       var gl=goalFor(p,key);
@@ -905,32 +925,31 @@
   function renderDelList(){
     var box=document.getElementById("delList");
     box.innerHTML="";
-    var ord=orderOf();
+    var ord=liveOrder();
     ord.forEach(function(i,pos){
       var p=state.pages[i];
       var n=itemsOf(p).filter(used).length;
       var row=document.createElement("div");
       row.className="del-row";
       row.innerHTML='<span class="ord"><button class="up" aria-label="上へ"'+(pos===0?" disabled":"")+'>▲</button>'+
-        '<button class="down" aria-label="下へ"'+(pos===3?" disabled":"")+'>▼</button></span>'+
+        '<button class="down" aria-label="下へ"'+(pos===ord.length-1?" disabled":"")+'>▼</button></span>'+
         '<input class="nm" maxlength="20" value="'+esc(p.name||("アカウント"+(i+1)))+'">'+
         '<small>'+n+'件</small><button class="del">削除</button>';
       row.querySelector(".nm").addEventListener("input",function(ev){
         p.name=ev.target.value; p.nameUp=Date.now();
         scheduleSave(); renderHeader(); renderNotice();
       });
-      row.querySelector(".up").onclick=function(){ moveAccount(pos,-1); };
-      row.querySelector(".down").onclick=function(){ moveAccount(pos,1); };
+      row.querySelector(".up").onclick=function(){ moveAccount(i,-1); };
+      row.querySelector(".down").onclick=function(){ moveAccount(i,1); };
       row.querySelector(".del").onclick=function(){
+        if(ord.length<=1){ toast("アカウントは1つ以上必要です"); return; }
         var nm=p.name||("アカウント"+(i+1));
-        if(!confirm("「"+nm+"」を削除します。\n予定 "+n+"件・最低投稿数・担当がすべて消え、他の端末からも消えます。\n削除しますか？")) return;
+        if(!confirm("「"+nm+"」を削除します。\n予定 "+n+"件・契約本数・担当がすべて消え、他の端末からも消えます。\n削除しますか？")) return;
         if(!confirm("本当に削除してよろしいですか？この操作は元に戻せません。")) return;
         var now=Date.now();
         (p.items||[]).forEach(function(e){ e.del=true; e.up=now; });
-        p.name="アカウント"+["①","②","③","④"][i]; p.nameUp=now;
-        p.goal=0; p.goalUp=now;
-        p.editors=["",""]; p.editorsUp=now;
-        active=orderOf()[0];
+        p.del=true; p.delUp=now;
+        var lv=liveOrder(); active=lv.length?lv[0]:0;
         scheduleSave(); renderAll(); renderDelList();
         toast("「"+nm+"」を削除しました");
       };
@@ -938,10 +957,39 @@
     });
   }
 
-  function moveAccount(pos,dir){
-    var o=orderOf(), to=pos+dir;
-    if(to<0||to>3) return;
-    var t=o[pos]; o[pos]=o[to]; o[to]=t;
+  function addAccount(){
+    var live=liveOrder();
+    if(live.length>=12){ toast("アカウントは12件までです"); return; }
+    var nm=prompt("追加するアカウント名を入力してください","");
+    if(nm===null) return;
+    nm=(nm||"").trim()||("アカウント"+(live.length+1));
+    var now=Date.now(), idx=-1;
+    for(var i=0;i<state.pages.length;i++) if(state.pages[i].del){ idx=i; break; }
+    if(idx>=0){
+      var p=state.pages[idx];
+      p.del=false; p.delUp=now;
+      p.name=nm; p.nameUp=now;
+      p.goal=0; p.goalUp=now; p.total=0; p.totalUp=now;
+      p.editors=["",""]; p.editorsUp=now; p.plans={};
+    } else {
+      state.pages.push(blankPage(nm));
+      idx=state.pages.length-1;
+    }
+    var o=orderOf();
+    if(o.indexOf(idx)<0) o.push(idx);
+    state.order=o; state.orderUp=now;
+    active=idx;
+    scheduleSave(); renderAll(); renderDelList();
+    toast("「"+nm+"」を追加しました");
+  }
+  document.getElementById("addAcct").onclick=addAccount;
+
+  function moveAccount(pi,dir){
+    var o=orderOf(), live=liveOrder();
+    var lp=live.indexOf(pi), target=live[lp+dir];
+    if(lp<0||target===undefined) return;
+    var a=o.indexOf(pi), b=o.indexOf(target);
+    o[a]=target; o[b]=pi;
     state.order=o; state.orderUp=Date.now();
     scheduleSave(); renderAll(); renderDelList();
   }
@@ -1041,6 +1089,7 @@
   document.getElementById("csvBtn").onclick=function(){
     var rows=[["ページ","動画制作担当","契約本数","日付","本目","制作済み","投稿済み","メモ"]];
     state.pages.forEach(function(p){
+      if(p.del) return;
       itemsOf(p).filter(used).slice().sort(function(a,b){
         return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); }).forEach(function(e){
         rows.push([p.name,(p.editors||[]).filter(Boolean).join("・"),p.goal||"",e.date,
