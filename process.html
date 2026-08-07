@@ -112,6 +112,11 @@ button{font-family:inherit;cursor:pointer;border:0}
 .stage .telop{position:absolute;inset:14px 12px;font-weight:900;color:#fff;line-height:1.02;letter-spacing:.01em;display:flex;text-shadow:0 0 7px rgba(0,0,0,.6),0 2px 12px rgba(0,0,0,.5)}
 .stage .telop.tate{writing-mode:vertical-rl;text-orientation:upright;justify-content:flex-end}
 .stage .telop.yoko{align-items:flex-start;flex-wrap:wrap}
+.stage .telop.tate.pos-left{justify-content:flex-start}
+.stage .telop.tate.pos-right{justify-content:flex-end}
+.stage .telop.yoko.pos-top{align-items:flex-start}
+.stage .telop.yoko.pos-bottom{align-items:flex-end}
+.poslabel{font-size:11px;color:var(--dim);text-align:center;margin:6px 0 0}
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--dim)}
 .ctrl input[type=range]{flex:1;accent-color:var(--ink)}
 .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden}
@@ -144,7 +149,8 @@ details.adv .card{margin-top:10px}
 /* プロジェクト保存 */
 .projbar{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
 .projbar .btn{width:auto;padding:12px 18px;font-size:15px}
-.projrow{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:12px;align-items:center}
+.projrow{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+.projbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .projrow select{padding:11px 10px;font-size:15px}
 .projrow button{background:#EEF1F7;color:var(--ink);border-radius:9px;padding:11px 13px;font-size:14px;font-weight:700;white-space:nowrap}
 .projrow button.del{color:var(--pink)}
@@ -177,6 +183,20 @@ details.adv .card{margin-top:10px}
 .cloudrow button{background:var(--ink);color:#fff;border-radius:10px;padding:12px;font-size:14px;font-weight:900}
 .cloudrow button.sub{background:#EEF1F7;color:var(--ink)}
 .cloud .note{margin-top:10px}
+
+/* 編集順 */
+.strip{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.strip h3{font-size:14px;font-weight:900;margin:0 0 4px}
+.strip p.sub{font-size:12px;color:var(--dim);margin:0 0 12px}
+.strip .track{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.cellwrap{flex:0 0 auto;width:66px}
+.cell{width:66px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#E7ECF5;position:relative;border:1.5px solid var(--line)}
+.cell img{width:100%;height:100%;object-fit:cover;display:block}
+.cell .bno{position:absolute;top:3px;left:3px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 4px;border-radius:2px}
+.cell.empty{border-style:dashed;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:10px;font-weight:900;text-align:center;padding:4px}
+.cellwrap .lb{font-size:10px;color:var(--dim);text-align:center;margin-top:4px;line-height:1.3}
+.cellwrap .src{font-family:var(--mono);font-size:10px;color:var(--blue);text-align:center;font-weight:700}
+.unused{margin-top:12px;font-size:12px;color:var(--dim);border-top:1px dashed var(--line);padding-top:10px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 </style>
@@ -206,9 +226,13 @@ details.adv .card{margin-top:10px}
       </div>
       <div class="projrow">
         <select id="plist"><option value="">保存済みを選ぶ</option></select>
-        <button type="button" id="popen">開く</button>
-        <button type="button" id="pdel" class="del">削除</button>
+        <div class="projbtns">
+          <button type="button" id="popen">開く</button>
+          <button type="button" id="pren">名前を変更</button>
+          <button type="button" id="pdel" class="del">削除</button>
+        </div>
       </div>
+      <p class="note" style="margin-top:8px">名前を変えるときは、一覧から選ぶと上の欄に名前が入ります。書き換えて「名前を変更」を押してください。</p>
       <div class="io">
         <button type="button" id="pexport">ファイルに書き出す</button>
         <button type="button" id="pimport">ファイルから読み込む</button>
@@ -439,7 +463,7 @@ var clips=[],ideas=[],picked=-1,script=null;
 function grabThumb(file){
   return new Promise(function(res){
     var done=false,v=document.createElement("video"),url=URL.createObjectURL(file);
-    function fin(t,d){if(done)return;done=true;URL.revokeObjectURL(url);res({thumb:t,duration:d||0})}
+    function fin(t,d,sj){if(done)return;done=true;URL.revokeObjectURL(url);res({thumb:t,duration:d||0,subj:sj||null})}
     v.preload="metadata";v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.src=url;
     v.onloadeddata=function(){try{v.currentTime=Math.min(.4,(v.duration||1)/3)}catch(e){fin(null,v.duration)}};
     v.onseeked=function(){try{var c=document.createElement("canvas"),w=200;c.width=w;c.height=Math.round(w*(v.videoHeight||16)/(v.videoWidth||9));c.getContext("2d").drawImage(v,0,0,c.width,c.height);fin(c.toDataURL("image/jpeg",.72),v.duration)}catch(e){fin(null,v.duration)}};
@@ -476,7 +500,7 @@ $("#picker").addEventListener("change",async function(e){
   for(var i=0;i<files.length;i++){
     if(clips.length>=10)break;
     var t=await grabThumb(files[i]);
-    clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:""});
+    clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:"",subj:t.subj});
     renderClips();
   }
   e.target.value="";
@@ -486,7 +510,16 @@ $("#picker").addEventListener("change",async function(e){
 function cfg(){return{theme:$("#theme").value.trim()||"この挑戦",who:A(1)||"未設定",tone:A(19)||"まっすぐ・熱量高め",ask:$("#ask").value.trim()||A(14),len:A(18)||"60秒"}}
 function memoList(){return clips.map(function(c,i){return(i+1)+". "+(c.memo||"（メモなし）")+"（"+fmt(c.duration)+"）"}).join("\n")||"（素材未登録）"}
 
+function aiErr(e){
+  var m=String(e&&e.message||"");
+  if(m==="NO_KEY")return "AIキーが未入力です（下の「AI設定」に貼ると、AIが文章を書きます）。この端末・このURLごとに保存されるので、別の場所で入れたキーは引き継がれません。";
+  if(m==="API 401"||m==="API 403")return "キーが正しくないか、権限がありません。";
+  if(m==="API 400"||m==="API 429")return "APIの残高不足か、回数制限です（Billingを確認してください）。";
+  if(/Load failed|Failed to fetch|NetworkError/i.test(m))return "通信に失敗しました（電波、またはキーの入力を確認してください）。";
+  return "AIに接続できませんでした（"+esc(m)+"）。";
+}
 async function callAI(prompt,key){
+  if(!key)throw new Error("NO_KEY");
   var h={"Content-Type":"application/json"};
   if(key){h["x-api-key"]=key;h["anthropic-version"]="2023-06-01";h["anthropic-dangerous-direct-browser-access"]="true"}
   var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:h,body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
@@ -519,7 +552,7 @@ $("#ideaBtn").addEventListener("click",async function(){
     if(!ideas.length)throw new Error("形式エラー");
   }catch(e){
     ideas=fallbackIdeas(c);
-    msg.innerHTML='<div class="err">AIに接続できなかったので、定番の切り口10案を出しました（'+esc(e.message)+'）。</div>';
+    msg.innerHTML='<div class="err">'+aiErr(e)+'定番の切り口10案を出しました。</div>';
   }
   b.disabled=false;b.textContent="10案を出しなおす";
   picked=-1;renderIdeas();
@@ -575,25 +608,44 @@ $("#expand").addEventListener("click",async function(){
   var p="短尺動画の台本を書きます。採用した企画案:\nタイトル「"+idea.title+"」／切り口「"+(idea.kind||"")+"」／狙い「"+(idea.hook||"")+"」\n\n"+
     "テーマ: "+c.theme+"\n尺: "+c.len+"\n最後のお願い: "+(c.ask||"未設定")+"\n\n■お金\n"+budgetSheet()+"\n\n■20の質問への回答\n"+answerSheet()+"\n\n素材（この順で使う）:\n"+memoList()+"\n\n"+
     "次の10ステップで1本の縦動画に構成: "+BEATS.map(function(x){return x.no+"."+x.role}).join(" / ")+"\n"+
+    "clipは使う素材の番号。同じ素材を2回使わず、1本につき1箇所だけに割り当てること。素材が足りないステップはclipを0にして撮り足し扱いにする。\n"+
     "金額が公開設定のときは、テロップかナレーションに実際の数字を必ず1回以上入れてください。\n"+
     "telopは画面いっぱいの大文字テロップなので16文字以内。narrationは40文字以内。noteは撮り方指示20文字以内。JSONのみ出力:\n"+
     '{"title":"","hook":"","caption":"","tags":["#"],"beats":[{"no":1,"role":"宣言","clip":1,"time":"0〜5秒","telop":"","narration":"","note":""}]}';
   try{
     var j=await callAI(p,key);
     if(!j.beats||!j.beats.length)throw new Error("形式エラー");
+    j.beats=assignClips(j.beats);
     script=j;
   }catch(e){
     script=fallbackScript(c,idea);
-    msg.innerHTML='<div class="err">AIに接続できなかったので、テンプレート構成で組みました（'+esc(e.message)+'）。テロップは直接書き換えて使ってください。</div>';
+    script.beats=assignClips(script.beats);
+    msg.innerHTML='<div class="err">'+aiErr(e)+'テンプレート構成で組みました。テロップは直接書き換えて使えます。</div>';
   }
   b.disabled=false;b.textContent="この案で台本をつくる";
   renderResult();
 });
 
 /* ---- 台本表示 ---- */
-var telopSize=21,telopDir="tate";
+var telopSize=21,telopDir="tate",telopPos="auto";
+function posOf(c){return telopPos==="auto"?autoPos(c,telopDir):telopPos}
 function renderResult(){
   var r=$("#result");r.innerHTML="";
+  var st=document.createElement("div");st.className="strip";
+  var cells=script.beats.map(function(b,i){
+    var c=b.clip?clips[b.clip-1]:null;
+    return '<div class="cellwrap"><div class="cell'+(c?'':' empty')+'">'+
+      (c&&c.thumb?'<img src="'+c.thumb+'" alt="">':(c?'':'撮り足し'))+
+      '<span class="bno">'+String(b.no||i+1).padStart(2,"0")+'</span></div>'+
+      '<p class="src">'+(b.clip?("#"+b.clip):"—")+'</p>'+
+      '<p class="lb">'+esc(b.role||"")+'</p></div>';
+  }).join("");
+  var un=unusedClips(script.beats);
+  st.innerHTML='<h3>編集の並び順</h3><p class="sub">左から順につなぎます。番号はステップ、#は取り込んだ素材の番号です。</p>'+
+    '<div class="track">'+cells+'</div>'+
+    (un.length?'<p class="unused">今回使わない素材：'+un.map(function(i){return "#"+i}).join("、")+'（別の案に回せます）</p>':'');
+  r.appendChild(st);
+
   var s=document.createElement("div");s.className="summary";
   s.innerHTML='<p class="ttl">'+esc(script.title)+'</p><p class="hook">冒頭1秒：'+esc(script.hook)+'</p>'+
     '<p class="cap">'+esc(script.caption||"")+'</p><div class="tags">'+(script.tags||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>'}).join("")+'</div>';
@@ -606,14 +658,34 @@ function renderResult(){
       '<span><span class="role">'+esc(b.role||"")+'</span><br><span class="tel">'+esc(b.telop||"")+'</span></span><span class="time">'+esc(b.time||"")+'</span></button>'+
       '<div class="body"><dl><dt>使う素材</dt><dd>'+esc(c.name?("#"+(b.clip||i+1)+" "+c.name):"未割り当て（撮り足し）")+'</dd>'+
       '<dt>ナレーション</dt><dd>'+esc(b.narration||"")+'</dd><dt>撮り方</dt><dd>'+esc(b.note||"")+'</dd></dl>'+
-      '<div class="stage"><img alt="" '+(c.thumb?'src="'+c.thumb+'"':'')+'><div class="telop '+telopDir+'">'+esc(b.telop||"")+'</div></div>'+
+      '<div class="stage"><img alt="" '+(c.thumb?'src="'+c.thumb+'"':'')+'><div class="telop '+telopDir+' pos-'+posOf(c)+'">'+esc(b.telop||"")+'</div></div>'+
       '<div class="ctrl"><div class="seg"><button type="button" data-d="tate" class="'+(telopDir==="tate"?"on":"")+'">縦</button><button type="button" data-d="yoko" class="'+(telopDir==="yoko"?"on":"")+'">横</button></div>'+
-      '<input type="range" min="10" max="34" value="'+telopSize+'"><span class="sz">'+telopSize+'%</span></div></div>';
+      '<input type="range" min="10" max="34" value="'+telopSize+'"><span class="sz">'+telopSize+'%</span></div>'+
+      '<div class="ctrl"><div class="seg posseg">'+
+        '<button type="button" data-p="auto" class="'+(telopPos==="auto"?"on":"")+'">自動</button>'+
+        '<button type="button" data-p="'+(telopDir==="tate"?"left":"top")+'">'+(telopDir==="tate"?"左":"上")+'</button>'+
+        '<button type="button" data-p="'+(telopDir==="tate"?"right":"bottom")+'">'+(telopDir==="tate"?"右":"下")+'</button>'+
+      '</div><span class="poslabel">被写体をよけて配置</span></div></div>';
     var bar=el.querySelector(".bar"),stage=el.querySelector(".stage"),telop=el.querySelector(".telop"),range=el.querySelector("input[type=range]"),sz=el.querySelector(".sz");
     function fit(){telop.style.fontSize=(stage.clientWidth*telopSize/100)+"px"}
-    bar.addEventListener("click",function(){el.classList.toggle("open");if(el.classList.contains("open"))setTimeout(fit,0)});
+    function paint(){
+      telop.className="telop "+telopDir+" pos-"+posOf(c);
+      var ps=el.querySelector(".posseg");
+      if(ps){
+        var opts=telopDir==="tate"?[["auto","自動"],["left","左"],["right","右"]]:[["auto","自動"],["top","上"],["bottom","下"]];
+        ps.querySelectorAll("button").forEach(function(bt,k){bt.dataset.p=opts[k][0];bt.textContent=opts[k][1];bt.classList.toggle("on",telopPos===opts[k][0])});
+      }
+      fit();
+    }
+    bar.addEventListener("click",function(){el.classList.toggle("open");if(el.classList.contains("open"))setTimeout(paint,0)});
     range.addEventListener("input",function(){telopSize=+range.value;sz.textContent=telopSize+"%";fit()});
-    el.querySelectorAll(".seg button").forEach(function(bt){bt.addEventListener("click",function(){telopDir=bt.dataset.d;telop.className="telop "+telopDir;el.querySelectorAll(".seg button").forEach(function(x){x.classList.toggle("on",x.dataset.d===telopDir)});fit()})});
+    el.querySelectorAll(".seg button[data-d]").forEach(function(bt){bt.addEventListener("click",function(){
+      telopDir=bt.dataset.d;
+      el.querySelectorAll(".seg button[data-d]").forEach(function(x){x.classList.toggle("on",x.dataset.d===telopDir)});
+      if(telopPos!=="auto")telopPos="auto";
+      paint();
+    })});
+    el.querySelectorAll(".posseg button").forEach(function(bt){bt.addEventListener("click",function(){telopPos=bt.dataset.p;paint()})});
     window.addEventListener("resize",function(){if(el.classList.contains("open"))fit()});
     r.appendChild(el);
   });
@@ -624,6 +696,7 @@ function renderResult(){
 
 function asText(){
   var t="■ "+script.title+"\n冒頭1秒："+script.hook+"\n\n";
+  t+="―― 編集の並び順 ――\n"+script.beats.map(function(b,i){return (b.no||i+1)+"→素材"+(b.clip?("#"+b.clip+"（"+((clips[b.clip-1]||{}).name||"")+"）"):"撮り足し")}).join("\n")+"\n\n";
   script.beats.forEach(function(b,i){
     t+="["+(b.no||i+1)+"] "+(b.role||"")+"　"+(b.time||"")+"　素材#"+(b.clip||i+1)+"\n";
     t+="テロップ："+(b.telop||"")+"\nナレ　　："+(b.narration||"")+"\n撮り方　："+(b.note||"")+"\n\n";
@@ -642,6 +715,51 @@ $("#save").addEventListener("click",function(){
   setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
 });
 
+
+
+
+/* 被写体の位置を推定してテロップを逃がす */
+function analyzeFrame(cx,w,h){
+  try{
+    var d=cx.getImageData(0,0,w,h).data,q={l:0,r:0,t:0,b:0},i,x,y,r,g,b,mx,mn;
+    for(y=0;y<h;y+=2)for(x=0;x<w;x+=2){
+      i=(y*w+x)*4;r=d[i];g=d[i+1];b=d[i+2];
+      mx=Math.max(r,g,b);mn=Math.min(r,g,b);
+      var skin=(r>95&&g>40&&b>20&&mx-mn>15&&Math.abs(r-g)>15&&r>g&&r>b);
+      var bright=(mx>200&&mx-mn<40);
+      if(!skin&&!bright)continue;
+      var wt=skin?3:1;
+      if(x<w/2)q.l+=wt;else q.r+=wt;
+      if(y<h/2)q.t+=wt;else q.b+=wt;
+    }
+    return q;
+  }catch(e){return null}
+}
+function autoPos(c,dir){
+  var q=c&&c.subj;
+  if(dir==="yoko")return (!q||q.t===q.b)?"top":(q.t<q.b?"top":"bottom");
+  return (!q||q.l===q.r)?"right":(q.l<q.r?"left":"right");
+}
+
+/* 素材の割り当て：同じ動画を2回使わない */
+function assignClips(beats){
+  var used={},n=clips.length;
+  beats.forEach(function(b){
+    var c=parseInt(b.clip,10);
+    if(c>=1&&c<=n&&!used[c]){used[c]=true;b.clip=c}
+    else b.clip=null;
+  });
+  var free=[];for(var i=1;i<=n;i++)if(!used[i])free.push(i);
+  beats.forEach(function(b){
+    if(!b.clip&&free.length){b.clip=free.shift();used[b.clip]=true}
+  });
+  return beats;
+}
+function unusedClips(beats){
+  var used={};beats.forEach(function(b){if(b.clip)used[b.clip]=true});
+  var out=[];for(var i=1;i<=clips.length;i++)if(!used[i])out.push(i);
+  return out;
+}
 
 /* ================= 予算 ================= */
 var budget={total:0,open:false,items:[{name:"",amount:0}]};
@@ -753,6 +871,24 @@ $("#pdel").addEventListener("click",function(){
   var id=$("#plist").value;if(!id)return;
   var db=loadDB().filter(function(x){return x.id!==id});
   saveDB(db);if(curId===id)curId=null;refreshList();msg("削除しました");
+});
+
+$("#plist").addEventListener("change",function(){
+  var id=this.value;if(!id)return;
+  var p=loadDB().filter(function(x){return x.id===id})[0];
+  if(p)$("#pname").value=p.name||"";
+});
+$("#pren").addEventListener("click",function(){
+  var id=$("#plist").value||curId;
+  if(!id){msg("先に一覧から選んでください");return}
+  var name=$("#pname").value.trim();
+  if(!name){msg("新しい名前を入力してください");return}
+  var db=loadDB(),hit=false;
+  db.forEach(function(x){if(x.id===id){x.name=name;x.updated=new Date().toISOString();hit=true}});
+  if(!hit){msg("見つかりませんでした");return}
+  saveDB(db);refreshList();
+  if(typeof ghAutoPush==="function")ghAutoPush();
+  msg("「"+name+"」に変更しました");
 });
 $("#pexport").addEventListener("click",function(){
   var p=collect(),b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"}),a=document.createElement("a");
