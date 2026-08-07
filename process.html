@@ -80,6 +80,9 @@ button{font-family:inherit;cursor:pointer;border:0}
 .counter{font-family:var(--mono);font-size:13px;color:var(--dim);margin:12px 0 10px;text-align:right}
 .counter b{color:var(--ink);font-size:17px}
 
+.clipops{display:flex;gap:8px;justify-content:flex-end;margin:0 0 10px}
+.clipops button{background:#EEF1F7;color:var(--ink);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700}
+.clipops button#clrall{color:var(--pink)}
 .clip{display:grid;grid-template-columns:54px 1fr auto;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
 .thumb{width:54px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#DDE3ED;position:relative}
 .thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block;background:#DDE3ED}
@@ -247,7 +250,7 @@ section.closed{margin-bottom:-10px}
 
 <header>
   <div class="wrap">
-    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.3.3</span><button type="button" class="ver reload" id="reload">最新に更新</button></div>
+    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.4.0</span><button type="button" class="ver reload" id="reload">最新に更新</button></div>
     <h1>10本の素材から、<br><em>応援される1本</em>の台本へ。</h1>
     <p class="lede">台本の案を10通り出して、選んだ1案を本編の構成・テロップ・ナレーションまで書き起こします。</p>
   </div>
@@ -372,6 +375,10 @@ section.closed{margin-bottom:-10px}
       <p class="impst" id="impst"></p>
     </div>
     <p class="counter"><b id="cnt">0</b> / 10</p>
+    <div class="clipops">
+      <button type="button" id="clrneed">未割り当てを削除</button>
+      <button type="button" id="clrall">すべて削除</button>
+    </div>
     <div id="clips"></div>
   </section>
 
@@ -422,7 +429,7 @@ section.closed{margin-bottom:-10px}
 
 <script>
 "use strict";
-var APP_VERSION="1.3.3";
+var APP_VERSION="1.4.0";
 var mem={};
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){if(v===undefined)return mem[k]||null;mem[k]=v;}}
 window.addEventListener("error",function(e){if(e&&e.preventDefault)e.preventDefault();return true},true);
@@ -630,6 +637,17 @@ function renderClips(){
   });
 }
 
+function dropClips(fn){
+  clips=clips.filter(function(c){
+    if(fn(c))return true;
+    if(c.url)try{URL.revokeObjectURL(c.url)}catch(e){}
+    return false;
+  });
+  renderClips();autosave();
+}
+document.getElementById("clrneed").addEventListener("click",function(){dropClips(function(c){return !!c.file})});
+document.getElementById("clrall").addEventListener("click",function(){dropClips(function(){return false})});
+
 $("#picker").addEventListener("change",async function(e){
   var files=Array.prototype.slice.call(e.target.files||[]);
   if(!files.length){e.target.value="";return}
@@ -678,17 +696,35 @@ function aiErr(e){
   if(/Load failed|Failed to fetch|NetworkError/i.test(m))return "通信に失敗しました（電波、またはキーの入力を確認してください）。";
   return "AIに接続できませんでした（"+esc(m)+"）。";
 }
-async function callAI(prompt,key){
+function repairJSON(t){
+  var out="",inStr=false,esc=false,stack=[],i,ch;
+  for(i=0;i<t.length;i++){
+    ch=t[i];
+    if(inStr){if(esc)esc=false;else if(ch==="\\")esc=true;else if(ch==='"')inStr=false}
+    else{if(ch==='"')inStr=true;else if(ch==="{"||ch==="[")stack.push(ch);else if(ch==="}"||ch==="]")stack.pop()}
+    out+=ch;
+  }
+  if(inStr)out+='"';
+  out=out.replace(/,\s*"[^"]*"\s*:\s*$/,"").replace(/,\s*$/,"");
+  for(i=stack.length-1;i>=0;i--)out+=(stack[i]==="{"?"}":"]");
+  return out;
+}
+function parseLoose(t){
+  var st=t.indexOf("{"),en=t.lastIndexOf("}");
+  var body=(st>=0)?t.slice(st,en>st?en+1:undefined):t;
+  try{return JSON.parse(body)}catch(e){}
+  try{return JSON.parse(repairJSON(t.slice(st<0?0:st)))}catch(e){}
+  throw new Error("形式エラー");
+}
+async function callAI(prompt,key,tokens){
   if(!key)throw new Error("NO_KEY");
   var h={"Content-Type":"application/json"};
   if(key){h["x-api-key"]=key;h["anthropic-version"]="2023-06-01";h["anthropic-dangerous-direct-browser-access"]="true"}
-  var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:h,body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+  var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:h,body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:tokens||2000,messages:[{role:"user",content:prompt}]})});
   if(!r.ok)throw new Error("API "+r.status);
   var d=await r.json();
   var t=(d.content||[]).map(function(x){return x.type==="text"?x.text:""}).join("").replace(/```json|```/g,"").trim();
-  var s=t.indexOf("{"),e=t.lastIndexOf("}");
-  if(s<0||e<0)throw new Error("形式エラー");
-  return JSON.parse(t.slice(s,e+1));
+  return parseLoose(t);
 }
 
 /* ---- 10案 ---- */
@@ -707,8 +743,8 @@ $("#ideaBtn").addEventListener("click",async function(){
     "kindは切り口の名前(6文字以内)、titleは動画タイトル(24文字以内)、hookは狙いの説明(30文字以内)、leadは冒頭1秒のテロップ(14文字以内)。JSONのみ出力:\n"+
     '{"ideas":[{"kind":"","title":"","hook":"","lead":""}]}';
   try{
-    var j=await callAI(p,key);
-    ideas=(j.ideas||[]).slice(0,10);
+    var j=await callAI(p,key,2000);
+    ideas=(j.ideas||[]).filter(function(x){return x&&x.title}).slice(0,10);
     if(!ideas.length)throw new Error("形式エラー");
   }catch(e){
     ideas=fallbackIdeas(c);
@@ -773,8 +809,9 @@ $("#expand").addEventListener("click",async function(){
     "telopは画面いっぱいの大文字テロップなので16文字以内。narrationは40文字以内。noteは撮り方指示20文字以内。JSONのみ出力:\n"+
     '{"title":"","hook":"","caption":"","tags":["#"],"beats":[{"no":1,"role":"宣言","clip":1,"time":"0〜5秒","telop":"","narration":"","note":""}]}';
   try{
-    var j=await callAI(p,key);
-    if(!j.beats||!j.beats.length)throw new Error("形式エラー");
+    var j=await callAI(p,key,4000);
+    j.beats=(j.beats||[]).filter(function(x){return x&&x.telop});
+    if(j.beats.length<5)throw new Error("形式エラー");
     j.beats=assignClips(j.beats);
     script=j;
   }catch(e){
@@ -977,8 +1014,9 @@ $("#mk").addEventListener("click",async function(){
   if(!script||!script.beats){mkst("先に台本をつくってください");return}
   var mime=pickMime();
   if(!window.MediaRecorder||!mime){mkst("この端末では書き出しに対応していません（Safariを最新にしてください）");return}
-  var need=script.beats.filter(function(b){return b.clip&&!(clips[b.clip-1]&&clips[b.clip-1].file)});
-  if(need.length){mkst("動画ファイルが読み込まれていません。02で素材を選び直してください");return}
+  var usable=script.beats.filter(function(b){return b.clip&&clips[b.clip-1]&&clips[b.clip-1].file}).length;
+  if(!usable){mkst("動画ファイルが1本も読み込まれていません。03で素材を選び直してください");return}
+  var miss=script.beats.filter(function(b){return b.clip&&!(clips[b.clip-1]&&clips[b.clip-1].file)}).length;
 
   var btn=this;btn.disabled=true;btn.innerHTML='<span class="spin"></span>書き出し中…';
   $("#mkout").hidden=true;
@@ -1049,7 +1087,7 @@ $("#mk").addEventListener("click",async function(){
   }
 
   for(var i=0;i<script.beats.length;i++){
-    var b=script.beats[i],c=b.clip?clips[b.clip-1]:null,sec=beatSec(b,i);
+    var b=script.beats[i],c=(b.clip&&clips[b.clip-1]&&clips[b.clip-1].file)?clips[b.clip-1]:null,sec=beatSec(b,i);
     var na=narNode(i);
     if(nar[i])sec=Math.max(sec,(nar[i].dur||0)+0.3);
     mkst((i+1)+"/"+script.beats.length+"　"+(b.role||"")+(nar[i]?"（ナレ入り）":""));
@@ -1065,7 +1103,7 @@ $("#mk").addEventListener("click",async function(){
   var url=URL.createObjectURL(blob);
   var out=$("#mkout");out.src=url;out.hidden=false;
   var a=document.createElement("a");a.href=url;a.download=(script.title||"movie")+(mime.indexOf("mp4")>=0?".mp4":".webm");a.click();
-  mkst("できました（"+Math.round(blob.size/1024/1024*10)/10+"MB）。下のプレビューを長押しで保存できます");
+  mkst("できました（"+Math.round(blob.size/1024/1024*10)/10+"MB）。下のプレビューを長押しで保存できます"+(miss?("／"+miss+"ステップは素材が無く黒画面になっています"):""));
   btn.disabled=false;btn.textContent="動画をつくる";
 });
 
