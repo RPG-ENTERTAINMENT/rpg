@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:33-->
+<!--build:34-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -206,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v33</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v34</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -214,8 +214,6 @@
   <div class="namebar">
     <div class="nb-stats" id="stat"></div>
     <div class="nb-grid">
-      <label class="fld"><span>今月の契約</span>
-        <input type="number" id="goal" min="0" max="200" inputmode="numeric"><em>本</em></label>
       <label class="fld"><span>契約総数</span>
         <input type="number" id="totalGoal" min="0" max="9999" inputmode="numeric"><em>本</em></label>
       <div class="fld-row">
@@ -299,7 +297,7 @@
   try{ localStorage.removeItem(KEY); }catch(e){}
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=33, lastCheck=0;
+  var BUILD=34, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -675,9 +673,7 @@
     var e=slotItem(date,1,true);
     if(e.no){ e.no=0; e.up=Date.now(); cleanup(); renumber(); }
     else{
-      var goal=goalFor(state.pages[active],monthKey());
       var n=monthNumbered().length;
-      if(goal&&n>=goal){ toast("今月の契約本数 "+goal+"本ぶん、すでに日程が決まっています"); cleanup(); return; }
       e.no=n+1; e.up=Date.now();
       renumber();
     }
@@ -703,8 +699,7 @@
       var posted=pit.filter(function(e){ return e.posted&&e.date.indexOf(pre)===0; }).length;
       var td=pit.filter(function(e){ return planned(e)&&e.date===todayISO(); }).length;
       var tm=pit.filter(function(e){ return planned(e)&&e.date===shiftISO(1); }).length;
-      var pgoal=goalFor(p,pre);
-      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+(pgoal?"/"+pgoal:"")+'</span>'+
+      b.innerHTML=esc(p.name)+'<span class="cnt">'+posted+'</span>'+
         (td?'<span class="bd td">今日'+td+'</span>':'')+
         (tm?'<span class="bd tm">明日'+tm+'</span>':'');
       b.onclick=function(){ active=i; renderAll(); };
@@ -712,11 +707,6 @@
     });
 
     var pg=state.pages[active], mk=monthKey();
-
-    var gnow=goalFor(pg,mk);
-    var g=document.getElementById("goal");
-    if(document.activeElement!==g) g.value=gnow||"";
-    g.classList.toggle("miss",!gnow);
 
     var tg=document.getElementById("totalGoal");
     if(document.activeElement!==tg) tg.value=pg.total||"";
@@ -738,10 +728,9 @@
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var slotted=mi.filter(function(e){ return e.no; }).length;
     var allPosted=itemsOf(pg).filter(function(e){ return e.posted; }).length;
-    var restNow=gnow?gnow-posted:0, restAll=pg.total?pg.total-allPosted:0;
-    var html='<span>今月 <b>'+posted+'</b>'+(gnow?'/'+gnow:'')+'</span>';
-    if(gnow) html+='<span class="'+(restNow<=0?"ok":"warn")+'">今月の残り <b>'+(restNow>0?restNow:0)+'</b></span>';
-    html+='<span>日程 <b>'+slotted+'</b>'+(gnow?'/'+gnow:'')+'</span>';
+    var restAll=pg.total?pg.total-allPosted:0;
+    var html='<span>今月 <b>'+posted+'</b></span>';
+    html+='<span>日程 <b>'+slotted+'</b></span>';
     html+='<span>累計 <b>'+allPosted+'</b>'+(pg.total?'/'+pg.total:'')+'</span>';
     if(pg.total) html+='<span class="'+(restAll<=0?"ok":"warn")+'">契約の残り <b>'+(restAll>0?restAll:0)+'</b></span>';
     document.getElementById("stat").innerHTML=html;
@@ -816,20 +805,18 @@
 
   var repaired=false;
   function renderTotal(){
-    var key=monthKey(), goal=0, posted=0, made=0;
+    var key=monthKey(), posted=0, made=0, slotted=0;
     state.pages.forEach(function(p){
       if(p.del) return;
-      goal+=goalFor(p,key);
       var mi=itemsOf(p).filter(function(e){ return e.date.indexOf(key)===0; });
       posted+=mi.filter(function(e){ return e.posted; }).length;
       made+=mi.filter(function(e){ return e.made&&!e.posted; }).length;
+      slotted+=mi.filter(function(e){ return e.no; }).length;
     });
-    var rest=goal-posted;
     document.getElementById("total").innerHTML=
-      '<span>契約 <b>'+goal+'</b>本</span>'+
+      '<span>日程 <b>'+slotted+'</b>本</span>'+
       '<span>投稿 <b>'+posted+'</b>本</span>'+
-      '<span>制作待ち <b>'+made+'</b>本</span>'+
-      '<span class="'+(rest<=0?"ok":"ng")+'">残り <b>'+(rest>0?rest:0)+'</b>本</span>';
+      '<span>制作待ち <b>'+made+'</b>本</span>';
   }
 
   var fitKey="";
@@ -892,13 +879,12 @@
       if(p.del) return;
       var mi=itemsOf(p).filter(function(e){ return e.date.indexOf(key)===0; });
       var posted=mi.filter(function(e){ return e.posted; }).length;
-      var gl=goalFor(p,key);
-      if(gl){
-        var rest=gl-posted;
-        if(rest>0&&rest<=3) extras.push({cls:"left",txt:"残り "+rest+"本",who:p.name,pi:pi});
+      if(p.total){
+        var rest=p.total-itemsOf(p).filter(function(e){ return e.posted; }).length;
+        if(rest>0&&rest<=3) extras.push({cls:"left",txt:"契約の残り "+rest+"本",who:p.name,pi:pi});
       }
       var pl=planOf(p,key,false);
-      if(gl&&(!pl.meet||!pl.shoot)){
+      if(p.total&&(!pl.meet||!pl.shoot)){
         var miss=(!pl.meet&&!pl.shoot)?"打ち合わせ日・撮影日":(!pl.meet?"打ち合わせ日":"撮影日");
         extras.push({cls:"need",txt:miss+"を設定してください",who:p.name,pi:pi,focus:!pl.meet?"dMeet":"dShoot"});
       }
@@ -1086,19 +1072,6 @@
   document.getElementById("scrim").onclick=function(){ closeSheet(); closeCfg(); };
 
   /* ---------- controls ---------- */
-  document.getElementById("goal").addEventListener("input",function(e){
-    var v=parseInt(e.target.value,10); v=isNaN(v)?0:Math.max(0,v);
-    var pg=state.pages[active], now=Date.now();
-    var pl=planOf(pg,monthKey(),true);
-    pl.goal=v; pl.up=now;
-    pg.goal=v; pg.goalUp=now;
-    scheduleSave(); renderHeader(); renderNotice(); renderTotal(); });
-  document.getElementById("ed0").addEventListener("input",function(e){
-    var pg=state.pages[active];
-    if(!pg.editors) pg.editors=["",""];
-    pg.editors[0]=e.target.value; pg.editorsUp=Date.now();
-    scheduleSave();
-  });
   document.getElementById("totalGoal").addEventListener("input",function(e){
     var v=parseInt(e.target.value,10);
     state.pages[active].total=isNaN(v)?0:Math.max(0,v);
@@ -1132,7 +1105,7 @@
     var posted=mi.filter(function(e){ return e.posted; }).length;
     var eds=(p.editors||[]).filter(Boolean).join("・");
     var txt="【"+p.name+"】"+view.getFullYear()+"年"+(view.getMonth()+1)+"月"+
-      "（投稿 "+posted+(goalFor(p,monthKey())?" / 契約 "+goalFor(p,monthKey())+"本":"")+(eds?" / 動画制作担当 "+eds:"")+"）\n"+
+      "（投稿 "+posted+(p.total?" / 契約総数 "+p.total+"本":"")+(eds?" / 動画制作担当 "+eds:"")+"）\n"+
       (mi.length?mi.map(function(e){
         var d=new Date(e.date+"T00:00:00");
         return (d.getMonth()+1)+"/"+d.getDate()+"（"+WD[d.getDay()]+"）"+(e.slot||1)+"本目 制作"+
@@ -1151,12 +1124,12 @@
   }
 
   document.getElementById("csvBtn").onclick=function(){
-    var rows=[["ページ","動画制作担当","契約本数","日付","本目","制作済み","投稿済み","メモ"]];
+    var rows=[["ページ","動画制作担当","契約総数","日付","本目","制作済み","投稿済み","メモ"]];
     state.pages.forEach(function(p){
       if(p.del) return;
       itemsOf(p).filter(used).slice().sort(function(a,b){
         return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); }).forEach(function(e){
-        rows.push([p.name,(p.editors||[]).filter(Boolean).join("・"),p.goal||"",e.date,
+        rows.push([p.name,(p.editors||[]).filter(Boolean).join("・"),p.total||"",e.date,
                    (e.slot||1),e.made?"1":"",e.posted?"1":"",e.memo]);
       });
     });
