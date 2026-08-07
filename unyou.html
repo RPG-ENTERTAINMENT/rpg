@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:31-->
+<!--build:32-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -206,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v31</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v32</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -299,7 +299,7 @@
   try{ localStorage.removeItem(KEY); }catch(e){}
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=31, lastCheck=0;
+  var BUILD=32, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -614,9 +614,16 @@
       .sort(function(a,b){ return a.no-b.no; });
   }
   function fixNumbers(p,key){
-    var list=itemsOf(p).filter(function(e){ return e.no && e.date.indexOf(key)===0; })
-      .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); });
-    var changed=false, now=Date.now();
+    var changed=false, now=Date.now(), list=[];
+    itemsOf(p).forEach(function(e){
+      if(e.date.indexOf(key)!==0) return;
+      if((e.slot||1)!==1){                 /* 番号は1本目だけに付ける */
+        if(e.no){ e.no=0; e.up=now; changed=true; }
+        return;
+      }
+      if(e.no) list.push(e);
+    });
+    list.sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
     list.forEach(function(e,i){ if(e.no!==i+1){ e.no=i+1; e.up=now; changed=true; } });
     return changed;
   }
