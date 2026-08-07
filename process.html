@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light only">
+<title>プロセス台本メーカー</title>
+<style>
+:root{
+  color-scheme:light only;
+  --paper:#F3F5F9;
+  --card:#FFFFFF;
+  --ink:#0E131E;
+  --dim:#5A6478;
+  --line:#DFE4EE;
+  --yellow:#FFD400;
+  --blue:#1E5BFF;
+  --pink:#E5006D;
+  --gothic:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--paper)}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--gothic);font-size:16px;line-height:1.75;
+  padding:0 0 110px;-webkit-text-size-adjust:100%;
+}
+.wrap{max-width:660px;margin:0 auto;padding:0 18px}
+
+header{background:var(--card);border-bottom:1px solid var(--line);padding:30px 18px 26px}
+header .wrap{padding:0}
+.mark{display:inline-block;background:var(--ink);color:#fff;font-size:11px;font-weight:900;letter-spacing:.18em;padding:5px 10px;border-radius:3px}
+h1{font-size:30px;font-weight:900;line-height:1.35;margin:16px 0 10px;letter-spacing:-.01em}
+h1 em{font-style:normal;background:linear-gradient(transparent 58%,var(--yellow) 58%);padding:0 2px}
+.lede{color:var(--dim);font-size:14px;margin:0}
+
+section{margin-top:38px}
+.head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.num{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--ink);border-radius:3px;padding:3px 7px}
+.head h2{font-size:19px;font-weight:900;margin:0;color:var(--ink)}
+.hint{color:var(--dim);font-size:13px;margin:0 0 14px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+label{display:block;font-size:13px;font-weight:900;color:var(--ink);margin:0 0 6px}
+input[type=text],textarea,select{
+  width:100%;background:#fff;color:var(--ink);border:1.5px solid var(--line);
+  border-radius:10px;padding:12px;font-family:inherit;font-size:16px;line-height:1.5;
+}
+::placeholder{color:#9AA3B5}
+textarea{resize:vertical;min-height:66px}
+input:focus,textarea:focus,select:focus{outline:3px solid rgba(30,91,255,.25);border-color:var(--blue)}
+.field+.field{margin-top:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:400px){.row2{grid-template-columns:1fr}}
+
+button{font-family:inherit;cursor:pointer;border:0}
+.btn{display:block;width:100%;background:var(--ink);color:#fff;font-weight:900;font-size:17px;padding:16px;border-radius:12px}
+.btn.yellow{background:var(--yellow);color:var(--ink)}
+.btn:disabled{opacity:.4}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-size:15px;padding:13px}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+
+.drop{display:block;border:2px dashed #C3CCDC;border-radius:14px;padding:28px 16px;text-align:center;background:#fff}
+.drop b{display:block;font-size:16px;font-weight:900;margin-bottom:4px}
+.drop span{color:var(--dim);font-size:13px}
+.counter{font-family:var(--mono);font-size:13px;color:var(--dim);margin:12px 0 10px;text-align:right}
+.counter b{color:var(--ink);font-size:17px}
+
+.clip{display:grid;grid-template-columns:60px 1fr auto;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+.thumb{width:60px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#DDE3ED;position:relative}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .idx{position:absolute;top:3px;left:3px;background:var(--yellow);color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 4px;border-radius:2px}
+.clip .name{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 6px}
+.clip .name em{font-style:normal;font-family:var(--mono);color:var(--blue)}
+.clip textarea{min-height:54px;font-size:15px;padding:9px 10px}
+.tools{display:flex;flex-direction:column;gap:6px}
+.tools button{width:34px;height:30px;background:#EEF1F7;color:var(--ink);border-radius:8px;font-size:14px;line-height:1}
+.tools button.del{color:var(--pink)}
+
+/* 案カード */
+.idea{width:100%;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:10px;display:block;color:var(--ink)}
+.idea.on{border-color:var(--ink);background:#FFFDF0;box-shadow:0 0 0 3px rgba(255,212,0,.45)}
+.idea .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.idea .no{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--dim)}
+.idea .kind{font-size:11px;font-weight:900;background:var(--ink);color:#fff;padding:2px 7px;border-radius:20px}
+.idea.on .kind{background:var(--pink)}
+.idea .ttl{font-size:17px;font-weight:900;line-height:1.4;margin:0 0 4px}
+.idea .hk{font-size:13px;color:var(--dim);margin:0}
+
+.summary{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.summary .ttl{font-size:21px;font-weight:900;line-height:1.4;margin:0 0 8px}
+.summary .hook{font-size:14px;font-weight:700;margin:0 0 10px;background:linear-gradient(transparent 60%,var(--yellow) 60%);display:inline}
+.summary .cap{color:var(--dim);font-size:13px;white-space:pre-wrap;margin:12px 0 0}
+.tags{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.tag{background:#EEF2FA;color:var(--blue);font-size:12px;padding:3px 9px;border-radius:20px}
+
+.beat{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.beat .bar{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;width:100%;padding:13px 14px;background:none;text-align:left;color:var(--ink)}
+.beat .no{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--pink)}
+.beat .role{font-size:12px;color:var(--dim)}
+.beat .tel{font-size:17px;font-weight:900;line-height:1.35}
+.beat .time{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.beat .body{display:none;padding:0 14px 16px;border-top:1px solid var(--line);margin-top:2px;padding-top:14px}
+.beat.open .body{display:block}
+.beat dl{margin:0;display:grid;grid-template-columns:70px 1fr;gap:8px 10px;font-size:14px}
+.beat dt{color:var(--dim);font-size:12px;font-weight:900}
+.beat dd{margin:0}
+
+.stage{position:relative;width:100%;max-width:290px;aspect-ratio:9/16;margin:14px auto 0;border-radius:12px;overflow:hidden;background:#111}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage .telop{position:absolute;inset:14px 12px;font-weight:900;color:#fff;line-height:1.02;letter-spacing:.01em;display:flex;text-shadow:0 0 7px rgba(0,0,0,.6),0 2px 12px rgba(0,0,0,.5)}
+.stage .telop.tate{writing-mode:vertical-rl;text-orientation:upright;justify-content:flex-end}
+.stage .telop.yoko{align-items:flex-start;flex-wrap:wrap}
+.ctrl{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--dim)}
+.ctrl input[type=range]{flex:1;accent-color:var(--ink)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:#fff;color:var(--dim);font-size:13px;padding:7px 12px}
+.seg button.on{background:var(--ink);color:#fff;font-weight:900}
+
+.note{color:var(--dim);font-size:12px;margin:10px 0 0}
+.err{background:#FFF0F5;border:1.5px solid #F5B7D0;color:#8A0040;border-radius:10px;padding:12px;font-size:13px;margin-top:12px}
+details.adv{margin-top:16px}
+details.adv summary{color:var(--dim);font-size:13px;cursor:pointer;font-weight:700}
+details.adv .card{margin-top:10px}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:8px}
+.btn.yellow .spin{border-color:rgba(0,0,0,.25);border-top-color:#111}
+
+/* 20の質問 */
+.qprog{position:sticky;top:0;z-index:5;background:var(--paper);padding:10px 0 8px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.qprog .bar{flex:1;height:8px;background:#E3E8F2;border-radius:20px;overflow:hidden}
+.qprog .bar i{display:block;height:100%;width:0;background:var(--ink);border-radius:20px;transition:width .25s}
+.qprog .cnt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
+.q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.q.done{border-color:#BFCBE6;background:#FBFCFF}
+.q .qt{display:flex;gap:8px;align-items:baseline;margin:0 0 10px}
+.q .qn{font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;background:var(--ink);border-radius:3px;padding:2px 6px}
+.q.done .qn{background:var(--blue)}
+.q .qx{font-size:15px;font-weight:900;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#EEF1F7;color:var(--ink);border:1.5px solid transparent;border-radius:22px;padding:9px 14px;font-size:14px;font-weight:700;line-height:1.2}
+.chip.on{background:var(--yellow);border-color:var(--ink)}
+
+/* プロジェクト保存 */
+.projbar{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.projbar .btn{width:auto;padding:12px 18px;font-size:15px}
+.projrow{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:12px;align-items:center}
+.projrow select{padding:11px 10px;font-size:15px}
+.projrow button{background:#EEF1F7;color:var(--ink);border-radius:9px;padding:11px 13px;font-size:14px;font-weight:700;white-space:nowrap}
+.projrow button.del{color:var(--pink)}
+.io{display:flex;gap:14px;margin-top:12px}
+.io button{background:none;color:var(--blue);font-size:13px;font-weight:700;padding:0;text-decoration:underline}
+.saved{color:var(--blue);font-size:12px;font-weight:700;margin:8px 0 0;min-height:1em}
+
+/* 予算 */
+.bhead{display:grid;grid-template-columns:1fr 118px 36px;gap:8px;font-size:11px;font-weight:900;color:var(--dim);margin-bottom:6px;padding:0 2px}
+.bitem{display:grid;grid-template-columns:1fr 118px 36px;gap:8px;margin-bottom:8px;align-items:center}
+.bitem input{padding:10px;font-size:15px}
+.bitem input.yen{text-align:right;font-family:var(--mono)}
+.bitem button{background:#EEF1F7;color:var(--pink);border-radius:8px;height:38px;font-size:15px}
+.badd{width:100%;background:#EEF1F7;color:var(--ink);font-weight:900;font-size:14px;padding:11px;border-radius:10px;margin-top:2px}
+.btotal{margin-top:14px;border-top:1.5px dashed var(--line);padding-top:12px;display:grid;gap:6px;font-size:14px}
+.btotal div{display:flex;justify-content:space-between;align-items:baseline}
+.btotal b{font-family:var(--mono);font-size:17px;font-weight:900}
+.btotal .rest b{color:var(--blue)}
+.btotal .rest.minus b{color:var(--pink)}
+.switch{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;font-weight:700}
+.switch input{width:22px;height:22px;accent-color:var(--ink)}
+
+/* クラウド */
+.cloud{margin-top:14px;border-top:1.5px dashed var(--line);padding-top:14px}
+.cloud .lbl{font-size:13px;font-weight:900;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:#C3CCDC;display:inline-block}
+.dot.ok{background:#12B76A}
+.dot.ng{background:var(--pink)}
+.cloudrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cloudrow button{background:var(--ink);color:#fff;border-radius:10px;padding:12px;font-size:14px;font-weight:900}
+.cloudrow button.sub{background:#EEF1F7;color:var(--ink)}
+.cloud .note{margin-top:10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="mark">PROCESS ECONOMY</div>
+    <h1>10本の素材から、<br><em>応援される1本</em>の台本へ。</h1>
+    <p class="lede">台本の案を10通り出して、選んだ1案を本編の構成・テロップ・ナレーションまで書き起こします。</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section style="margin-top:26px">
+    <div class="head"><span class="num">00</span><h2>プロジェクト</h2></div>
+    <p class="hint">20の質問・素材メモ・できた台本をまとめて保存できます。</p>
+    <div class="card">
+      <div class="projbar">
+        <div>
+          <label for="pname">プロジェクト名</label>
+          <input type="text" id="pname" placeholder="例：スーパー再建プロジェクト">
+        </div>
+        <button class="btn" id="psave">保存</button>
+      </div>
+      <div class="projrow">
+        <select id="plist"><option value="">保存済みを選ぶ</option></select>
+        <button type="button" id="popen">開く</button>
+        <button type="button" id="pdel" class="del">削除</button>
+      </div>
+      <div class="io">
+        <button type="button" id="pexport">ファイルに書き出す</button>
+        <button type="button" id="pimport">ファイルから読み込む</button>
+      </div>
+      <input type="file" id="pfile" accept="application/json,.json" hidden>
+      <p class="saved" id="pmsg"></p>
+
+      <div class="cloud">
+        <p class="lbl"><span class="dot" id="ghdot"></span>オンライン保存（GitHub）</p>
+        <div class="cloudrow">
+          <button type="button" id="ghup">クラウドに保存</button>
+          <button type="button" id="ghdown" class="sub">クラウドから読み込む</button>
+        </div>
+        <label class="switch" style="margin-top:10px"><input type="checkbox" id="ghauto"><span>保存したら自動でクラウドにも上げる</span></label>
+        <p class="saved" id="ghmsg"></p>
+        <details class="adv">
+          <summary>GitHubの設定</summary>
+          <div class="card">
+            <div class="field">
+              <label for="ghtoken">アクセストークン</label>
+              <input type="text" id="ghtoken" placeholder="ghp_… / github_pat_…" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ghrepo">リポジトリ</label>
+              <input type="text" id="ghrepo" placeholder="RPG-ENTERTAINMENT/talent-app-data">
+            </div>
+            <div class="field">
+              <label for="ghpath">保存パス</label>
+              <input type="text" id="ghpath" placeholder="data/process.json">
+            </div>
+            <p class="note">GitHubの Settings → Developer settings → Personal access tokens で、対象リポジトリの Contents に読み書き権限を付けたトークンを発行してください。トークンはこの端末にだけ保存され、GitHubへの通信以外には使いません。</p>
+          </div>
+        </details>
+      </div>
+
+      <p class="note">この端末に保存されます。動画ファイル本体は保存されず、サムネイル・長さ・メモだけが残ります（読み込み後に動画を選び直せばそのまま続けられます）。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">01</span><h2>プロジェクトの20の質問</h2></div>
+    <p class="hint">タップで答えるだけ。答えた内容がそのまま台本の材料になります。</p>
+    <div class="card">
+      <div class="field">
+        <label for="theme">テーマ（挑戦していること）</label>
+        <input type="text" id="theme" placeholder="例：24時間営業のスーパーを立て直す">
+      </div>
+      <div class="field">
+        <label for="ask">最後のお願い（CTA）</label>
+        <input type="text" id="ask" placeholder="例：一度だけ買いに来てほしい">
+      </div>
+    </div>
+    <div class="qprog"><span class="bar"><i id="qbar"></i></span><span class="cnt"><b id="qdone">0</b>/20</span></div>
+    <div id="qlist"></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="qauto">未回答をおまかせで埋める</button>
+      <button class="btn ghost" id="qclear">回答をリセット</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">02</span><h2>お金のこと</h2></div>
+    <p class="hint">金額はプロセスエコノミーで一番強い材料になります。公開する範囲は下のスイッチで選べます。</p>
+    <div class="card">
+      <div class="field">
+        <label for="bbudget">このプロジェクトに使える金額（円）</label>
+        <input type="text" id="bbudget" inputmode="numeric" placeholder="例：300000">
+      </div>
+      <div class="field">
+        <label>かかる費用の内訳</label>
+        <div class="bhead"><span>項目</span><span style="text-align:right">金額（円）</span><span></span></div>
+        <div id="bitems"></div>
+        <button type="button" class="badd" id="badd">＋ 費目を追加</button>
+      </div>
+      <div class="btotal">
+        <div><span>使える金額</span><b id="bsumIn">0</b></div>
+        <div><span>かかる費用</span><b id="bsumOut">0</b></div>
+        <div class="rest" id="brestRow"><span>残り</span><b id="brest">0</b></div>
+      </div>
+      <label class="switch"><input type="checkbox" id="bopen"><span>台本で金額を公開する</span></label>
+      <p class="note">オンにすると、テロップやナレーションに実際の数字を入れた台本になります。オフのときは金額を伏せたまま構成だけ作ります。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">03</span><h2>動画を10本入れる</h2></div>
+    <p class="hint">1本ずつ「何が映っているか」を一言メモすると精度が上がります。順番は↑↓で入れ替えできます。</p>
+    <label class="drop" for="picker">
+      <b>動画を選ぶ</b>
+      <span>最大10本／カメラロールから複数選択できます</span>
+    </label>
+    <input type="file" id="picker" accept="video/*" multiple hidden>
+    <p class="counter"><b id="cnt">0</b> / 10</p>
+    <div id="clips"></div>
+  </section>
+
+  <section>
+    <div class="head"><span class="num">04</span><h2>台本の案を10個出す</h2></div>
+    <p class="hint">同じ素材でも切り口を変えると別の動画になります。</p>
+    <button class="btn" id="ideaBtn">10案つくる</button>
+    <div id="ideaMsg"></div>
+    <details class="adv">
+      <summary>AI設定（任意）</summary>
+      <div class="card">
+        <div class="field">
+          <label for="key">Anthropic APIキー（台本をAIに書かせる用）</label>
+          <input type="text" id="key" placeholder="sk-ant-… 空欄でもテンプレートで生成します" autocomplete="off">
+        </div>
+        <p class="note">これは文章生成のための鍵で、保存用のGitHubトークンとは別物です。キーがあるとAIが回答と素材メモを読んで書きます。空欄や通信エラーのときはテンプレートに自動で切り替わるので、そのまま使えます。キーはこの端末にだけ保存されます。</p>
+      </div>
+    </details>
+  </section>
+
+  <section id="ideaSec" hidden>
+    <div class="head"><span class="num">05</span><h2>案を選ぶ</h2></div>
+    <p class="hint">タップして選択、下のボタンで本編の台本に展開します。</p>
+    <div id="ideas"></div>
+    <button class="btn yellow" id="expand" disabled>この案で台本をつくる</button>
+    <div id="expandMsg"></div>
+  </section>
+
+  <section id="out" hidden>
+    <div class="head"><span class="num">06</span><h2>できた台本</h2></div>
+    <div id="result"></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="copy">台本をコピー</button>
+      <button class="btn ghost" id="save">テキストで保存</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+var mem={};
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){if(v===undefined)return mem[k]||null;mem[k]=v;}}
+window.addEventListener("error",function(e){if(e&&e.preventDefault)e.preventDefault();return true},true);
+window.addEventListener("unhandledrejection",function(e){if(e&&e.preventDefault)e.preventDefault()});
+function safe(fn){try{fn()}catch(e){}}
+var $=function(s){return document.querySelector(s)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
+function fmt(s){s=Math.round(s||0);return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2)}
+
+var BEATS=[
+ {no:1,role:"宣言",guide:"これから何をやるのかを最初の1秒で言い切る"},
+ {no:2,role:"現在地",guide:"かっこつけない今の状態を見せる"},
+ {no:3,role:"動機",guide:"なぜやるのか、個人的な理由を話す"},
+ {no:4,role:"壁",guide:"立ちはだかっている一番大きな問題"},
+ {no:5,role:"試行",guide:"まずやってみたこと"},
+ {no:6,role:"失敗",guide:"うまくいかなかった現実"},
+ {no:7,role:"学び",guide:"そこで気づいたこと・変えたこと"},
+ {no:8,role:"前進",guide:"少しだけ進んだ証拠を見せる"},
+ {no:9,role:"お願い",guide:"力を貸してほしいと正面から言う"},
+ {no:10,role:"合流",guide:"一緒にやろう、と行き先を示す"}
+];
+
+var ANGLES=[
+ {kind:"逆転狙い",ttl:"{T}、あと{N}日で終わるかもしれません",hook:"最悪の状況から始める。期限を切って緊張感を出す",lead:"僕は{T}に挑みます"},
+ {kind:"弱さ全開",ttl:"うまくいってないので、全部見せます",hook:"取り繕わない。失敗の途中経過をそのまま公開する",lead:"正直、うまくいってません"},
+ {kind:"1日密着",ttl:"{T}に挑む人の、ふつうの1日",hook:"朝から夜までを淡々と追う。生活感で信頼を作る",lead:"今日も朝5時から動きます"},
+ {kind:"数字で追う",ttl:"{T}｜今日の数字を公開します",hook:"売上や人数など数字を毎回出して、進捗を可視化する",lead:"今日の数字、出します"},
+ {kind:"舞台裏",ttl:"完成品の裏で、こんなことしてます",hook:"表に出ない工程を見せて価値の理由を伝える",lead:"ここ、誰も見てないところです"},
+ {kind:"問いかけ",ttl:"{T}、どっちを選ぶべきだと思いますか",hook:"選択を視聴者に委ねて、コメントで巻き込む",lead:"意見をください"},
+ {kind:"ビフォーアフター",ttl:"3ヶ月前と今を並べてみた",hook:"変化の証拠を先に見せて、その過程に引き込む",lead:"これが3ヶ月前です"},
+ {kind:"仲間紹介",ttl:"一緒にやってる人たちを紹介させてください",hook:"人で見せる。応援対象を自分から仲間へ広げる",lead:"この人がいないと無理でした"},
+ {kind:"反論に答える",ttl:"「どうせ無理でしょ」に answer します",hook:"想定される否定を自分から拾って、誠実さを示す",lead:"よく言われます、無理だろって"},
+ {kind:"カウントダウン",ttl:"{T}まで、残り{N}日",hook:"ゴール日を宣言してシリーズ化する",lead:"残り{N}日です"}
+];
+
+
+var QS=[
+ {q:"見せたい過程は？",a:["仕事の裏側","作品づくり","店の再建","自分の成長","チームづくり"]},
+ {q:"届けたい相手は？",a:["地元の人","同業者","将来のお客さん","同じ悩みの人","今のファン"]},
+ {q:"スタート地点は？",a:["ゼロから","一度失敗した後","引き継いだ","副業から","再挑戦"]},
+ {q:"一番の動機は？",a:["悔しさ","恩返し","家族のため","純粋に好き","証明したい"]},
+ {q:"いま一番の壁は？",a:["お金","人手","知られてない","技術","時間","自信"]},
+ {q:"その壁はどう見える？",a:["数字に出る","人が離れる","反応がない","体力的にきつい"]},
+ {q:"すでにやってみたことは？",a:["発信を増やした","人に相談した","作り直した","新しく出した","頭を下げに行った"]},
+ {q:"その結果は？",a:["ほぼ変化なし","少しだけ前進","むしろ悪化","手応えあり"]},
+ {q:"そこで気づいたことは？",a:["やり方が違った","量が足りない","一人では無理","伝え方の問題"]},
+ {q:"いまの一番の武器は？",a:["しつこさ","技術","人脈","面白さ","場所・土地"]},
+ {q:"応援してくれている人は？",a:["家族","スタッフ","常連さん","ネットの人","まだいない"]},
+ {q:"本当は見せたくない部分は？",a:["数字","泥くさい作業","感情","過去の失敗"]},
+ {q:"ゴールの期限は？",a:["1ヶ月","3ヶ月","半年","1年","決めてない"]},
+ {q:"ゴールの中身は？",a:["売上をつくる","続ける・残す","人を集める","完成させる","知ってもらう"]},
+ {q:"見た人にしてほしい行動は？",a:["フォロー","来店・購入","コメント","シェア","仲間として参加"]},
+ {q:"どう感じてほしい？",a:["応援したい","自分もやりたい","知らなかった","続きが気になる"]},
+ {q:"動画の主役は？",a:["自分","スタッフ","お客さん","モノ・作品","場所"]},
+ {q:"しゃべり方は？",a:["顔出しで話す","ナレーションのみ","テロップだけ","会話をそのまま"]},
+ {q:"尺は？",a:["15秒","30秒","60秒","90秒以上"]},
+ {q:"トーンは？",a:["まっすぐ・熱量高め","等身大・淡々","笑いを混ぜる","ドキュメンタリー調"]}
+];
+var ans=new Array(20).fill(null);
+
+function renderQ(){
+  var box=document.getElementById("qlist");box.innerHTML="";
+  QS.forEach(function(item,i){
+    var el=document.createElement("div");
+    el.className="q"+(ans[i]?" done":"");
+    el.innerHTML='<p class="qt"><span class="qn">'+String(i+1).padStart(2,"0")+'</span><span class="qx">'+esc(item.q)+'</span></p><div class="chips"></div>';
+    var cw=el.querySelector(".chips");
+    item.a.forEach(function(op){
+      var b=document.createElement("button");
+      b.type="button";b.className="chip"+(ans[i]===op?" on":"");b.textContent=op;
+      b.addEventListener("click",function(){ans[i]=(ans[i]===op?null:op);renderQ();autosave()});
+      cw.appendChild(b);
+    });
+    box.appendChild(el);
+  });
+  var n=ans.filter(Boolean).length;
+  document.getElementById("qdone").textContent=n;
+  document.getElementById("qbar").style.width=(n/20*100)+"%";
+}
+document.getElementById("qauto").addEventListener("click",function(){
+  ans=ans.map(function(v,i){return v||QS[i].a[0]});renderQ();
+});
+document.getElementById("qclear").addEventListener("click",function(){
+  ans=new Array(20).fill(null);renderQ();
+});
+function A(i){return ans[i]||""}
+function answerSheet(){
+  return QS.map(function(q,i){return (i+1)+". "+q.q+" → "+(ans[i]||"おまかせ")}).join("\n");
+}
+
+var clips=[],ideas=[],picked=-1,script=null;
+
+/* ---- サムネイル ---- */
+function grabThumb(file){
+  return new Promise(function(res){
+    var done=false,v=document.createElement("video"),url=URL.createObjectURL(file);
+    function fin(t,d){if(done)return;done=true;URL.revokeObjectURL(url);res({thumb:t,duration:d||0})}
+    v.preload="metadata";v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.src=url;
+    v.onloadeddata=function(){try{v.currentTime=Math.min(.4,(v.duration||1)/3)}catch(e){fin(null,v.duration)}};
+    v.onseeked=function(){try{var c=document.createElement("canvas"),w=200;c.width=w;c.height=Math.round(w*(v.videoHeight||16)/(v.videoWidth||9));c.getContext("2d").drawImage(v,0,0,c.width,c.height);fin(c.toDataURL("image/jpeg",.72),v.duration)}catch(e){fin(null,v.duration)}};
+    v.onerror=function(){fin(null,0)};
+    setTimeout(function(){fin(null,v.duration||0)},4000);
+  });
+}
+
+function renderClips(){
+  $("#cnt").textContent=clips.length;
+  var box=$("#clips");box.innerHTML="";
+  clips.forEach(function(c,i){
+    var el=document.createElement("div");el.className="clip";
+    el.innerHTML='<div class="thumb"><span class="idx">'+(i+1)+'</span>'+(c.thumb?'<img src="'+c.thumb+'" alt="">':'')+'</div>'+
+      '<div class="meta"><p class="name">'+esc(c.name)+' <em>'+fmt(c.duration)+'</em></p><textarea placeholder="何が映ってる？（例：閉店後の店内をひとりで掃除）"></textarea></div>'+
+      '<div class="tools"><button type="button" data-a="up" aria-label="上へ">↑</button><button type="button" data-a="down" aria-label="下へ">↓</button><button type="button" data-a="del" class="del" aria-label="削除">×</button></div>';
+    var ta=el.querySelector("textarea");ta.value=c.memo||"";
+    ta.addEventListener("input",function(){c.memo=ta.value;autosave()});
+    el.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){
+        var a=b.dataset.a;
+        if(a==="del")clips.splice(i,1);
+        if(a==="up"&&i>0)clips.splice(i-1,0,clips.splice(i,1)[0]);
+        if(a==="down"&&i<clips.length-1)clips.splice(i+1,0,clips.splice(i,1)[0]);
+        renderClips();
+      });
+    });
+    box.appendChild(el);
+  });
+}
+
+$("#picker").addEventListener("change",async function(e){
+  var files=Array.prototype.slice.call(e.target.files||[]);
+  for(var i=0;i<files.length;i++){
+    if(clips.length>=10)break;
+    var t=await grabThumb(files[i]);
+    clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:""});
+    renderClips();
+  }
+  e.target.value="";
+});
+
+/* ---- 設定 ---- */
+function cfg(){return{theme:$("#theme").value.trim()||"この挑戦",who:A(1)||"未設定",tone:A(19)||"まっすぐ・熱量高め",ask:$("#ask").value.trim()||A(14),len:A(18)||"60秒"}}
+function memoList(){return clips.map(function(c,i){return(i+1)+". "+(c.memo||"（メモなし）")+"（"+fmt(c.duration)+"）"}).join("\n")||"（素材未登録）"}
+
+async function callAI(prompt,key){
+  var h={"Content-Type":"application/json"};
+  if(key){h["x-api-key"]=key;h["anthropic-version"]="2023-06-01";h["anthropic-dangerous-direct-browser-access"]="true"}
+  var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:h,body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+  if(!r.ok)throw new Error("API "+r.status);
+  var d=await r.json();
+  var t=(d.content||[]).map(function(x){return x.type==="text"?x.text:""}).join("").replace(/```json|```/g,"").trim();
+  var s=t.indexOf("{"),e=t.lastIndexOf("}");
+  if(s<0||e<0)throw new Error("形式エラー");
+  return JSON.parse(t.slice(s,e+1));
+}
+
+/* ---- 10案 ---- */
+function fallbackIdeas(c){
+  return ANGLES.map(function(a,i){
+    return{kind:a.kind,title:a.ttl.replace(/\{T\}/g,c.theme).replace(/\{N\}/g,"30"),hook:a.hook,lead:a.lead.replace(/\{T\}/g,c.theme).replace(/\{N\}/g,"30")};
+  });
+}
+
+$("#ideaBtn").addEventListener("click",async function(){
+  var msg=$("#ideaMsg");msg.innerHTML="";
+  var c=cfg(),key=$("#key").value.trim();if(key)store("pe_key",key);
+  var b=this;b.disabled=true;b.innerHTML='<span class="spin"></span>案を出しています…';
+  var p="あなたは短尺動画の構成作家です。プロセスエコノミー（過程を見せて応援者を集める）動画の企画案を、切り口を変えて10案出してください。\n\n"+
+    "テーマ: "+c.theme+"\n尺: "+c.len+"\n最後のお願い: "+(c.ask||"未設定")+"\n\n■お金\n"+budgetSheet()+"\n\n■20の質問への回答\n"+answerSheet()+"\n\n手元の素材:\n"+memoList()+"\n\n"+
+    "kindは切り口の名前(6文字以内)、titleは動画タイトル(24文字以内)、hookは狙いの説明(30文字以内)、leadは冒頭1秒のテロップ(14文字以内)。JSONのみ出力:\n"+
+    '{"ideas":[{"kind":"","title":"","hook":"","lead":""}]}';
+  try{
+    var j=await callAI(p,key);
+    ideas=(j.ideas||[]).slice(0,10);
+    if(!ideas.length)throw new Error("形式エラー");
+  }catch(e){
+    ideas=fallbackIdeas(c);
+    msg.innerHTML='<div class="err">AIに接続できなかったので、定番の切り口10案を出しました（'+esc(e.message)+'）。</div>';
+  }
+  b.disabled=false;b.textContent="10案を出しなおす";
+  picked=-1;renderIdeas();
+});
+
+function renderIdeas(){
+  var box=$("#ideas");box.innerHTML="";
+  ideas.forEach(function(it,i){
+    var el=document.createElement("button");
+    el.type="button";el.className="idea"+(picked===i?" on":"");
+    el.innerHTML='<div class="top"><span class="no">'+String(i+1).padStart(2,"0")+'</span><span class="kind">'+esc(it.kind||"案")+'</span></div>'+
+      '<p class="ttl">'+esc(it.title||"")+'</p><p class="hk">'+esc(it.hook||"")+(it.lead?'　／　冒頭「'+esc(it.lead)+'」':'')+'</p>';
+    el.addEventListener("click",function(){picked=i;renderIdeas();$("#expand").disabled=false});
+    box.appendChild(el);
+  });
+  $("#ideaSec").hidden=false;
+  $("#expand").disabled=picked<0;
+  autosave();
+  $("#ideaSec").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ---- 本編展開 ---- */
+function fallbackScript(c,idea){
+  var total=parseInt(c.len,10)||60, per=Math.max(3,Math.round(total/10));
+  var tels={
+    1:idea.lead||("僕は"+c.theme+"に挑みます"),
+    2:(budget.open&&budget.total)?("軍資金は"+yen(budget.total)+"円"):(A(2)?(A(2)+"のスタートです"):"これが今の全部です"),
+    3:A(3)?("理由は"+A(3)+"です"):"どうしてもやりたい理由がある",
+    4:A(4)?("一番の壁は"+A(4)):"正直、ここが一番きつい",
+    5:A(6)||"まずはやってみた",
+    6:A(7)||"結果、だめでした",
+    7:A(8)||"やり方を変えます",
+    8:(budget.open&&budget.rest!==undefined&&budget.total)?("残り"+yen(budget.rest)+"円"):(A(9)?(A(9)+"だけは負けない"):"少しだけ前に進んだ"),
+    9:(c.ask&&c.ask.length<=14?c.ask:"僕に力を貸してください"),
+    10:A(12)?("残り"+A(12)+"、一緒に"):"一緒に見届けてほしい"
+  };
+  var beats=BEATS.map(function(b,i){
+    var cl=clips[i]||null,memo=cl&&cl.memo?cl.memo:"";
+    return{no:b.no,role:b.role,clip:i+1,time:(i*per)+"〜"+((i+1)*per)+"秒",telop:tels[b.no],
+      narration:(memo?memo+"。":"")+b.guide+"。",
+      note:memo?"素材"+(i+1)+"を使用":"撮り足し：「"+b.guide+"」が伝わる画"};
+  });
+  return{title:idea.title,hook:idea.lead||idea.hook,
+    caption:c.theme+"の記録。\n"+idea.hook+(c.ask?"\n"+c.ask:""),
+    tags:["#プロセスエコノミー","#挑戦",A(0)?("#"+A(0)):"#密着","#応援してください"],beats:beats};
+}
+
+$("#expand").addEventListener("click",async function(){
+  if(picked<0)return;
+  var msg=$("#expandMsg");msg.innerHTML="";
+  var c=cfg(),idea=ideas[picked],key=$("#key").value.trim();
+  var b=this;b.disabled=true;b.innerHTML='<span class="spin"></span>台本にしています…';
+  var p="短尺動画の台本を書きます。採用した企画案:\nタイトル「"+idea.title+"」／切り口「"+(idea.kind||"")+"」／狙い「"+(idea.hook||"")+"」\n\n"+
+    "テーマ: "+c.theme+"\n尺: "+c.len+"\n最後のお願い: "+(c.ask||"未設定")+"\n\n■お金\n"+budgetSheet()+"\n\n■20の質問への回答\n"+answerSheet()+"\n\n素材（この順で使う）:\n"+memoList()+"\n\n"+
+    "次の10ステップで1本の縦動画に構成: "+BEATS.map(function(x){return x.no+"."+x.role}).join(" / ")+"\n"+
+    "金額が公開設定のときは、テロップかナレーションに実際の数字を必ず1回以上入れてください。\n"+
+    "telopは画面いっぱいの大文字テロップなので16文字以内。narrationは40文字以内。noteは撮り方指示20文字以内。JSONのみ出力:\n"+
+    '{"title":"","hook":"","caption":"","tags":["#"],"beats":[{"no":1,"role":"宣言","clip":1,"time":"0〜5秒","telop":"","narration":"","note":""}]}';
+  try{
+    var j=await callAI(p,key);
+    if(!j.beats||!j.beats.length)throw new Error("形式エラー");
+    script=j;
+  }catch(e){
+    script=fallbackScript(c,idea);
+    msg.innerHTML='<div class="err">AIに接続できなかったので、テンプレート構成で組みました（'+esc(e.message)+'）。テロップは直接書き換えて使ってください。</div>';
+  }
+  b.disabled=false;b.textContent="この案で台本をつくる";
+  renderResult();
+});
+
+/* ---- 台本表示 ---- */
+var telopSize=21,telopDir="tate";
+function renderResult(){
+  var r=$("#result");r.innerHTML="";
+  var s=document.createElement("div");s.className="summary";
+  s.innerHTML='<p class="ttl">'+esc(script.title)+'</p><p class="hook">冒頭1秒：'+esc(script.hook)+'</p>'+
+    '<p class="cap">'+esc(script.caption||"")+'</p><div class="tags">'+(script.tags||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>'}).join("")+'</div>';
+  r.appendChild(s);
+
+  script.beats.forEach(function(b,i){
+    var c=clips[(b.clip||i+1)-1]||clips[i]||{};
+    var el=document.createElement("div");el.className="beat";
+    el.innerHTML='<button type="button" class="bar"><span class="no">'+String(b.no||i+1).padStart(2,"0")+'</span>'+
+      '<span><span class="role">'+esc(b.role||"")+'</span><br><span class="tel">'+esc(b.telop||"")+'</span></span><span class="time">'+esc(b.time||"")+'</span></button>'+
+      '<div class="body"><dl><dt>使う素材</dt><dd>'+esc(c.name?("#"+(b.clip||i+1)+" "+c.name):"未割り当て（撮り足し）")+'</dd>'+
+      '<dt>ナレーション</dt><dd>'+esc(b.narration||"")+'</dd><dt>撮り方</dt><dd>'+esc(b.note||"")+'</dd></dl>'+
+      '<div class="stage"><img alt="" '+(c.thumb?'src="'+c.thumb+'"':'')+'><div class="telop '+telopDir+'">'+esc(b.telop||"")+'</div></div>'+
+      '<div class="ctrl"><div class="seg"><button type="button" data-d="tate" class="'+(telopDir==="tate"?"on":"")+'">縦</button><button type="button" data-d="yoko" class="'+(telopDir==="yoko"?"on":"")+'">横</button></div>'+
+      '<input type="range" min="10" max="34" value="'+telopSize+'"><span class="sz">'+telopSize+'%</span></div></div>';
+    var bar=el.querySelector(".bar"),stage=el.querySelector(".stage"),telop=el.querySelector(".telop"),range=el.querySelector("input[type=range]"),sz=el.querySelector(".sz");
+    function fit(){telop.style.fontSize=(stage.clientWidth*telopSize/100)+"px"}
+    bar.addEventListener("click",function(){el.classList.toggle("open");if(el.classList.contains("open"))setTimeout(fit,0)});
+    range.addEventListener("input",function(){telopSize=+range.value;sz.textContent=telopSize+"%";fit()});
+    el.querySelectorAll(".seg button").forEach(function(bt){bt.addEventListener("click",function(){telopDir=bt.dataset.d;telop.className="telop "+telopDir;el.querySelectorAll(".seg button").forEach(function(x){x.classList.toggle("on",x.dataset.d===telopDir)});fit()})});
+    window.addEventListener("resize",function(){if(el.classList.contains("open"))fit()});
+    r.appendChild(el);
+  });
+  $("#out").hidden=false;
+  autosave();
+  $("#out").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function asText(){
+  var t="■ "+script.title+"\n冒頭1秒："+script.hook+"\n\n";
+  script.beats.forEach(function(b,i){
+    t+="["+(b.no||i+1)+"] "+(b.role||"")+"　"+(b.time||"")+"　素材#"+(b.clip||i+1)+"\n";
+    t+="テロップ："+(b.telop||"")+"\nナレ　　："+(b.narration||"")+"\n撮り方　："+(b.note||"")+"\n\n";
+  });
+  if(budget.total||budget.out){t+="―― お金 ――\n"+budgetSheet()+"\n\n"}
+  return t+"―― 投稿キャプション ――\n"+(script.caption||"")+"\n"+(script.tags||[]).join(" ")+"\n";
+}
+$("#copy").addEventListener("click",function(){
+  if(!script)return;
+  if(navigator.clipboard)navigator.clipboard.writeText(asText()).then(function(){$("#copy").textContent="コピーしました";setTimeout(function(){$("#copy").textContent="台本をコピー"},1600)});
+});
+$("#save").addEventListener("click",function(){
+  if(!script)return;
+  var b=new Blob([asText()],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download=(script.title||"台本")+".txt";a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+});
+
+
+/* ================= 予算 ================= */
+var budget={total:0,open:false,items:[{name:"",amount:0}]};
+function yen(n){return (Math.round(n)||0).toLocaleString("ja-JP")}
+function num(v){return parseInt(String(v).replace(/[^0-9-]/g,""),10)||0}
+
+function renderBudget(){
+  var box=document.getElementById("bitems");box.innerHTML="";
+  budget.items.forEach(function(it,i){
+    var el=document.createElement("div");el.className="bitem";
+    el.innerHTML='<input type="text" placeholder="例：仕入れ／広告費／機材"><input type="text" class="yen" inputmode="numeric" placeholder="0"><button type="button" aria-label="削除">×</button>';
+    var n=el.children[0],a=el.children[1],d=el.children[2];
+    n.value=it.name||"";a.value=it.amount?yen(it.amount):"";
+    n.addEventListener("input",function(){it.name=n.value;autosave()});
+    a.addEventListener("input",function(){it.amount=num(a.value);sumBudget();autosave()});
+    a.addEventListener("blur",function(){a.value=it.amount?yen(it.amount):""});
+    d.addEventListener("click",function(){budget.items.splice(i,1);if(!budget.items.length)budget.items.push({name:"",amount:0});renderBudget();autosave()});
+    box.appendChild(el);
+  });
+  sumBudget();
+}
+function sumBudget(){
+  budget.total=num(document.getElementById("bbudget").value);
+  var out=budget.items.reduce(function(a,b){return a+(b.amount||0)},0);
+  var rest=budget.total-out;
+  document.getElementById("bsumIn").textContent=yen(budget.total);
+  document.getElementById("bsumOut").textContent=yen(out);
+  document.getElementById("brest").textContent=yen(rest);
+  document.getElementById("brestRow").classList.toggle("minus",rest<0);
+  budget.out=out;budget.rest=rest;
+}
+function budgetSheet(){
+  if(!budget.open)return "金額は非公開（数字は台本に出さない）";
+  var l=["使える金額 "+yen(budget.total)+"円"];
+  budget.items.filter(function(i){return i.name||i.amount}).forEach(function(i){l.push((i.name||"項目")+" "+yen(i.amount)+"円")});
+  l.push("残り "+yen(budget.rest||0)+"円");
+  return l.join(" / ");
+}
+document.getElementById("badd").addEventListener("click",function(){budget.items.push({name:"",amount:0});renderBudget();autosave()});
+document.getElementById("bbudget").addEventListener("input",function(){sumBudget();autosave()});
+document.getElementById("bbudget").addEventListener("blur",function(){this.value=budget.total?yen(budget.total):""});
+document.getElementById("bopen").addEventListener("change",function(){budget.open=this.checked;autosave()});
+
+/* ================= プロジェクト保存 ================= */
+var DBKEY="pe_projects", curId=null, saveTimer=null;
+function loadDB(){try{return JSON.parse(store(DBKEY)||"[]")}catch(e){return[]}}
+function saveDB(a){store(DBKEY,JSON.stringify(a))}
+function uid(){return "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+function collect(){
+  return{
+    id:curId||uid(),
+    name:$("#pname").value.trim()||($("#theme").value.trim()||"名称未設定"),
+    updated:new Date().toISOString(),
+    theme:$("#theme").value,
+    ask:$("#ask").value,
+    ans:ans.slice(),
+    clips:clips.map(function(c){return{name:c.name,thumb:c.thumb,duration:c.duration,memo:c.memo}}),
+    budget:{total:budget.total,open:budget.open,items:budget.items.slice()},
+    ideas:ideas,picked:picked,script:script
+  };
+}
+function apply(p){
+  curId=p.id;
+  $("#pname").value=p.name||"";
+  $("#theme").value=p.theme||"";
+  $("#ask").value=p.ask||"";
+  ans=(p.ans&&p.ans.length===20)?p.ans.slice():new Array(20).fill(null);
+  clips=(p.clips||[]).slice();
+  ideas=p.ideas||[];picked=(typeof p.picked==="number")?p.picked:-1;script=p.script||null;
+  var b=p.budget||{};
+  budget={total:b.total||0,open:!!b.open,items:(b.items&&b.items.length)?b.items.slice():[{name:"",amount:0}]};
+  $("#bbudget").value=budget.total?yen(budget.total):"";
+  $("#bopen").checked=budget.open;
+  renderBudget();
+  renderQ();renderClips();
+  if(ideas.length)renderIdeas();else $("#ideaSec").hidden=true;
+  if(script)renderResult();else $("#out").hidden=true;
+}
+function refreshList(){
+  var db=loadDB(),sel=$("#plist");
+  sel.innerHTML='<option value="">保存済みを選ぶ（'+db.length+'件）</option>';
+  db.sort(function(a,b){return (b.updated||"").localeCompare(a.updated||"")});
+  db.forEach(function(p){
+    var o=document.createElement("option");o.value=p.id;
+    o.textContent=p.name+"（"+(p.updated||"").slice(5,10).replace("-","/")+"）";
+    if(p.id===curId)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+function msg(t){var m=$("#pmsg");m.textContent=t;clearTimeout(msg._t);msg._t=setTimeout(function(){m.textContent=""},2200)}
+
+function doSave(silent){
+  var db=loadDB(),p=collect();
+  var i=db.findIndex(function(x){return x.id===p.id});
+  if(i>=0)db[i]=p;else db.push(p);
+  try{saveDB(db);curId=p.id;refreshList();if(typeof ghAutoPush==="function")ghAutoPush();if(!silent)msg("「"+p.name+"」を保存しました");}
+  catch(e){if(!silent)msg("保存できませんでした（容量オーバーの可能性）")}
+}
+function autosave(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){if(curId)doSave(true)},900)}
+
+$("#psave").addEventListener("click",function(){doSave(false)});
+$("#popen").addEventListener("click",function(){
+  var id=$("#plist").value;if(!id)return;
+  var p=loadDB().filter(function(x){return x.id===id})[0];
+  if(p){apply(p);msg("「"+p.name+"」を開きました");window.scrollTo({top:0,behavior:"smooth"})}
+});
+$("#pdel").addEventListener("click",function(){
+  var id=$("#plist").value;if(!id)return;
+  var db=loadDB().filter(function(x){return x.id!==id});
+  saveDB(db);if(curId===id)curId=null;refreshList();msg("削除しました");
+});
+$("#pexport").addEventListener("click",function(){
+  var p=collect(),b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download=(p.name||"project")+".json";a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+});
+$("#pimport").addEventListener("click",function(){$("#pfile").click()});
+$("#pfile").addEventListener("change",function(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{var p=JSON.parse(r.result);p.id=p.id||uid();apply(p);doSave(true);msg("読み込みました")}
+    catch(err){msg("このファイルは読み込めません")}
+  };
+  r.readAsText(f);e.target.value="";
+});
+["#theme","#ask","#pname"].forEach(function(sel){document.querySelector(sel).addEventListener("input",autosave)});
+
+
+/* ================= GitHub 保存 ================= */
+var GH={token:"",repo:"RPG-ENTERTAINMENT/talent-app-data",path:"data/process.json",auto:false},ghTimer=null,ghSyncing=false;
+function ghLoadCfg(){
+  try{var o=JSON.parse(store("pe_gh")||"{}");GH.token=o.token||"";GH.repo=o.repo||GH.repo;GH.path=o.path||GH.path;GH.auto=!!o.auto;}catch(e){}
+  $("#ghtoken").value=GH.token;$("#ghrepo").value=GH.repo;$("#ghpath").value=GH.path;$("#ghauto").checked=GH.auto;
+  ghDot(GH.token?"":"none");
+}
+function ghSaveCfg(){
+  GH.token=$("#ghtoken").value.trim();
+  GH.repo=$("#ghrepo").value.trim()||"RPG-ENTERTAINMENT/talent-app-data";
+  GH.path=$("#ghpath").value.trim()||"data/process.json";
+  GH.auto=$("#ghauto").checked;
+  store("pe_gh",JSON.stringify(GH));
+}
+function ghDot(state){
+  var d=$("#ghdot");d.className="dot"+(state==="ok"?" ok":state==="ng"?" ng":"");
+}
+function ghMsg(t){$("#ghmsg").textContent=t}
+function b64enc(str){
+  var b=new TextEncoder().encode(str),s="";
+  for(var i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));
+  return btoa(s);
+}
+function b64dec(str){
+  var raw=atob(String(str).replace(/\s/g,""));
+  var a=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);
+  return new TextDecoder().decode(a);
+}
+function ghUrl(){return "https://api.github.com/repos/"+GH.repo+"/contents/"+GH.path}
+function ghHead(){return {Authorization:"Bearer "+GH.token,Accept:"application/vnd.github+json","Content-Type":"application/json"}}
+
+async function ghFetchFile(){
+  var r=await fetch(ghUrl()+"?ref=HEAD&t="+Date.now(),{headers:ghHead()});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error("GitHub "+r.status);
+  var j=await r.json();
+  return {sha:j.sha,data:JSON.parse(b64dec(j.content||""))};
+}
+function mergeDB(local,remote){
+  var map={};
+  (remote||[]).concat(local||[]).forEach(function(p){
+    if(!p||!p.id)return;
+    var e=map[p.id];
+    if(!e||(p.updated||"")>(e.updated||""))map[p.id]=p;
+  });
+  return Object.keys(map).map(function(k){return map[k]});
+}
+
+$("#ghup").addEventListener("click",async function(){
+  ghSaveCfg();
+  if(!GH.token){ghMsg("トークンを設定してください");ghDot("ng");return}
+  if(ghSyncing)return;
+  ghSyncing=true;clearTimeout(ghTimer);
+  if(curId||$("#pname").value.trim())doSave(true);
+  var b=this;b.disabled=true;b.innerHTML='<span class="spin"></span>保存中…';
+  try{
+    var cur=null;
+    try{cur=await ghFetchFile()}catch(e){cur=null}
+    var list=mergeDB(loadDB(),cur?cur.data:[]);
+    var body=JSON.stringify(list);
+    if(body.length>900000){
+      list=list.map(function(p){return Object.assign({},p,{clips:(p.clips||[]).map(function(c){return{name:c.name,duration:c.duration,memo:c.memo}})})});
+      body=JSON.stringify(list);
+      ghMsg("容量が大きいためサムネイルを除いて保存します");
+    }
+    var payload={message:"update process "+new Date().toISOString(),content:b64enc(body)};
+    if(cur&&cur.sha)payload.sha=cur.sha;
+    var r=await fetch(ghUrl(),{method:"PUT",headers:ghHead(),body:JSON.stringify(payload)});
+    if(!r.ok)throw new Error("GitHub "+r.status);
+    saveDB(list);refreshList();ghDot("ok");ghMsg("クラウドに保存しました（"+list.length+"件）");
+  }catch(e){ghDot("ng");ghMsg("保存できませんでした："+e.message)}
+  ghSyncing=false;b.disabled=false;b.textContent="クラウドに保存";
+});
+
+$("#ghdown").addEventListener("click",async function(){
+  ghSaveCfg();
+  if(!GH.token){ghMsg("トークンを設定してください");ghDot("ng");return}
+  var b=this;b.disabled=true;b.innerHTML='<span class="spin"></span>読み込み中…';
+  try{
+    var cur=await ghFetchFile();
+    if(!cur){ghDot("ng");ghMsg("クラウドにまだファイルがありません")}
+    else{
+      var list=mergeDB(loadDB(),cur.data);
+      saveDB(list);refreshList();ghDot("ok");
+      ghMsg("クラウドから読み込みました（"+list.length+"件）。下の一覧から開けます");
+    }
+  }catch(e){ghDot("ng");ghMsg("読み込めませんでした："+e.message)}
+  b.disabled=false;b.textContent="クラウドから読み込む";
+});
+["#ghtoken","#ghrepo","#ghpath","#ghauto"].forEach(function(x){document.querySelector(x).addEventListener("change",ghSaveCfg)});
+function ghAutoPush(){
+  if(!GH.auto||!GH.token||ghSyncing)return;
+  clearTimeout(ghTimer);
+  ghTimer=setTimeout(function(){ghMsg("クラウドに同期中…");$("#ghup").click()},4000);
+}
+
+safe(function(){var k=store("pe_key");if(k)$("#key").value=k});
+safe(ghLoadCfg);
+safe(refreshList);
+safe(renderBudget);
+safe(renderQ);
+safe(renderClips);
+</script>
+</body>
+</html>
