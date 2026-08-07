@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:30-->
+<!--build:31-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -206,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v30</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v31</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -299,7 +299,7 @@
   try{ localStorage.removeItem(KEY); }catch(e){}
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=30, lastCheck=0;
+  var BUILD=31, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -467,7 +467,9 @@
       if(remote) remote=normalize(remote);
       if(remote && !dirty && !loaded){ state=remote; }
       else if(remote){ state=normalize(mergeStates(remote,state)); }
+      var wasFirst=!loaded;
       loaded=true;
+      if(wasFirst && fixAllNumbers()){ dirty=true; schedulePush(); }
       var after=JSON.stringify(state);
       var needPush = dirty || !remote || after!==JSON.stringify(remote);
       if(needPush){ await ghPut(state); dirty=false; etag=null; }
@@ -611,6 +613,24 @@
     return monthItems().filter(function(e){ return e.no; })
       .sort(function(a,b){ return a.no-b.no; });
   }
+  function fixNumbers(p,key){
+    var list=itemsOf(p).filter(function(e){ return e.no && e.date.indexOf(key)===0; })
+      .sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1)); });
+    var changed=false, now=Date.now();
+    list.forEach(function(e,i){ if(e.no!==i+1){ e.no=i+1; e.up=now; changed=true; } });
+    return changed;
+  }
+  function fixAllNumbers(){
+    var changed=false;
+    state.pages.forEach(function(p){
+      if(p.del) return;
+      var keys={};
+      itemsOf(p).forEach(function(e){ if(e.no) keys[e.date.slice(0,7)]=1; });
+      Object.keys(keys).forEach(function(k){ if(fixNumbers(p,k)) changed=true; });
+    });
+    return changed;
+  }
+
   function renumber(){
     monthNumbered().slice().sort(function(a,b){
       return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1));
@@ -701,6 +721,7 @@
     var y=view.getFullYear(), m=view.getMonth(), now=new Date();
     document.getElementById("monthLabel").innerHTML=
       y+"年"+(m+1)+"月"+((y===now.getFullYear()&&m===now.getMonth())?'<span class="now">今月</span>':'');
+    if(fixNumbers(state.pages[active],monthKey())) scheduleSave();
     var pl=planOf(state.pages[active],monthKey(),false);
     var last=new Date(y,m+1,0).getDate(), half=Math.ceil(last/2), td=todayISO();
 
