@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:32-->
+<!--build:33-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -206,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v32</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v33</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -299,7 +299,7 @@
   try{ localStorage.removeItem(KEY); }catch(e){}
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=32, lastCheck=0;
+  var BUILD=33, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -469,7 +469,8 @@
       else if(remote){ state=normalize(mergeStates(remote,state)); }
       var wasFirst=!loaded;
       loaded=true;
-      if(wasFirst && fixAllNumbers()){ dirty=true; schedulePush(); }
+      var cleaned=dedupe();
+      if(wasFirst||cleaned){ if(fixAllNumbers()||cleaned){ dirty=true; schedulePush(); } }
       var after=JSON.stringify(state);
       var needPush = dirty || !remote || after!==JSON.stringify(remote);
       if(needPush){ await ghPut(state); dirty=false; etag=null; }
@@ -613,6 +614,29 @@
     return monthItems().filter(function(e){ return e.no; })
       .sort(function(a,b){ return a.no-b.no; });
   }
+  /* 同じ日・同じ本目の重複を1つにまとめる（番号の飛びの原因） */
+  function dedupe(){
+    var changed=false, now=Date.now();
+    function score(x){ return (x.posted?8:0)+(x.made?4:0)+((x.memo||"").trim()?2:0)+(x.no?1:0); }
+    state.pages.forEach(function(p){
+      var seen={};
+      (p.items||[]).forEach(function(e){
+        if(e.del) return;
+        var k=e.date+"#"+(e.slot||1), prev=seen[k];
+        if(!prev){ seen[k]=e; return; }
+        var keep=prev, drop=e;
+        if(score(e)>score(prev)||(score(e)===score(prev)&&(e.up||0)>(prev.up||0))){ keep=e; drop=prev; }
+        keep.made=keep.made||drop.made;
+        keep.posted=keep.posted||drop.posted;
+        if(!(keep.memo||"").trim()&&(drop.memo||"").trim()) keep.memo=drop.memo;
+        if(!keep.no&&drop.no) keep.no=drop.no;
+        keep.up=now; drop.del=true; drop.up=now;
+        seen[k]=keep; changed=true;
+      });
+    });
+    return changed;
+  }
+
   function fixNumbers(p,key){
     var changed=false, now=Date.now(), list=[];
     itemsOf(p).forEach(function(e){
@@ -728,6 +752,7 @@
     var y=view.getFullYear(), m=view.getMonth(), now=new Date();
     document.getElementById("monthLabel").innerHTML=
       y+"年"+(m+1)+"月"+((y===now.getFullYear()&&m===now.getMonth())?'<span class="now">今月</span>':'');
+    if(dedupe()) scheduleSave();
     if(fixNumbers(state.pages[active],monthKey())) scheduleSave();
     var pl=planOf(state.pages[active],monthKey(),false);
     var last=new Date(y,m+1,0).getDate(), half=Math.ceil(last/2), td=todayISO();
