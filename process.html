@@ -36,6 +36,7 @@ header .wrap{padding:0}
 .markrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mark{display:inline-block;background:var(--ink);color:#fff;font-size:11px;font-weight:900;letter-spacing:.18em;padding:5px 10px;border-radius:3px}
 .ver.reload{cursor:pointer;color:var(--blue);border-color:#C9D6F5;background:#EEF3FF}
+.ver.reload{cursor:pointer;color:var(--blue);border-color:#C9D6F5;background:#EEF3FF}
 .ver{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--dim);background:#EEF1F7;border:1px solid var(--line);padding:4px 8px;border-radius:20px}
 h1{font-size:25px;font-weight:900;line-height:1.35;margin:12px 0 8px;letter-spacing:-.01em}
 h1 em{font-style:normal;background:linear-gradient(transparent 58%,var(--yellow) 58%);padding:0 2px}
@@ -81,7 +82,7 @@ button{font-family:inherit;cursor:pointer;border:0}
 
 .clip{display:grid;grid-template-columns:54px 1fr auto;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
 .thumb{width:54px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#DDE3ED;position:relative}
-.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb img,.thumb video{width:100%;height:100%;object-fit:cover;display:block;background:#DDE3ED}
 .thumb .nothumb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#8A95AA}
 .thumb .idx{position:absolute;top:3px;left:3px;background:var(--yellow);color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 4px;border-radius:2px}
 .clip .name{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 6px}
@@ -122,7 +123,7 @@ button{font-family:inherit;cursor:pointer;border:0}
 .beat dd{margin:0}
 
 .stage{position:relative;width:100%;max-width:290px;aspect-ratio:9/16;margin:14px auto 0;border-radius:12px;overflow:hidden;background:#111}
-.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage img,.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .stage .telop{position:absolute;inset:14px 12px;font-weight:900;color:#fff;line-height:1.02;letter-spacing:.01em;display:flex;text-shadow:0 0 7px rgba(0,0,0,.6),0 2px 12px rgba(0,0,0,.5)}
 .stage .telop.tate{writing-mode:vertical-rl;text-orientation:upright}
 .stage .telop.yoko{flex-wrap:wrap}
@@ -224,7 +225,7 @@ details.adv .card{margin-top:10px}
 .strip .track{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
 .cellwrap{flex:0 0 auto;width:66px}
 .cell{width:66px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#E7ECF5;position:relative;border:1.5px solid var(--line)}
-.cell img{width:100%;height:100%;object-fit:cover;display:block}
+.cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block}
 .cell .bno{position:absolute;top:3px;left:3px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 4px;border-radius:2px}
 .cell.empty{border-style:dashed;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:10px;font-weight:900;text-align:center;padding:4px}
 .cellwrap .lb{font-size:10px;color:var(--dim);text-align:center;margin-top:4px;line-height:1.3}
@@ -246,7 +247,7 @@ section.closed{margin-bottom:-10px}
 
 <header>
   <div class="wrap">
-    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.2.0</span></div>
+    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.3.3</span><button type="button" class="ver reload" id="reload">最新に更新</button></div>
     <h1>10本の素材から、<br><em>応援される1本</em>の台本へ。</h1>
     <p class="lede">台本の案を10通り出して、選んだ1案を本編の構成・テロップ・ナレーションまで書き起こします。</p>
   </div>
@@ -360,7 +361,7 @@ section.closed{margin-bottom:-10px}
 
   <section>
     <div class="head"><span class="num">03</span><h2>動画を10本入れる</h2></div>
-    <p class="hint">1本ずつ「何が映っているか」を一言メモすると精度が上がります。順番は↑↓で入れ替えできます。</p>
+    <p class="hint">新しく入れた動画は一番上に並びます。1本ずつ「何が映っているか」を一言メモすると精度が上がり、順番は↑↓で入れ替えできます。</p>
     <label class="drop" for="picker">
       <b>動画を選ぶ</b>
       <span>最大10本／カメラロールから複数選択できます</span>
@@ -421,7 +422,7 @@ section.closed{margin-bottom:-10px}
 
 <script>
 "use strict";
-var APP_VERSION="1.2.0";
+var APP_VERSION="1.3.3";
 var mem={};
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){if(v===undefined)return mem[k]||null;mem[k]=v;}}
 window.addEventListener("error",function(e){if(e&&e.preventDefault)e.preventDefault();return true},true);
@@ -596,12 +597,22 @@ function grabThumb(file){
   });
 }
 
+function clipURL(c){
+  if(!c.url&&c.file){try{c.url=URL.createObjectURL(c.file)}catch(e){}}
+  return c.url||"";
+}
+function mediaHTML(c){
+  if(c&&c.thumb)return '<img src="'+c.thumb+'" alt="">';
+  var u=c?clipURL(c):"";
+  if(u)return '<video src="'+u+'#t=0.4" muted playsinline webkit-playsinline preload="auto"></video>';
+  return '<span class="nothumb">動画</span>';
+}
 function renderClips(){
   $("#cnt").textContent=clips.length;
   var box=$("#clips");box.innerHTML="";
   clips.forEach(function(c,i){
     var el=document.createElement("div");el.className="clip";
-    el.innerHTML='<div class="thumb"><span class="idx">'+(i+1)+'</span>'+(c.thumb?'<img src="'+c.thumb+'" alt="">':'<span class="nothumb">動画</span>')+'</div>'+
+    el.innerHTML='<div class="thumb"><span class="idx">'+(i+1)+'</span>'+mediaHTML(c)+'</div>'+
       '<div class="meta"><p class="name">'+esc(c.name)+' <em>'+fmt(c.duration)+'</em></p><textarea placeholder="何が映ってる？（例：閉店後の店内をひとりで掃除）"></textarea></div>'+
       '<div class="tools"><button type="button" data-a="up" aria-label="上へ">↑</button><button type="button" data-a="down" aria-label="下へ">↓</button><button type="button" data-a="del" class="del" aria-label="削除">×</button></div>';
     var ta=el.querySelector("textarea");ta.value=c.memo||"";
@@ -609,7 +620,7 @@ function renderClips(){
     el.querySelectorAll("button").forEach(function(b){
       b.addEventListener("click",function(){
         var a=b.dataset.a;
-        if(a==="del")clips.splice(i,1);
+        if(a==="del"){if(c.url)try{URL.revokeObjectURL(c.url)}catch(e){};clips.splice(i,1)}
         if(a==="up"&&i>0)clips.splice(i-1,0,clips.splice(i,1)[0]);
         if(a==="down"&&i<clips.length-1)clips.splice(i+1,0,clips.splice(i,1)[0]);
         renderClips();
@@ -630,7 +641,7 @@ $("#picker").addEventListener("change",async function(e){
     st.textContent=pc+"%　"+label;
   }
   prog(0,"読み込み中 0/"+files.length);
-  var relinked=0;
+  var relinked=0,added=0;
   for(var i=0;i<files.length;i++){
     prog(i,"解析中 "+(i+1)+"/"+files.length+"　"+files[i].name);
     var t=await grabThumb(files[i]);
@@ -642,7 +653,8 @@ $("#picker").addEventListener("change",async function(e){
       if(t.subj)ex.subj=t.subj;
       if(t.duration)ex.duration=t.duration;
     }else if(clips.length<10){
-      clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:"",subj:t.subj,file:files[i]});
+      clips.splice(added,0,{name:files[i].name,thumb:t.thumb,duration:t.duration,memo:"",subj:t.subj,file:files[i]});
+      added++;
     }
     renderClips();
     prog(i+1,(i+1)+"/"+files.length+" 完了");
@@ -650,6 +662,7 @@ $("#picker").addEventListener("change",async function(e){
   var ng=clips.filter(function(c){return !c.thumb&&!c.file}).length;
   st.textContent="100%　完了"+(relinked?("（"+relinked+"本を保存済みの素材に自動で割り当てました）"):"")+(ng?("／"+ng+"本は表示できませんでした"):"");
   setTimeout(function(){box.hidden=true;bar.style.width="0%"},ng?6000:1800);
+  if(added){var lst=$("#clips");if(lst&&lst.firstElementChild)lst.firstElementChild.scrollIntoView({behavior:"smooth",block:"center"})}
   e.target.value="";
 });
 
@@ -789,7 +802,7 @@ function renderResult(){
   var cells=script.beats.map(function(b,i){
     var c=b.clip?clips[b.clip-1]:null;
     return '<div class="cellwrap"><div class="cell'+(c?'':' empty')+'">'+
-      (c&&c.thumb?'<img src="'+c.thumb+'" alt="">':(c?'':'撮り足し'))+
+      (c?mediaHTML(c):'撮り足し')+
       '<span class="bno">'+String(b.no||i+1).padStart(2,"0")+'</span></div>'+
       '<p class="src">'+(b.clip?("#"+b.clip):"—")+'</p>'+
       '<p class="lb">'+esc(b.role||"")+'</p></div>';
@@ -818,7 +831,7 @@ function renderResult(){
         '<button type="button" data-n="del">削除</button>'+
         '<button type="button" data-n="tts">読み上げ</button>'+
         '<span class="narst"></span></div>'+
-      '<div class="stage"><img alt="" '+(c.thumb?'src="'+c.thumb+'"':'')+'><div class="telop '+telopDir+' pos-'+posOf(c)+'">'+esc(b.telop||"")+'</div></div>'+
+      '<div class="stage">'+(c&&(c.thumb||c.file)?mediaHTML(c):'')+'<div class="telop '+telopDir+' '+posCls(c)+'">'+esc(b.telop||"")+'</div></div>'+
       '<div class="ctrl"><div class="seg"><button type="button" data-d="tate" class="'+(telopDir==="tate"?"on":"")+'">縦</button><button type="button" data-d="yoko" class="'+(telopDir==="yoko"?"on":"")+'">横</button></div>'+
       '<input type="range" min="10" max="34" value="'+telopSize+'"><span class="sz">'+telopSize+'%</span></div>'+
       '<div class="ctrl"><div class="seg posseg">'+
@@ -1377,6 +1390,10 @@ safe(function(){
   if(b)b.addEventListener("click",function(){
     location.replace(location.pathname+"?v="+Date.now());
   });
+});
+safe(function(){
+  var b=document.getElementById("reload");
+  if(b)b.addEventListener("click",function(){location.replace(location.pathname+"?v="+Date.now())});
 });
 safe(ghLoadCfg);
 safe(refreshList);
