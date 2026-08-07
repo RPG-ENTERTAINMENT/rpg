@@ -116,6 +116,13 @@ button{font-family:inherit;cursor:pointer;border:0}
 .stage .telop.tate.pos-right{justify-content:flex-end}
 .stage .telop.yoko.pos-top{align-items:flex-start}
 .stage .telop.yoko.pos-bottom{align-items:flex-end}
+.exp{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+.exp h3{font-size:15px;font-weight:900;margin:0 0 4px}
+.exp p.sub{font-size:12px;color:var(--dim);margin:0 0 12px}
+.exp .bar2{height:8px;background:#E3E8F2;border-radius:20px;overflow:hidden;margin-top:12px;display:none}
+.exp .bar2 i{display:block;height:100%;width:0;background:var(--ink);border-radius:20px;transition:width .3s}
+.exp video{width:100%;max-width:290px;display:block;margin:14px auto 0;border-radius:12px;background:#000}
+.exp .st{font-size:13px;font-weight:700;color:var(--blue);margin-top:10px;min-height:1em}
 .poslabel{font-size:11px;color:var(--dim);text-align:center;margin:6px 0 0}
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--dim)}
 .ctrl input[type=range]{flex:1;accent-color:var(--ink)}
@@ -361,6 +368,15 @@ details.adv .card{margin-top:10px}
       <button class="btn ghost" id="copy">台本をコピー</button>
       <button class="btn ghost" id="save">テキストで保存</button>
     </div>
+    <div class="exp">
+      <h3>合わせた動画をつくる</h3>
+      <p class="sub">並び順どおりに素材をつなぎ、テロップを焼き込んで1本に書き出します。</p>
+      <button class="btn yellow" id="mk">動画をつくる</button>
+      <div class="bar2" id="mkbar"><i></i></div>
+      <p class="st" id="mkst"></p>
+      <video id="mkout" controls playsinline hidden></video>
+      <p class="note">端末の中だけで処理します。素材を選び直した直後でないと書き出せません（保存から開いた場合は動画をもう一度選んでください）。長押しか共有ボタンからカメラロールに保存できます。</p>
+    </div>
   </section>
 
 </div>
@@ -500,7 +516,7 @@ $("#picker").addEventListener("change",async function(e){
   for(var i=0;i<files.length;i++){
     if(clips.length>=10)break;
     var t=await grabThumb(files[i]);
-    clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:"",subj:t.subj});
+    clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:"",subj:t.subj,file:files[i]});
     renderClips();
   }
   e.target.value="";
@@ -693,6 +709,139 @@ function renderResult(){
   autosave();
   $("#out").scrollIntoView({behavior:"smooth",block:"start"});
 }
+
+
+/* ================= 動画書き出し ================= */
+var VW=720,VH=1280;
+function beatSec(b,i){
+  var m=String(b.time||"").match(/\d+/g);
+  if(m&&m.length>=2){var d=parseInt(m[1],10)-parseInt(m[0],10);if(d>0&&d<60)return d}
+  return 3;
+}
+function pickMime(){
+  var list=['video/mp4;codecs="avc1.42E01E,mp4a.40.2"','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  for(var i=0;i<list.length;i++){try{if(window.MediaRecorder&&MediaRecorder.isTypeSupported(list[i]))return list[i]}catch(e){}}
+  return "";
+}
+function drawCover(cx,v){
+  var cw=VW,ch=VH,vw=v.videoWidth||9,vh=v.videoHeight||16;
+  var sc=Math.max(cw/vw,ch/vh),w=vw*sc,h=vh*sc;
+  cx.drawImage(v,(cw-w)/2,(ch-h)/2,w,h);
+}
+function drawTelop(cx,text,dir,pos){
+  if(!text)return;
+  var fs=Math.round(VW*telopSize/100),pad=Math.round(VW*0.04);
+  cx.save();
+  cx.font='900 '+fs+'px "Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif';
+  cx.fillStyle="#fff";cx.shadowColor="rgba(0,0,0,.65)";cx.shadowBlur=Math.round(fs*0.22);
+  cx.textBaseline="alphabetic";
+  if(dir==="tate"){
+    var per=Math.max(1,Math.floor((VH-pad*2)/(fs*1.02))),cols=[],i;
+    for(i=0;i<text.length;i+=per)cols.push(text.slice(i,i+per));
+    cx.textAlign="center";
+    cols.forEach(function(col,ci){
+      var x=(pos==="left")?(pad+fs/2+ci*fs*1.04):(VW-pad-fs/2-ci*fs*1.04);
+      for(var k=0;k<col.length;k++){
+        var y=pad+fs*0.86+k*fs*1.02;
+        cx.fillText(col[k],x,y);
+      }
+    });
+  }else{
+    cx.textAlign="left";
+    var maxw=VW-pad*2,lines=[],cur="";
+    for(var j=0;j<text.length;j++){
+      var t=cur+text[j];
+      if(cx.measureText(t).width>maxw&&cur){lines.push(cur);cur=text[j]}else cur=t;
+    }
+    if(cur)lines.push(cur);
+    var top=(pos==="bottom")?(VH-pad-lines.length*fs*1.12):(pad+fs);
+    lines.forEach(function(ln,li){cx.fillText(ln,pad,top+li*fs*1.12)});
+  }
+  cx.restore();
+}
+function mkst(t){$("#mkst").textContent=t}
+function mkprog(v){var b=$("#mkbar");b.style.display="block";b.firstElementChild.style.width=(v*100)+"%"}
+
+$("#mk").addEventListener("click",async function(){
+  if(!script||!script.beats){mkst("先に台本をつくってください");return}
+  var mime=pickMime();
+  if(!window.MediaRecorder||!mime){mkst("この端末では書き出しに対応していません（Safariを最新にしてください）");return}
+  var need=script.beats.filter(function(b){return b.clip&&!(clips[b.clip-1]&&clips[b.clip-1].file)});
+  if(need.length){mkst("動画ファイルが読み込まれていません。02で素材を選び直してください");return}
+
+  var btn=this;btn.disabled=true;btn.innerHTML='<span class="spin"></span>書き出し中…';
+  $("#mkout").hidden=true;
+  var cv=document.createElement("canvas");cv.width=VW;cv.height=VH;
+  var cx=cv.getContext("2d");
+  var v=document.createElement("video");
+  v.playsInline=true;v.setAttribute("playsinline","");v.crossOrigin="anonymous";
+  var stream=cv.captureStream(30),ac=null,dest=null;
+  try{
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    await ac.resume();
+    dest=ac.createMediaStreamDestination();
+    ac.createMediaElementSource(v).connect(dest);
+    dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)});
+  }catch(e){}
+  var rec=new MediaRecorder(stream,{mimeType:mime}),chunks=[];
+  rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+  var doneP=new Promise(function(res){rec.onstop=res});
+  rec.start();
+
+  function paintFrame(b,src){
+    cx.fillStyle="#000";cx.fillRect(0,0,VW,VH);
+    if(src)drawCover(cx,v);
+    drawTelop(cx,b.telop||"",telopDir,src?posOf(src):(telopDir==="tate"?"right":"top"));
+  }
+  function hold(b,ms){
+    return new Promise(function(res){
+      var t0=performance.now();
+      (function loop(){
+        paintFrame(b,null);
+        if(performance.now()-t0>=ms)return res();
+        requestAnimationFrame(loop);
+      })();
+    });
+  }
+  function playClip(b,c,sec){
+    return new Promise(function(res){
+      var url=URL.createObjectURL(c.file),ended=false;
+      function fin(){if(ended)return;ended=true;try{v.pause()}catch(e){};URL.revokeObjectURL(url);res()}
+      v.src=url;v.muted=false;v.volume=1;
+      v.onloadeddata=function(){
+        try{v.currentTime=0}catch(e){}
+        v.play().catch(function(){});
+        var t0=performance.now();
+        (function loop(){
+          if(ended)return;
+          paintFrame(b,c);
+          if(performance.now()-t0>=sec*1000||v.ended)return fin();
+          requestAnimationFrame(loop);
+        })();
+      };
+      v.onerror=function(){fin()};
+      setTimeout(fin,(sec+6)*1000);
+    });
+  }
+
+  for(var i=0;i<script.beats.length;i++){
+    var b=script.beats[i],c=b.clip?clips[b.clip-1]:null,sec=beatSec(b,i);
+    mkst((i+1)+"/"+script.beats.length+"　"+(b.role||""));
+    mkprog(i/script.beats.length);
+    if(c)await playClip(b,c,sec);
+    else await hold(b,Math.min(sec,3)*1000);
+  }
+  mkprog(1);
+  rec.stop();
+  await doneP;
+  try{if(ac)ac.close()}catch(e){}
+  var blob=new Blob(chunks,{type:mime.split(";")[0]});
+  var url=URL.createObjectURL(blob);
+  var out=$("#mkout");out.src=url;out.hidden=false;
+  var a=document.createElement("a");a.href=url;a.download=(script.title||"movie")+(mime.indexOf("mp4")>=0?".mp4":".webm");a.click();
+  mkst("できました（"+Math.round(blob.size/1024/1024*10)/10+"MB）。下のプレビューを長押しで保存できます");
+  btn.disabled=false;btn.textContent="動画をつくる";
+});
 
 function asText(){
   var t="■ "+script.title+"\n冒頭1秒："+script.hook+"\n\n";
