@@ -30,7 +30,9 @@ body{
 
 header{background:var(--card);border-bottom:1px solid var(--line);padding:30px 18px 26px}
 header .wrap{padding:0}
+.markrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mark{display:inline-block;background:var(--ink);color:#fff;font-size:11px;font-weight:900;letter-spacing:.18em;padding:5px 10px;border-radius:3px}
+.ver{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--dim);background:#EEF1F7;border:1px solid var(--line);padding:4px 8px;border-radius:20px}
 h1{font-size:30px;font-weight:900;line-height:1.35;margin:16px 0 10px;letter-spacing:-.01em}
 h1 em{font-style:normal;background:linear-gradient(transparent 58%,var(--yellow) 58%);padding:0 2px}
 .lede{color:var(--dim);font-size:14px;margin:0}
@@ -223,7 +225,7 @@ details.adv .card{margin-top:10px}
 
 <header>
   <div class="wrap">
-    <div class="mark">PROCESS ECONOMY</div>
+    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.0.0</span></div>
     <h1>10本の素材から、<br><em>応援される1本</em>の台本へ。</h1>
     <p class="lede">台本の案を10通り出して、選んだ1案を本編の構成・テロップ・ナレーションまで書き起こします。</p>
   </div>
@@ -394,6 +396,7 @@ details.adv .card{margin-top:10px}
 
 <script>
 "use strict";
+var APP_VERSION="1.0.0";
 var mem={};
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){if(v===undefined)return mem[k]||null;mem[k]=v;}}
 window.addEventListener("error",function(e){if(e&&e.preventDefault)e.preventDefault();return true},true);
@@ -1089,6 +1092,7 @@ function collect(){
     id:curId||uid(),
     name:$("#pname").value.trim()||($("#theme").value.trim()||"名称未設定"),
     updated:new Date().toISOString(),
+    ver:APP_VERSION,
     theme:$("#theme").value,
     ask:$("#ask").value,
     ans:ans.slice(),
@@ -1281,6 +1285,7 @@ function ghAutoPush(){
 }
 
 safe(function(){var k=store("pe_key");if(k)$("#key").value=k});
+safe(function(){var e=document.getElementById("ver");if(e)e.textContent="v"+APP_VERSION});
 safe(ghLoadCfg);
 safe(refreshList);
 safe(renderBudget);
