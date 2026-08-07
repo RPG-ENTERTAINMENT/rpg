@@ -68,12 +68,17 @@ button{font-family:inherit;cursor:pointer;border:0}
 .drop{display:block;border:2px dashed #C3CCDC;border-radius:12px;padding:20px 14px;text-align:center;background:#fff}
 .drop b{display:block;font-size:16px;font-weight:900;margin-bottom:4px}
 .drop span{color:var(--dim);font-size:13px}
+.imp{margin:12px 0 4px}
+.bar3{height:10px;background:#E3E8F2;border-radius:20px;overflow:hidden}
+.bar3 i{display:block;height:100%;width:0;background:#E5002D;border-radius:20px;transition:width .2s}
+.impst{font-size:12px;font-weight:700;color:var(--ink);margin:6px 0 0;text-align:right;font-family:var(--mono)}
 .counter{font-family:var(--mono);font-size:13px;color:var(--dim);margin:12px 0 10px;text-align:right}
 .counter b{color:var(--ink);font-size:17px}
 
 .clip{display:grid;grid-template-columns:54px 1fr auto;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
 .thumb{width:54px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:#DDE3ED;position:relative}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .nothumb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#8A95AA}
 .thumb .idx{position:absolute;top:3px;left:3px;background:var(--yellow);color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 4px;border-radius:2px}
 .clip .name{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 6px}
 .clip .name em{font-style:normal;font-family:var(--mono);color:var(--blue)}
@@ -236,7 +241,7 @@ section.closed{margin-bottom:-10px}
 
 <header>
   <div class="wrap">
-    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.1.2</span></div>
+    <div class="markrow"><span class="mark">PROCESS ECONOMY</span><span class="ver" id="ver">v1.2.0</span></div>
     <h1>10本の素材から、<br><em>応援される1本</em>の台本へ。</h1>
     <p class="lede">台本の案を10通り出して、選んだ1案を本編の構成・テロップ・ナレーションまで書き起こします。</p>
   </div>
@@ -356,6 +361,10 @@ section.closed{margin-bottom:-10px}
       <span>最大10本／カメラロールから複数選択できます</span>
     </label>
     <input type="file" id="picker" accept="video/*" multiple hidden>
+    <div class="imp" id="imp" hidden>
+      <div class="bar3"><i id="impbar"></i></div>
+      <p class="impst" id="impst"></p>
+    </div>
     <p class="counter"><b id="cnt">0</b> / 10</p>
     <div id="clips"></div>
   </section>
@@ -407,7 +416,7 @@ section.closed{margin-bottom:-10px}
 
 <script>
 "use strict";
-var APP_VERSION="1.1.2";
+var APP_VERSION="1.2.0";
 var mem={};
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){if(v===undefined)return mem[k]||null;mem[k]=v;}}
 window.addEventListener("error",function(e){if(e&&e.preventDefault)e.preventDefault();return true},true);
@@ -537,37 +546,48 @@ function isFlat(cx,w,h){
 }
 function grabThumb(file){
   return new Promise(function(res){
-    var done=false,tries=0,v=document.createElement("video"),url=URL.createObjectURL(file);
-    function fin(t,d,sj){if(done)return;done=true;try{v.pause()}catch(e){}URL.revokeObjectURL(url);res({thumb:t,duration:d||0,subj:sj||null})}
-    v.preload="auto";v.muted=true;v.defaultMuted=true;v.playsInline=true;
+    var done=false,timer=null,v=document.createElement("video"),url=URL.createObjectURL(file);
+    v.muted=true;v.defaultMuted=true;v.playsInline=true;v.preload="auto";v.loop=true;
     v.setAttribute("muted","");v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
-    v.style.position="fixed";v.style.left="-9999px";v.style.width="1px";v.style.height="1px";
+    v.style.cssText="position:fixed;right:0;bottom:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1";
     document.body.appendChild(v);
-    function cleanup(){try{v.remove()}catch(e){}}
-    function snap(force){
-      if(done)return true;
-      if(!v.videoWidth)return false;
+    function finish(out){
+      if(done)return;done=true;
+      clearInterval(timer);
+      try{v.pause()}catch(e){}
+      try{v.removeAttribute("src");v.load();v.remove()}catch(e){}
+      URL.revokeObjectURL(url);
+      res(out||{thumb:null,duration:0,subj:null});
+    }
+    function trySnap(force){
+      if(!v.videoWidth||!v.videoHeight)return null;
       try{
         var w=200,c=document.createElement("canvas");
         c.width=w;c.height=Math.round(w*v.videoHeight/v.videoWidth)||356;
         var cx=c.getContext("2d");
         cx.drawImage(v,0,0,c.width,c.height);
-        if(!force&&isFlat(cx,c.width,c.height)&&tries<10){tries++;return false}
-        var q=analyzeFrame(cx,c.width,c.height);
-        cleanup();fin(c.toDataURL("image/jpeg",.72),v.duration,q);
-        return true;
-      }catch(e){cleanup();fin(null,v.duration,null);return true}
+        if(!force&&isFlat(cx,c.width,c.height))return null;
+        return {thumb:c.toDataURL("image/jpeg",.72),duration:v.duration||0,subj:analyzeFrame(cx,c.width,c.height)};
+      }catch(e){return null}
     }
-    v.addEventListener("loadeddata",function(){
-      var pr=v.play();
-      if(pr&&pr.catch)pr.catch(function(){try{v.currentTime=Math.min(.3,(v.duration||1)/3)}catch(e){}});
-    });
-    v.addEventListener("timeupdate",function(){if(v.currentTime>0)snap(false)});
-    v.addEventListener("seeked",function(){snap(false)});
-    v.addEventListener("error",function(){cleanup();fin(null,0,null)});
-    setTimeout(function(){if(!done&&!snap(true)){cleanup();fin(null,v.duration||0,null)}},9000);
+    var t0=Date.now(),seeked=false;
+    v.addEventListener("error",function(){finish(null)});
     v.src=url;
-    v.load();
+    try{v.load()}catch(e){}
+    timer=setInterval(function(){
+      if(done)return;
+      if(v.readyState>=2&&v.videoWidth){
+        if(v.paused){
+          var pr=v.play();
+          if(pr&&pr.catch)pr.catch(function(){
+            if(!seeked){seeked=true;try{v.currentTime=Math.min(.3,(v.duration||1)/3)}catch(e){}}
+          });
+        }
+        var r=trySnap(false);
+        if(r)return finish(r);
+      }
+      if(Date.now()-t0>9000)return finish(trySnap(true));
+    },180);
   });
 }
 
@@ -576,7 +596,7 @@ function renderClips(){
   var box=$("#clips");box.innerHTML="";
   clips.forEach(function(c,i){
     var el=document.createElement("div");el.className="clip";
-    el.innerHTML='<div class="thumb"><span class="idx">'+(i+1)+'</span>'+(c.thumb?'<img src="'+c.thumb+'" alt="">':'')+'</div>'+
+    el.innerHTML='<div class="thumb"><span class="idx">'+(i+1)+'</span>'+(c.thumb?'<img src="'+c.thumb+'" alt="">':'<span class="nothumb">動画</span>')+'</div>'+
       '<div class="meta"><p class="name">'+esc(c.name)+' <em>'+fmt(c.duration)+'</em></p><textarea placeholder="何が映ってる？（例：閉店後の店内をひとりで掃除）"></textarea></div>'+
       '<div class="tools"><button type="button" data-a="up" aria-label="上へ">↑</button><button type="button" data-a="down" aria-label="下へ">↓</button><button type="button" data-a="del" class="del" aria-label="削除">×</button></div>';
     var ta=el.querySelector("textarea");ta.value=c.memo||"";
@@ -596,12 +616,27 @@ function renderClips(){
 
 $("#picker").addEventListener("change",async function(e){
   var files=Array.prototype.slice.call(e.target.files||[]);
+  var room=Math.max(0,10-clips.length);
+  files=files.slice(0,room);
+  if(!files.length){e.target.value="";return}
+  var box=$("#imp"),bar=$("#impbar"),st=$("#impst");
+  box.hidden=false;
+  function prog(n,label){
+    var pc=Math.round(n/files.length*100);
+    bar.style.width=pc+"%";
+    st.textContent=pc+"%　"+label;
+  }
+  prog(0,"読み込み中 0/"+files.length);
   for(var i=0;i<files.length;i++){
-    if(clips.length>=10)break;
+    prog(i,"解析中 "+(i+1)+"/"+files.length+"　"+files[i].name);
     var t=await grabThumb(files[i]);
     clips.push({name:files[i].name,thumb:t.thumb,duration:t.duration,memo:"",subj:t.subj,file:files[i]});
     renderClips();
+    prog(i+1,(i+1)+"/"+files.length+" 完了");
   }
+  var ng=clips.filter(function(c){return !c.thumb}).length;
+  st.textContent=ng?("100%　完了（"+ng+"本はサムネイルを作れませんでした。動画自体は使えます）"):"100%　完了";
+  setTimeout(function(){box.hidden=true;bar.style.width="0%"},ng?6000:1800);
   e.target.value="";
 });
 
