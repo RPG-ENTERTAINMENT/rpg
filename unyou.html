@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:26-->
+<!--build:28-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -206,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v26</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v28</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -295,20 +295,11 @@
   var MAXSLOT=4;
   var WD=["日","月","火","水","木","金","土"];
 
-  var store={
-    load:async function(){
-      try{ if(window.storage&&window.storage.get){ var r=await window.storage.get(KEY); return r&&r.value?JSON.parse(r.value):null; } }catch(e){}
-      try{ var s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; }
-    },
-    save:async function(d){
-      var s=JSON.stringify(d);
-      try{ if(window.storage&&window.storage.set){ await window.storage.set(KEY,s); return true; } }catch(e){}
-      try{ localStorage.setItem(KEY,s); return true; }catch(e){ return false; }
-    }
-  };
+  /* データは端末に保存せず、常にオンライン（GitHub）のみ */
+  try{ localStorage.removeItem(KEY); }catch(e){}
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=26, lastCheck=0;
+  var BUILD=28, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -436,6 +427,7 @@
     for(var i=0;i<n;i++){
       var pa=(a&&a.pages&&a.pages[i])||{name:"",nameUp:0,items:[]};
       var pb=(b&&b.pages&&b.pages[i])||{name:"",nameUp:0,items:[]};
+      var pdel=((pa.delUp||0)>(pb.delUp||0))?pa.del:(pb.del!==undefined?pb.del:pa.del);
       var name=((pa.nameUp||0)>(pb.nameUp||0))?pa.name:(pb.name||pa.name);
       var map={};
       (pa.items||[]).forEach(function(e){ map[e.id]=e; });
@@ -477,7 +469,6 @@
       var after=JSON.stringify(state);
       var needPush = dirty || !remote || after!==JSON.stringify(remote);
       if(needPush){ await ghPut(state); dirty=false; etag=null; }
-      try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
       setStatus("同期済み "+hhmm(new Date()));
       if(after!==before||needPush){ renderAll(); if(openDate) renderSheet(); }
     }catch(err){
@@ -639,13 +630,8 @@
 
   function scheduleSave(){
     dirty=true;
-    setStatus(cfgReady()?"同期待ち…":"保存中…");
+    setStatus(cfgReady()?"同期待ち…":"未保存（同期未設定）");
     schedulePush();
-    clearTimeout(saveTimer);
-    saveTimer=setTimeout(async function(){
-      var ok=await store.save(state);
-      if(!cfgReady()) setStatus(ok?"自動保存済み（この端末のみ）":"保存不可");
-    },300);
   }
 
   /* ---------- header ---------- */
@@ -1106,21 +1092,12 @@
   };
 
   (function(){
-    if(location.search.indexOf("reset=1")>=0){
-      try{ localStorage.removeItem(KEY); }catch(e){}
-    }
     loadCfg(); refreshBanner();
-    var saved=null;
-    try{ saved=JSON.parse(localStorage.getItem(KEY)||"null"); }catch(e){}
-    try{ state=normalize(saved); }catch(e){ showError("整形 "+(e&&e.message||e)); state=defaultState(); }
+    state=normalize(null);
     try{ renderAll(); }catch(e){ showError("初期描画 "+(e&&e.message||e)); }
-    setStatus(cfgReady()?"起動OK":"自動保存（この端末のみ）");
+    setStatus(cfgReady()?"読み込み中…":"同期未設定（⚙ 設定から）");
 
-    requestAnimationFrame(function(){ setTimeout(async function(){
-      if(!saved){
-        var s2=await store.load();
-        if(s2&&s2.pages){ state=normalize(s2); renderAll(); }
-      }
+    requestAnimationFrame(function(){ setTimeout(function(){
       checkUpdate();
       if(cfgReady()){
         syncNow(true);
@@ -1136,6 +1113,9 @@
       window.addEventListener("orientationchange",function(){ setTimeout(fitGrid,300); });
       window.addEventListener("pageshow",function(ev){
         if(ev.persisted){ checkUpdate(); if(cfgReady()) syncNow(true); }
+      });
+      window.addEventListener("beforeunload",function(ev){
+        if(dirty){ ev.preventDefault(); ev.returnValue=""; }
       });
     },0); });
   })();
