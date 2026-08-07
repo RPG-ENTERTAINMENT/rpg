@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!--build:28-->
+<!--build:30-->
 <title>動画運用代行スケジュール</title>
 <style>
   :root{
@@ -206,7 +206,7 @@
 
 <header>
   <div class="hrow">
-    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v28</span></h1>
+    <h1 class="title">動画運用代行スケジュール<span style="font-size:9px;opacity:.5;margin-left:6px">v30</span></h1>
     <span class="save-state" id="saveState"></span>
     <button class="gear" id="cfgBtn">⚙ 設定</button>
   </div>
@@ -299,7 +299,7 @@
   try{ localStorage.removeItem(KEY); }catch(e){}
 
   var state=null, active=0, view=new Date(), openDate=null, saveTimer=null;
-  var BUILD=28, lastCheck=0;
+  var BUILD=30, lastCheck=0;
 
   /* ---- 効果音 ---- */
   var SND_KEY="unyou-sound", sndOn=true, actx=null;
@@ -357,7 +357,7 @@
   /* ---- オンライン同期（GitHub） ---- */
   var CFG_KEY="rpg-video-sync-cfg";
   var cfg={repo:"RPG-ENTERTAINMENT/talent-app-data",path:"data/unyou.json",branch:"main",token:""};
-  var sha=null, syncing=false, pushTimer=null, etag=null, dirty=false;
+  var sha=null, syncing=false, pushTimer=null, etag=null, dirty=false, loaded=false;
 
   function loadCfg(){
     try{ var c=JSON.parse(localStorage.getItem(CFG_KEY)||"null"); if(c) cfg=Object.assign(cfg,c); }catch(e){}
@@ -465,7 +465,9 @@
       }
       var before=JSON.stringify(state);
       if(remote) remote=normalize(remote);
-      if(remote) state=normalize(mergeStates(remote,state));
+      if(remote && !dirty && !loaded){ state=remote; }
+      else if(remote){ state=normalize(mergeStates(remote,state)); }
+      loaded=true;
       var after=JSON.stringify(state);
       var needPush = dirty || !remote || after!==JSON.stringify(remote);
       if(needPush){ await ghPut(state); dirty=false; etag=null; }
@@ -610,7 +612,9 @@
       .sort(function(a,b){ return a.no-b.no; });
   }
   function renumber(){
-    monthNumbered().forEach(function(e,i){ if(e.no!==i+1){ e.no=i+1; e.up=Date.now(); } });
+    monthNumbered().slice().sort(function(a,b){
+      return a.date<b.date?-1:(a.date>b.date?1:(a.slot||1)-(b.slot||1));
+    }).forEach(function(e,i){ if(e.no!==i+1){ e.no=i+1; e.up=Date.now(); } });
   }
   function cleanup(){
     var arr=state.pages[active].items;
@@ -624,6 +628,7 @@
       var n=monthNumbered().length;
       if(goal&&n>=goal){ toast("今月の契約本数 "+goal+"本ぶん、すでに日程が決まっています"); cleanup(); return; }
       e.no=n+1; e.up=Date.now();
+      renumber();
     }
     scheduleSave(); renderAll(); if(openDate) renderSheet();
   }
@@ -697,38 +702,54 @@
     document.getElementById("monthLabel").innerHTML=
       y+"年"+(m+1)+"月"+((y===now.getFullYear()&&m===now.getMonth())?'<span class="now">今月</span>':'');
     var pl=planOf(state.pages[active],monthKey(),false);
-    var last=new Date(y,m+1,0).getDate(), half=Math.ceil(last/2);
-    var L=document.getElementById("colL"), R=document.getElementById("colR");
-    L.innerHTML=""; R.innerHTML="";
+    var last=new Date(y,m+1,0).getDate(), half=Math.ceil(last/2), td=todayISO();
+
+    /* その月の予定を一度だけ索引化（日ごとの走査をなくす） */
+    var pre=monthKey(), byDate={};
+    itemsOf(state.pages[active]).forEach(function(e){
+      if(e.date.indexOf(pre)!==0) return;
+      (byDate[e.date]||(byDate[e.date]=[])).push(e);
+    });
+
+    var L=[], R=[];
     for(var d=1; d<=last; d++){
       var date=iso(y,m,d), wd=new Date(y,m,d).getDay();
-      var first=slotItem(date,1,false), extra=dayItems(date).filter(function(e){
-        return (e.slot||1)>1 && used(e); }).length;
-      var cell=document.createElement("div");
-      cell.className="day"+((wd===0||wd===6)?" wk":"")+
+      var list=byDate[date]||[], first=null, extra=0;
+      for(var k=0;k<list.length;k++){
+        var it=list[k];
+        if((it.slot||1)===1) first=it;
+        else if(used(it)) extra++;
+      }
+      var html='<div class="day'+((wd===0||wd===6)?" wk":"")+
         ((date===pl.shoot)?" is-shoot":"")+((date===pl.meet)?" is-meet":"")+
-        ((date===todayISO())?" is-today":"");
-      cell.innerHTML='<button class="dlabel"><span class="dnum">'+p2(d)+'日（'+WD[wd]+'）</span>'+
-        (date===todayISO()?'<span class="today-tag">今日</span>':'')+
+        ((date===td)?" is-today":"")+'">'+
+        '<button class="dlabel" data-date="'+date+'"><span class="dnum">'+p2(d)+'日（'+WD[wd]+'）</span>'+
+        (date===td?'<span class="today-tag">今日</span>':'')+
         (date===pl.shoot?'<span class="shoot-tag">撮影</span>':'')+
         (date===pl.meet?'<span class="meet-tag">打合</span>':'')+
         (extra?'<span class="more">+'+extra+'</span>':'')+'</button>'+
         '<div class="marks">'+
-        '<button class="tg num'+(first&&first.no?" on":"")+'" data-k="no">'+
+        '<button class="tg num'+(first&&first.no?" on":"")+'" data-k="no" data-date="'+date+'">'+
           (first&&first.no?first.no:"＋")+'</button>'+
-        '<button class="tg made'+(first&&first.made?" on":"")+'" data-k="made">制</button>'+
-        '<button class="tg posted'+(first&&first.posted?" on":"")+'" data-k="posted">投</button></div>';
-      (function(dt){
-        cell.querySelector(".dlabel").onclick=function(){ openSheet(dt); };
-        Array.prototype.forEach.call(cell.querySelectorAll(".tg"),function(btn){
-          btn.onclick=function(){
-            if(btn.dataset.k==="no") toggleNo(dt); else toggle(dt,1,btn.dataset.k);
-          };
-        });
-      })(date);
-      (d<=half?L:R).appendChild(cell);
+        '<button class="tg made'+(first&&first.made?" on":"")+'" data-k="made" data-date="'+date+'">制</button>'+
+        '<button class="tg posted'+(first&&first.posted?" on":"")+'" data-k="posted" data-date="'+date+'">投</button>'+
+        '</div></div>';
+      (d<=half?L:R).push(html);
     }
+    document.getElementById("colL").innerHTML=L.join("");
+    document.getElementById("colR").innerHTML=R.join("");
   }
+
+  /* クリックは grid 側で一括処理（ボタンごとの登録をやめる） */
+  document.querySelector(".grid").addEventListener("click",function(ev){
+    var b=ev.target.closest?ev.target.closest("button"):null;
+    if(!b) return;
+    var date=b.dataset.date;
+    if(!date) return;
+    if(b.classList.contains("dlabel")) return openSheet(date);
+    if(b.dataset.k==="no") return toggleNo(date);
+    if(b.dataset.k) toggle(date,1,b.dataset.k);
+  });
 
   function toggle(date,slot,k){
     var e=slotItem(date,slot,true);
@@ -758,8 +779,12 @@
       '<span class="'+(rest<=0?"ok":"ng")+'">残り <b>'+(rest>0?rest:0)+'</b>本</span>';
   }
 
-  function fitGrid(){
+  var fitKey="";
+  function fitGrid(force){
     var grid=document.querySelector(".grid");
+    var key=monthKey()+"|"+(window.innerHeight||0)+"|"+(window.innerWidth||0);
+    if(!force && key===fitKey) return;
+    fitKey=key;
     var L=document.getElementById("colL"), R=document.getElementById("colR");
     if(!grid||!L) return;
     var avail=grid.clientHeight;
@@ -1098,19 +1123,19 @@
     setStatus(cfgReady()?"読み込み中…":"同期未設定（⚙ 設定から）");
 
     requestAnimationFrame(function(){ setTimeout(function(){
-      checkUpdate();
       if(cfgReady()){
         syncNow(true);
         setInterval(function(){ if(!document.hidden) syncNow(true); },60000);
         window.addEventListener("focus",function(){ syncNow(true); });
       }
+      setTimeout(checkUpdate,4000);
       document.addEventListener("visibilitychange",function(){
         if(document.hidden) return;
         checkUpdate();
         if(cfgReady()) syncNow(true);
       });
-      window.addEventListener("resize",fitGrid);
-      window.addEventListener("orientationchange",function(){ setTimeout(fitGrid,300); });
+      window.addEventListener("resize",function(){ fitGrid(true); });
+      window.addEventListener("orientationchange",function(){ setTimeout(function(){ fitGrid(true); },300); });
       window.addEventListener("pageshow",function(ev){
         if(ev.persisted){ checkUpdate(); if(cfgReady()) syncNow(true); }
       });
