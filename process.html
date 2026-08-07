@@ -110,12 +110,23 @@ button{font-family:inherit;cursor:pointer;border:0}
 .stage{position:relative;width:100%;max-width:290px;aspect-ratio:9/16;margin:14px auto 0;border-radius:12px;overflow:hidden;background:#111}
 .stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .stage .telop{position:absolute;inset:14px 12px;font-weight:900;color:#fff;line-height:1.02;letter-spacing:.01em;display:flex;text-shadow:0 0 7px rgba(0,0,0,.6),0 2px 12px rgba(0,0,0,.5)}
-.stage .telop.tate{writing-mode:vertical-rl;text-orientation:upright;justify-content:flex-end}
-.stage .telop.yoko{align-items:flex-start;flex-wrap:wrap}
-.stage .telop.tate.pos-left{justify-content:flex-start}
-.stage .telop.tate.pos-right{justify-content:flex-end}
-.stage .telop.yoko.pos-top{align-items:flex-start}
-.stage .telop.yoko.pos-bottom{align-items:flex-end}
+.stage .telop.tate{writing-mode:vertical-rl;text-orientation:upright}
+.stage .telop.yoko{flex-wrap:wrap}
+/* 縦書きでは justify-content=上下、align-items=左右（flex-start が右） */
+.stage .telop.tate.pos-right{align-items:flex-start}
+.stage .telop.tate.pos-left{align-items:flex-end}
+.stage .telop.tate.v-top{justify-content:flex-start}
+.stage .telop.tate.v-bottom{justify-content:flex-end}
+/* 横書き */
+.stage .telop.yoko.v-top{align-items:flex-start}
+.stage .telop.yoko.v-bottom{align-items:flex-end}
+.stage .telop.yoko.pos-left{justify-content:flex-start}
+.stage .telop.yoko.pos-right{justify-content:flex-end}
+.narrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.narrow button{background:#EEF1F7;color:var(--ink);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700}
+.narrow button.rec{background:var(--pink);color:#fff}
+.narrow button.on{background:#B00020;color:#fff}
+.narst{font-size:12px;color:var(--dim);font-family:var(--mono)}
 .exp{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
 .exp h3{font-size:15px;font-weight:900;margin:0 0 4px}
 .exp p.sub{font-size:12px;color:var(--dim);margin:0 0 12px}
@@ -675,9 +686,16 @@ $("#expand").addEventListener("click",async function(){
 
 /* ---- 台本表示 ---- */
 var telopSize=21,telopDir="tate",telopPos="auto";
-function posOf(c){return telopPos==="auto"?autoPos(c,telopDir):telopPos}
+function posOf(c){
+  var a=autoPos(c,telopDir);
+  if(telopPos==="auto")return a;
+  if(telopPos==="left"||telopPos==="right")return {x:telopPos,y:a.y};
+  return {x:a.x,y:telopPos};
+}
+function posCls(c){var p=posOf(c);return "pos-"+p.x+" v-"+p.y}
 function renderResult(){
   var r=$("#result");r.innerHTML="";
+  if(renderResult._sig!==(script.title+"|"+script.beats.length)){Object.keys(nar).forEach(function(k){try{URL.revokeObjectURL(nar[k].url)}catch(e){}});nar={};renderResult._sig=script.title+"|"+script.beats.length}
   var st=document.createElement("div");st.className="strip";
   var cells=script.beats.map(function(b,i){
     var c=b.clip?clips[b.clip-1]:null;
@@ -705,21 +723,27 @@ function renderResult(){
       '<span><span class="role">'+esc(b.role||"")+'</span><br><span class="tel">'+esc(b.telop||"")+'</span></span><span class="time">'+esc(b.time||"")+'</span></button>'+
       '<div class="body"><dl><dt>使う素材</dt><dd>'+esc(c.name?("#"+(b.clip||i+1)+" "+c.name):"未割り当て（撮り足し）")+'</dd>'+
       '<dt>ナレーション</dt><dd>'+esc(b.narration||"")+'</dd><dt>撮り方</dt><dd>'+esc(b.note||"")+'</dd></dl>'+
+      '<div class="narrow">'+
+        '<button type="button" data-n="rec">🎙 録音</button>'+
+        '<button type="button" data-n="play">再生</button>'+
+        '<button type="button" data-n="del">削除</button>'+
+        '<button type="button" data-n="tts">読み上げ</button>'+
+        '<span class="narst"></span></div>'+
       '<div class="stage"><img alt="" '+(c.thumb?'src="'+c.thumb+'"':'')+'><div class="telop '+telopDir+' pos-'+posOf(c)+'">'+esc(b.telop||"")+'</div></div>'+
       '<div class="ctrl"><div class="seg"><button type="button" data-d="tate" class="'+(telopDir==="tate"?"on":"")+'">縦</button><button type="button" data-d="yoko" class="'+(telopDir==="yoko"?"on":"")+'">横</button></div>'+
       '<input type="range" min="10" max="34" value="'+telopSize+'"><span class="sz">'+telopSize+'%</span></div>'+
       '<div class="ctrl"><div class="seg posseg">'+
         '<button type="button" data-p="auto" class="'+(telopPos==="auto"?"on":"")+'">自動</button>'+
-        '<button type="button" data-p="'+(telopDir==="tate"?"left":"top")+'">'+(telopDir==="tate"?"左":"上")+'</button>'+
-        '<button type="button" data-p="'+(telopDir==="tate"?"right":"bottom")+'">'+(telopDir==="tate"?"右":"下")+'</button>'+
+        '<button type="button" data-p="left">左</button><button type="button" data-p="right">右</button>'+
+        '<button type="button" data-p="top">上</button><button type="button" data-p="bottom">下</button>'+
       '</div><span class="poslabel">被写体をよけて配置</span></div></div>';
     var bar=el.querySelector(".bar"),stage=el.querySelector(".stage"),telop=el.querySelector(".telop"),range=el.querySelector("input[type=range]"),sz=el.querySelector(".sz");
     function fit(){telop.style.fontSize=(stage.clientWidth*telopSize/100)+"px"}
     function paint(){
-      telop.className="telop "+telopDir+" pos-"+posOf(c);
+      telop.className="telop "+telopDir+" "+posCls(c);
       var ps=el.querySelector(".posseg");
       if(ps){
-        var opts=telopDir==="tate"?[["auto","自動"],["left","左"],["right","右"]]:[["auto","自動"],["top","上"],["bottom","下"]];
+        var opts=[["auto","自動"],["left","左"],["right","右"],["top","上"],["bottom","下"]];
         ps.querySelectorAll("button").forEach(function(bt,k){bt.dataset.p=opts[k][0];bt.textContent=opts[k][1];bt.classList.toggle("on",telopPos===opts[k][0])});
       }
       fit();
@@ -733,6 +757,19 @@ function renderResult(){
       paint();
     })});
     el.querySelectorAll(".posseg button").forEach(function(bt){bt.addEventListener("click",function(){telopPos=bt.dataset.p;paint()})});
+    (function(idx){
+      el.querySelector('[data-n="rec"]').addEventListener("click",function(){
+        if(micRec&&micRec.i===idx){narStop();return}
+        if(micRec)narStop();
+        narStart(idx,el);
+      });
+      el.querySelector('[data-n="play"]').addEventListener("click",function(){if(nar[idx])new Audio(nar[idx].url).play()});
+      el.querySelector('[data-n="del"]').addEventListener("click",function(){
+        if(nar[idx]){URL.revokeObjectURL(nar[idx].url);delete nar[idx]}narUI(idx,el);
+      });
+      el.querySelector('[data-n="tts"]').addEventListener("click",function(){speakText(b.narration||b.telop||"")});
+      narUI(idx,el);
+    })(i);
     window.addEventListener("resize",function(){if(el.classList.contains("open"))fit()});
     r.appendChild(el);
   });
@@ -741,6 +778,47 @@ function renderResult(){
   $("#out").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
+
+
+/* ================= ナレーション ================= */
+var nar={},micRec=null,micStream=null,micStart=0;
+function narFmt(d){return (Math.round((d||0)*10)/10)+"秒"}
+function speakText(t){
+  try{
+    if(!window.speechSynthesis)return;
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(t);u.lang="ja-JP";u.rate=1.05;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+async function narStart(i,el){
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){el.querySelector(".narst").textContent="マイクを使えません";return}
+  var ch=[],mr;
+  try{mr=new MediaRecorder(micStream)}catch(e){mr=new MediaRecorder(micStream,{mimeType:"audio/mp4"})}
+  mr.ondataavailable=function(e){if(e.data&&e.data.size)ch.push(e.data)};
+  mr.onstop=function(){
+    var dur=(performance.now()-micStart)/1000;
+    var b=new Blob(ch,{type:mr.mimeType||"audio/mp4"});
+    if(nar[i]&&nar[i].url)URL.revokeObjectURL(nar[i].url);
+    nar[i]={blob:b,url:URL.createObjectURL(b),dur:dur};
+    try{micStream.getTracks().forEach(function(t){t.stop()})}catch(e){}
+    micRec=null;narUI(i,el);
+  };
+  micStart=performance.now();mr.start();micRec={mr:mr,i:i,el:el};
+  narUI(i,el);
+}
+function narStop(){if(micRec&&micRec.mr&&micRec.mr.state!=="inactive")micRec.mr.stop()}
+function narUI(i,el){
+  var st=el.querySelector(".narst"),rec=el.querySelector('[data-n="rec"]');
+  var recording=!!(micRec&&micRec.i===i);
+  rec.textContent=recording?"■ 停止":"🎙 録音";
+  rec.classList.toggle("on",recording);
+  st.textContent=recording?"録音中…":(nar[i]?("録音済み "+narFmt(nar[i].dur)):"未録音");
+  el.querySelector('[data-n="play"]').disabled=!nar[i];
+  el.querySelector('[data-n="del"]').disabled=!nar[i];
+}
 
 /* ================= 動画書き出し ================= */
 var VW=720,VH=1280;
@@ -759,7 +837,8 @@ function drawCover(cx,v){
   var sc=Math.max(cw/vw,ch/vh),w=vw*sc,h=vh*sc;
   cx.drawImage(v,(cw-w)/2,(ch-h)/2,w,h);
 }
-function drawTelop(cx,text,dir,pos){
+function drawTelop(cx,text,dir,p){
+  var pos=(p&&p.x)||"right",vpos=(p&&p.y)||"top";
   if(!text)return;
   var fs=Math.round(VW*telopSize/100),pad=Math.round(VW*0.04);
   cx.save();
@@ -772,10 +851,9 @@ function drawTelop(cx,text,dir,pos){
     cx.textAlign="center";
     cols.forEach(function(col,ci){
       var x=(pos==="left")?(pad+fs/2+ci*fs*1.04):(VW-pad-fs/2-ci*fs*1.04);
-      for(var k=0;k<col.length;k++){
-        var y=pad+fs*0.86+k*fs*1.02;
-        cx.fillText(col[k],x,y);
-      }
+      var colH=col.length*fs*1.02;
+      var y0=(vpos==="bottom")?(VH-pad-colH+fs*0.86):(pad+fs*0.86);
+      for(var k=0;k<col.length;k++)cx.fillText(col[k],x,y0+k*fs*1.02);
     });
   }else{
     cx.textAlign="left";
@@ -785,7 +863,7 @@ function drawTelop(cx,text,dir,pos){
       if(cx.measureText(t).width>maxw&&cur){lines.push(cur);cur=text[j]}else cur=t;
     }
     if(cur)lines.push(cur);
-    var top=(pos==="bottom")?(VH-pad-lines.length*fs*1.12):(pad+fs);
+    var top=(vpos==="bottom")?(VH-pad-lines.length*fs*1.12):(pad+fs);
     lines.forEach(function(ln,li){cx.fillText(ln,pad,top+li*fs*1.12)});
   }
   cx.restore();
@@ -806,14 +884,24 @@ $("#mk").addEventListener("click",async function(){
   var cx=cv.getContext("2d");
   var v=document.createElement("video");
   v.playsInline=true;v.setAttribute("playsinline","");v.crossOrigin="anonymous";
-  var stream=cv.captureStream(30),ac=null,dest=null;
+  var stream=cv.captureStream(30),ac=null,dest=null,gV=null;
   try{
     ac=new (window.AudioContext||window.webkitAudioContext)();
     await ac.resume();
     dest=ac.createMediaStreamDestination();
-    ac.createMediaElementSource(v).connect(dest);
+    gV=ac.createGain();gV.gain.value=1;
+    ac.createMediaElementSource(v).connect(gV);gV.connect(dest);
     dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)});
   }catch(e){}
+  function narNode(i){
+    if(!nar[i]||!ac)return null;
+    try{
+      var a=new Audio(nar[i].url);a.playsInline=true;
+      var sn=ac.createMediaElementSource(a),g=ac.createGain();g.gain.value=1.1;
+      sn.connect(g);g.connect(dest);
+      return a;
+    }catch(e){return null}
+  }
   var rec=new MediaRecorder(stream,{mimeType:mime}),chunks=[];
   rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
   var doneP=new Promise(function(res){rec.onstop=res});
@@ -822,31 +910,34 @@ $("#mk").addEventListener("click",async function(){
   function paintFrame(b,src){
     cx.fillStyle="#000";cx.fillRect(0,0,VW,VH);
     if(src)drawCover(cx,v);
-    drawTelop(cx,b.telop||"",telopDir,src?posOf(src):(telopDir==="tate"?"right":"top"));
+    drawTelop(cx,b.telop||"",telopDir,src?posOf(src):{x:"right",y:"top"});
   }
-  function hold(b,ms){
+  function hold(b,ms,na){
     return new Promise(function(res){
       var t0=performance.now();
+      if(na)na.play().catch(function(){});
       (function loop(){
         paintFrame(b,null);
-        if(performance.now()-t0>=ms)return res();
+        if(performance.now()-t0>=ms){if(na)try{na.pause()}catch(e){};return res()}
         requestAnimationFrame(loop);
       })();
     });
   }
-  function playClip(b,c,sec){
+  function playClip(b,c,sec,na){
     return new Promise(function(res){
       var url=URL.createObjectURL(c.file),ended=false;
-      function fin(){if(ended)return;ended=true;try{v.pause()}catch(e){};URL.revokeObjectURL(url);res()}
+      function fin(){if(ended)return;ended=true;try{v.pause()}catch(e){};if(na)try{na.pause()}catch(e){};if(gV)gV.gain.value=1;URL.revokeObjectURL(url);res()}
       v.src=url;v.muted=false;v.volume=1;
       v.onloadeddata=function(){
         try{v.currentTime=0}catch(e){}
         v.play().catch(function(){});
+        if(na){if(gV)gV.gain.value=0.25;na.play().catch(function(){})}
         var t0=performance.now();
         (function loop(){
           if(ended)return;
           paintFrame(b,c);
-          if(performance.now()-t0>=sec*1000||v.ended)return fin();
+          if(v.ended&&v.duration&&(performance.now()-t0)/1000<sec-0.05){try{v.currentTime=0;v.play()}catch(e){}}
+          if(performance.now()-t0>=sec*1000)return fin();
           requestAnimationFrame(loop);
         })();
       };
@@ -857,10 +948,12 @@ $("#mk").addEventListener("click",async function(){
 
   for(var i=0;i<script.beats.length;i++){
     var b=script.beats[i],c=b.clip?clips[b.clip-1]:null,sec=beatSec(b,i);
-    mkst((i+1)+"/"+script.beats.length+"　"+(b.role||""));
+    var na=narNode(i);
+    if(nar[i])sec=Math.max(sec,(nar[i].dur||0)+0.3);
+    mkst((i+1)+"/"+script.beats.length+"　"+(b.role||"")+(nar[i]?"（ナレ入り）":""));
     mkprog(i/script.beats.length);
-    if(c)await playClip(b,c,sec);
-    else await hold(b,Math.min(sec,3)*1000);
+    if(c)await playClip(b,c,sec,na);
+    else await hold(b,Math.max(1.5,sec)*1000,na);
   }
   mkprog(1);
   rec.stop();
@@ -917,8 +1010,10 @@ function analyzeFrame(cx,w,h){
 }
 function autoPos(c,dir){
   var q=c&&c.subj;
-  if(dir==="yoko")return (!q||q.t===q.b)?"top":(q.t<q.b?"top":"bottom");
-  return (!q||q.l===q.r)?"right":(q.l<q.r?"left":"right");
+  if(!q)return dir==="tate"?{x:"right",y:"top"}:{x:"left",y:"top"};
+  var x=(q.l===q.r)?"right":(q.l<q.r?"left":"right");
+  var y=(q.t===q.b)?"top":(q.t<q.b?"top":"bottom");
+  return {x:x,y:y};
 }
 
 /* 素材の割り当て：同じ動画を2回使わない */
