@@ -714,10 +714,31 @@ window.detail=id=>{
         .map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span><b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
     </div>
     ${p.tel&&isAdmin()?`<a class="wide ghost" style="display:block;text-align:center;text-decoration:none;line-height:1.4" href="tel:${esc(p.tel)}">電話をかける</a>`:''}
+    ${isAdmin()?`<label for="mv-ev" style="margin-top:10px">現場を移動</label>
+    <select id="mv-ev" onchange="movePerson('${p.id}',this.value)">
+      ${(DB.events||[]).slice().sort((a,b)=>String(evMonth(b)).localeCompare(String(evMonth(a))))
+        .map(e=>`<option value="${e.id}" ${p.ev===e.id?'selected':''}>${esc(e.title)}${evMonth(e)?`（${mLabel(evMonth(e))}）`:''}</option>`).join('')}
+    </select>`:''}
     <button class="wide dark admin-only" onclick="editP('${p.id}')">内容を編集する</button>
     <button class="wide danger admin-only" onclick="delP('${p.id}')">この来場者を削除</button>
     <button class="wide ghost" onclick="closeSheet()">閉じる</button>`;
   $('#sheet').classList.add('on');
+};
+window.movePerson=async(id,evId)=>{
+  if(!needAdmin())return;
+  const p=DB.people.find(x=>x.id===id),ev=DB.events.find(e=>e.id===evId);
+  if(!p||!ev||p.ev===evId)return;
+  p.ev=evId;
+  p.no=(a=>a.length?Math.max(...a.map(x=>x.no||0))+1:1)(DB.people.filter(x=>x.ev===evId&&x.id!==id));
+  await save();closeSheet();renderAll();toast(`${ev.title} に移しました`);
+};
+window.moveGoods=async(id,evId)=>{
+  if(!needAdmin())return;
+  const g=(DB.goods||[]).find(x=>x.id===id),ev=DB.events.find(e=>e.id===evId);
+  if(!g||!ev||g.ev===evId)return;
+  g.ev=evId;
+  g.no=((DB.goods||[]).filter(x=>x.ev===evId&&x.id!==id).length)+1;
+  await save();renderAll();toast(`${ev.title} に移しました`);
 };
 window.closeSheet=()=>$('#sheet').classList.remove('on');
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()});
@@ -808,7 +829,7 @@ function applyGSeed(){
   });
   return n;
 }
-const curGoods=()=>(DB.goods||[]).filter(g=>inScope(g.ev));
+const curGoods=()=>(DB.goods||[]).filter(g=>!g.moved&&inScope(g.ev));
 const gTotal=g=>(Number(g.amount)||0);
 
 /* クラファン判定（商品名・オプション・現場名のいずれかに該当） */
@@ -842,6 +863,11 @@ function gDetRows(g){
   return `<div class="card" style="margin:-3px 0 8px;padding:8px 12px;border-color:var(--grape)">
     ${rows.map(r=>`<div class="bar"><span style="color:var(--mute)">${r[0]}</span>
       <b style="text-align:right;word-break:break-all;max-width:62%">${esc(r[1])}</b></div>`).join('')}
+    ${isAdmin()?`<label for="gt-ev-${g.id}" style="margin-top:6px">現場を移動</label>
+      <select id="gt-ev-${g.id}" onchange="moveGoods('${g.id}',this.value)">
+        ${(DB.events||[]).slice().sort((a,b)=>String(evMonth(b)).localeCompare(String(evMonth(a))))
+          .map(e=>`<option value="${e.id}" ${g.ev===e.id?'selected':''}>${esc(e.title)}${evMonth(e)?`（${mLabel(evMonth(e))}）`:''}</option>`).join('')}
+      </select>`:''}
     ${isAdmin()?`<label for="gt-tal-${g.id}" style="margin-top:6px">タレントを変更</label>
       <select id="gt-tal-${g.id}" onchange="gSetTalInline('${g.id}',this.value)">
         <option value="">（未指定）</option>
@@ -2108,6 +2134,7 @@ function renderSiteCards(){
   if(head)head.innerHTML=`
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
       <button class="wide" id="btnEvAdd2" style="margin:0;flex:1;font-size:14px;padding:12px" onclick="evFormToggle()">＋ 現場を追加</button>
+      ${isTalent()?'':`<button class="wide ghost" style="margin:0;flex:1;font-size:12.5px;padding:12px" onclick="goodsToEvents()">🎫 グッズから現場化</button>`}
 
     </div>
     <div id="evForm"></div>`;
@@ -4367,6 +4394,47 @@ function renderSched(){
     ${isAdmin()?`<button class="wide ghost" style="margin-top:14px" onclick="gcalImport()">📥 Googleカレンダーから読み取る（${label}）</button>
     <p class="hint" style="text-align:center">Googleカレンダーの予定（フルフル・メンバーの予定など）をこの月に取り込みます。責任者のみ。</p>`:''}`;
 }
+
+/* グッズの中のライブ・オフ会・ご飯会などを現場（来場者）に振り替える */
+const EVT_RE=/【会場】|オフ会|ご飯会|お食事会|食事会|ソロライブ|ワンマン|ミニライブ|ファンミ|定期|生誕祭|ライブ/;
+const EVT_NG=/Tシャツ|パーカー|キーホルダー|ペンライト|タオル|ステッカー|アクスタ|缶バッジ|ブロマイド|スマホケース|QRコード|受注生産|クラファン|クラウドファンディング/;
+const isEvtGoods=g=>{const t=String(g.item||'');return EVT_RE.test(t)&&!EVT_NG.test(t)};
+const evtTitleOf=g=>String(g.item||'').split('／')[0].trim();
+function optPick(opt,re){
+  const parts=String(opt||'').split('／');
+  for(const p of parts){const i=p.indexOf(':');if(i<0)continue;
+    if(re.test(p.slice(0,i)))return p.slice(i+1).trim()}
+  return '';
+}
+window.goodsToEvents=async()=>{
+  if(!needAdmin())return;
+  const src=(DB.goods||[]).filter(g=>!g.moved&&!g.cancel&&isEvtGoods(g));
+  if(!src.length){toast('対象のグッズが見つかりません');return}
+  const titles=[...new Set(src.map(evtTitleOf))];
+  const sum=src.reduce((n,g)=>n+(Number(g.amount)||0),0);
+  const list=titles.slice(0,8).map(t=>'・'+t.slice(0,26)).join('\n');
+  if(!await ask(`グッズ${src.length}件（${yen(sum)}）を現場に移します。\n現場は${titles.length}件です。\n\n${list}${titles.length>8?'\n…ほか':''}\n\n移した分はグッズ売上から外れ、現場の来場者として集計されます。`))return;
+  let addP=0,addE=0;
+  src.forEach(g=>{
+    const title=evtTitleOf(g), m=String(g.date||'').slice(0,7);
+    let ev=DB.events.find(e=>e.title===title&&(!m||evMonth(e)===m));
+    if(!ev){ev={id:uid(),title,date:'',venue:'',month:m};DB.events.push(ev);addE++}
+    if(!DB.people.some(p=>p.order&&p.order===g.order&&p.ev===ev.id)){
+      const no=(a=>a.length?Math.max(...a.map(p=>p.no||0))+1:1)(DB.people.filter(p=>p.ev===ev.id));
+      const meal=/参加|する|はい|あり/.test(optPick(g.option,/ご飯|食事/));
+      DB.people.push({id:uid(),ev:ev.id,no,in:false,inAt:'',
+        name:g.name||'',sns:g.sns||'',talent:g.talent||'',
+        ticket:optPick(g.option,/チケット|券種/)||'一般チケット',
+        meal,drink:optPick(g.option,/ドリンク/),
+        amount:Number(g.amount)||0,pay:g.pay||'',order:g.order||'',
+        date:String(g.date||'').slice(0,10),tel:g.tel||'',mail:g.mail||'',note:''});
+      addP++;
+    }
+    g.moved=true;
+  });
+  await save();renderAll();fillEvForm();
+  toast(`現場${addE}件を作成、来場者${addP}名を追加しました`);
+};
 
 /* 予定 → その日の現場の来場者を見る */
 window.schedGuests=(d,title,link)=>{
