@@ -208,9 +208,9 @@ header{position:sticky}
 .lgbox .wide{background:var(--mango);color:var(--grape)}
 .lgbox .wide.ghost{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff}
 .lghint{margin-top:14px!important;font-size:11.5px;line-height:1.7}
-#roleChip,#evalBtn,#setBtn{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+#roleChip,#setBtn{flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
   color:#fff;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;font-family:var(--gothic)}
-#evalBtn{background:var(--mango);color:var(--grape);border-color:var(--mango)}
+#verChip{flex:none;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.6);white-space:nowrap}
 body.staff .admin-only{display:none!important}
 .talent .admin-only{display:none!important}
 .talent .tick,.talent #btnPos,.talent #posHint,.talent #btnEvAdd2,.talent .sc .d+button,
@@ -283,7 +283,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <button id="evalBtn" onclick="evalOpen()">今月の評価</button>
+    <span id="verChip">ver 2026.08.14</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -347,7 +347,13 @@ body.staff .admin-only{display:none!important}
 
   <!-- 設定 -->
   <section class="view" id="v-set">
-
+    <div class="card" style="margin-bottom:12px;padding:12px 14px">
+      <div class="bar" style="border:0;padding:0">
+        <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14</b>
+      </div>
+      <div class="hint" style="margin:4px 0 0">更新日 2026/08/14</div>
+    </div>
 
     <div class="card" id="pForm" style="display:none">
       <h2>来場者の編集</h2>
@@ -1279,6 +1285,8 @@ function renderTal(){
   const listF=list.filter(t=>inTeam(t.name));
   const rmax=Math.max(1,...rk.map(t=>t.n));
   $('#talBody').innerHTML=`
+    ${isTalent()?'':`<button class="wide" style="margin:0 0 10px;padding:14px;background:var(--mango);color:var(--grape);font-size:15px"
+      onclick="evalOpen()">⭐️ 今月の評価</button>`}
     <div class="chips" style="margin-bottom:4px">
       <button class="chip ${!tf?'on':''}" onclick="window.talTeam='';renderTal()">全員</button>
       ${teams().map(t=>`<button class="chip ${tf===t.id?'on':''}"
@@ -2488,6 +2496,7 @@ function applyRole(){
   const chip=$('#roleChip');
   if(chip){chip.textContent=ROLE?(isAdmin()?'責任者':(isTalent()?'タレント':'スタッフ')):'ログイン';chip.style.display=ROLE?'':'none'}
   const eb=$('#evalBtn');if(eb)eb.style.display=(ROLE&&!isTalent())?'':'none';
+  const vc=$('#verChip');if(vc)vc.style.display=ROLE?'':'none';
   const sb=$('#setBtn');if(sb)sb.style.display=isAdmin()?'':'none';
   const sw=$('#syncWarn');
   if(sw)sw.style.display=(isAdmin()&&typeof ghOn==='function'&&!ghOn())?'':'none';
