@@ -283,7 +283,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.14</span>
+    <span id="verChip">ver 2026.08.14 09:40</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -350,9 +350,9 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 09:40</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新日 2026/08/14</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 09:40</div>
     </div>
 
     <div class="card" id="pForm" style="display:none">
@@ -4415,10 +4415,31 @@ function optPick(opt,re){
     if(re.test(p.slice(0,i)))return p.slice(i+1).trim()}
   return '';
 }
+/* 現場名の中の日付（【会場】8/23★… など）を開催日・集計月にする */
+function fixEventDatesFromTitle(){
+  let n=0;
+  (DB.events||[]).forEach(e=>{
+    if(e.date){if(e.month!==e.date.slice(0,7)){e.month=e.date.slice(0,7);n++}return}
+    const m=String(e.title||'').match(/(\d{1,2})\s*[\/\-月]\s*(\d{1,2})/);
+    if(!m)return;
+    const mm=String(Number(m[1])).padStart(2,'0'), dd=String(Number(m[2])).padStart(2,'0');
+    if(Number(mm)<1||Number(mm)>12||Number(dd)<1||Number(dd)>31)return;
+    /* 年は「注文日以降で一番近い年」。注文が無ければ今年 */
+    const ds=[...(DB.people||[]).filter(p=>p.ev===e.id),...(DB.goods||[]).filter(g=>g.ev===e.id)]
+      .map(x=>String(x.date||'').slice(0,10)).filter(Boolean).sort();
+    const base=ds[0]||new Date().toISOString().slice(0,10);
+    let y=Number(base.slice(0,4));
+    if(`${y}-${mm}-${dd}`<base)y++;
+    e.date=`${y}-${mm}-${dd}`;e.month=`${y}-${mm}`;n++;
+  });
+  return n;
+}
 /* 同じ名前の現場が月ごとに分かれてしまったものを1つにまとめる */
 function mergeSameTitleEvents(){
   const byTitle={};let merged=0;
-  (DB.events||[]).forEach(e=>{(byTitle[e.title]=byTitle[e.title]||[]).push(e)});
+  /* ★☆・記号・空白の違いは同じ現場とみなす */
+  const key=t=>String(t||'').replace(/[★☆♪！!・\s　]/g,'').toLowerCase();
+  (DB.events||[]).forEach(e=>{const k=key(e.title);(byTitle[k]=byTitle[k]||[]).push(e)});
   Object.values(byTitle).forEach(list=>{
     if(list.length<2)return;
     /* 開催日が入っているものを残す。無ければ最初のもの */
@@ -4432,7 +4453,8 @@ function mergeSameTitleEvents(){
       if(!keep.date&&e.date)keep.date=e.date;
       merged++;
     });
-    DB.events=DB.events.filter(x=>x.id===keep.id||x.title!==keep.title);
+    const drop=new Set(list.filter(e=>e.id!==keep.id).map(e=>e.id));
+    DB.events=DB.events.filter(x=>!drop.has(x.id));
     /* 受付番号を振り直す */
     let n=0;(DB.people||[]).filter(p=>p.ev===keep.id)
       .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))
@@ -4443,8 +4465,10 @@ function mergeSameTitleEvents(){
 window.mergeEventsNow=async()=>{
   if(!needAdmin())return;
   const n=mergeSameTitleEvents();
-  if(!n){toast('同じ名前の現場はありません');return}
-  await save();renderAll();fillEvForm();toast(`同じ名前の現場を${n}件まとめました`);
+  const d=fixEventDatesFromTitle();
+  if(!n&&!d){toast('まとめる現場・直す日付はありません');return}
+  await save();renderAll();fillEvForm();
+  toast([n?`同じ名前の現場を${n}件まとめました`:'',d?`日付を${d}件入れました`:''].filter(Boolean).join('／'));
 };
 window.goodsToEvents=async()=>{
   if(!needAdmin())return;
@@ -4473,8 +4497,9 @@ window.goodsToEvents=async()=>{
     g.moved=true;
   });
   const mg=mergeSameTitleEvents();
+  const fx=fixEventDatesFromTitle();
   await save();renderAll();fillEvForm();
-  toast(`現場${addE}件を作成、来場者${addP}名を追加しました${mg?`（重複${mg}件を統合）`:''}`);
+  toast(`現場${addE}件を作成、来場者${addP}名を追加しました${mg?`（重複${mg}件を統合）`:''}${fx?`（日付${fx}件）`:''}`);
 };
 
 /* 予定 → その日の現場の来場者を見る */
