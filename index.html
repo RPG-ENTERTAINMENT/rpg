@@ -299,7 +299,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.14 12:10</span>
+    <span id="verChip">ver 2026.08.14 12:55</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -366,9 +366,9 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 12:10</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 12:55</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 12:10</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 12:55</div>
     </div>
 
     <div class="card admin-only">
@@ -2191,6 +2191,8 @@ function renderSiteCards(){
         <div class="d" ${col?`style="background:${col}"`:''}>${d?d:'—'}<br><span style="opacity:.65">${(e.date||'').slice(2,4)||''}</span></div>
         <button class="admin-only" onclick="event.stopPropagation();evEdit('${e.id}')"
           style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 0;width:46px;font-size:10.5px;color:var(--grape);font-weight:700">編集</button>
+        <button class="admin-only" onclick="event.stopPropagation();evToSched('${e.id}')"
+          style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 0;width:46px;font-size:10.5px;color:var(--berry);font-weight:700">予定へ</button>
       </div>
       <div class="b"><div class="t">${e.img?'<span onclick="event.stopPropagation();evViewImg(\''+e.id+'\')" style="font-size:13px">📷 </span>':''}${esc(e.title)}</div>
         <div class="s">${st.n}名${st.inn?` / 受付${st.inn}`:''}${e.venue?' / '+esc(e.venue):''}</div></div>
@@ -4591,6 +4593,30 @@ window.goodsToEvents=async()=>{
   toast(`現場${addE}件を作成、来場者${addP}名を追加しました${mg?`（重複${mg}件を統合）`:''}${fx?`（日付${fx}件）`:''}`);
 };
 
+/* 指定の日付の月に切り替える */
+function schedGoMonth(d){
+  const now=new Date(), tm=now.getFullYear()*12+now.getMonth();
+  const y=Number(String(d).slice(0,4)), m=Number(String(d).slice(5,7));
+  if(!y||!m)return;
+  window.schedOff=(y*12+(m-1))-tm;
+}
+/* 現場 → 予定（スケジュール）に追加 */
+window.evToSched=async id=>{
+  if(!needAdmin())return;
+  const ev=DB.events.find(x=>x.id===id);if(!ev)return;
+  const d=ev.date||`${evMonth(ev)||new Date().toISOString().slice(0,7)}-01`;
+  const dup=scheds().find(x=>x.evlink===ev.id||(x.date===d&&x.title===ev.title));
+  if(dup){
+    if(!await ask('この現場はもう予定にあります。\n開いて編集しますか？'))return;
+    go('sched');schedGoMonth(d);renderSched();schedEdit(dup.id);return;
+  }
+  scheds().push({id:uid(),date:d,time:'',title:ev.title,note:ev.venue?`会場：${ev.venue}`:'',
+    imgs:[],img:'',evlink:ev.id,join:[]});
+  await save();
+  go('sched');schedGoMonth(d);renderSched();
+  toast(`${d.slice(5).replace('-','/')} の予定に追加しました`);
+};
+
 /* 予定 → その日の現場の来場者を見る */
 window.schedGuests=(d,title,link)=>{
   const m=String(d||'').slice(0,7);
@@ -4743,11 +4769,59 @@ window.gcalImport=async()=>{
 /* 画像タップで拡大表示 */
 window.imgZoom=src=>{
   const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(10,6,18,.94);display:flex;align-items:center;justify-content:center;padding:14px';
-  ov.innerHTML=`<img src="${src}" style="max-width:96vw;max-height:90vh;object-fit:contain;border-radius:12px">
-    <div style="position:fixed;top:calc(14px + env(safe-area-inset-top));right:16px;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:700">✕ 閉じる</div>`;
-  ov.onclick=()=>ov.remove();
+  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(10,6,18,.94);overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y';
+  ov.innerHTML=`
+    <div id="zpane" style="min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;padding:14px">
+      <img id="zimg" src="${src}" style="width:96vw;max-width:none;height:auto;object-fit:contain;border-radius:12px;transform-origin:0 0;transition:width .15s">
+    </div>
+    <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:2">
+      <button id="zout" style="background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:999px;padding:11px 20px;font-size:18px;font-weight:700">－</button>
+      <button id="zfit" style="background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:999px;padding:11px 18px;font-size:13px;font-weight:700">全体</button>
+      <button id="zin" style="background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:999px;padding:11px 20px;font-size:18px;font-weight:700">＋</button>
+    </div>
+    <div id="zclose" style="position:fixed;top:calc(14px + env(safe-area-inset-top));right:16px;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:700;z-index:2">✕ 閉じる</div>`;
   document.body.appendChild(ov);
+  const img=ov.querySelector('#zimg');
+  let z=1;
+  const apply=()=>{img.style.width=(96*z)+'vw'};
+  const zoom=(f,cx,cy)=>{
+    const prev=z; z=Math.min(6,Math.max(1,z*f)); if(z===prev)return;
+    const rx=(ov.scrollLeft+(cx==null?ov.clientWidth/2:cx))/ (img.offsetWidth||1);
+    const ry=(ov.scrollTop+(cy==null?ov.clientHeight/2:cy))/ (img.offsetHeight||1);
+    apply();
+    requestAnimationFrame(()=>{
+      ov.scrollLeft=rx*img.offsetWidth-(cx==null?ov.clientWidth/2:cx);
+      ov.scrollTop=ry*img.offsetHeight-(cy==null?ov.clientHeight/2:cy);
+    });
+  };
+  ov.querySelector('#zin').onclick=e=>{e.stopPropagation();zoom(1.5)};
+  ov.querySelector('#zout').onclick=e=>{e.stopPropagation();zoom(1/1.5)};
+  ov.querySelector('#zfit').onclick=e=>{e.stopPropagation();z=1;apply();ov.scrollTo(0,0)};
+  ov.querySelector('#zclose').onclick=()=>ov.remove();
+  /* ダブルタップで拡大・縮小 */
+  let last=0;
+  img.addEventListener('click',e=>{
+    const now=Date.now();
+    if(now-last<320){zoom(z>=3?1/3:2,e.clientX,e.clientY)}
+    last=now;
+  });
+  /* ピンチ操作 */
+  let d0=0,z0=1;
+  ov.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){
+      d0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      z0=z;
+    }
+  },{passive:true});
+  ov.addEventListener('touchmove',e=>{
+    if(e.touches.length===2&&d0){
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      z=Math.min(6,Math.max(1,z0*(d/d0)));apply();
+    }
+  },{passive:true});
+  ov.addEventListener('touchend',()=>{d0=0});
+  /* 余白タップで閉じる */
+  ov.querySelector('#zpane').addEventListener('click',e=>{if(e.target.id==='zpane')ov.remove()});
 };
 
 /* nav */
