@@ -299,7 +299,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.14 11:45</span>
+    <span id="verChip">ver 2026.08.14 12:10</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -366,9 +366,14 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 11:45</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 12:10</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 11:45</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 12:10</div>
+    </div>
+
+    <div class="card admin-only">
+      <h2>スケジュールのスタッフ</h2>
+      <div id="staffBox"></div>
     </div>
 
     <div class="card" id="pForm" style="display:none">
@@ -724,7 +729,7 @@ function renderSum(){
       return Object.entries(m).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><b>${v}</b></div>`).join('')})()
     :'<div class="hint">ご飯会の参加者がいません</div>';
 }
-function renderAll(){renderEvents();renderList();renderSum();if($('#talBody'))renderTal();if($('#goodsBody'))renderGoods();if($('#tipBody'))renderTip()}
+function renderAll(){renderEvents();renderList();renderSum();if($('#talBody'))renderTal();if($('#goodsBody'))renderGoods();if($('#tipBody'))renderTip();if(typeof renderStaffBox==='function')renderStaffBox()}
 
 /* ---------- actions ---------- */
 window.toggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
@@ -4180,6 +4185,22 @@ function renderStock(){
 /* ---- 週間スケジュール ---- */
 window.schedOff=0;
 function scheds(){DB.sched=DB.sched||[];return DB.sched}
+/* 予定の画像は最大3枚（旧データの img も拾う） */
+function scImgs(){
+  if(!Array.isArray(window.scNewImgs))window.scNewImgs=window.scNewImg?[window.scNewImg]:[];
+  return window.scNewImgs;
+}
+const evImgs=ev=>(Array.isArray(ev.imgs)&&ev.imgs.length?ev.imgs:(ev.img?[ev.img]:[]));
+window.schedImgDel=async(i,date,editId)=>{
+  scImgs().splice(i,1);
+  const keep=schedFormKeep();
+  schedNewOpen(date,keep,editId||'');
+};
+function schedFormKeep(){
+  return {url:$('#sc-url')?$('#sc-url').value:'',evlink:$('#sc-evlink')?$('#sc-evlink').value:'',
+    t1:$('#sc-t1')?$('#sc-t1').value:'',t2:$('#sc-t2')?$('#sc-t2').value:'',
+    title:$('#sc-title')?$('#sc-title').value:'',note:$('#sc-note')?$('#sc-note').value:''};
+}
 /* 画像は3ヶ月経ったら非表示（データ本体からも外して容量を抑える） */
 const IMG_KEEP_DAYS=92;
 const imgFresh=d=>{
@@ -4208,6 +4229,7 @@ window.schedMove=d=>{window.schedOff+=d;renderSched()};
 const TIMES=(()=>{const a=[];for(let h=6;h<=23;h++){a.push(`${String(h).padStart(2,'0')}:00`);a.push(`${String(h).padStart(2,'0')}:30`)}return a})();
 window.scNewImg='';
 window.schedNewOpen=(date,keep,editId)=>{
+  if(!keep){window.scNewImg='';window.scNewImgs=null}
   if(!keep)window.scNewImg='';
   const k=keep||{};
   const WD2=['日','月','火','水','木','金','土'];
@@ -4218,11 +4240,15 @@ window.schedNewOpen=(date,keep,editId)=>{
       <button onclick="closeSheet()" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700">閉じる</button>
     </div>
     <p class="hint" style="margin:2px 0 10px;font-size:13px"><b style="font-family:var(--mono);color:var(--berry)">${esc(date.slice(5).replace('-','/'))}（${WD2[dt.getDay()]}）</b> の予定</p>
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-      <div onclick="schedImgPick('${date}','${editId||''}')" style="width:64px;height:64px;flex:none;border-radius:10px;overflow:hidden;background:#F0EAF7;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line)">
-        ${window.scNewImg?`<img src="${window.scNewImg}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:22px">📷</span>'}
-      </div>
-      <button class="wide ghost" style="margin:0;flex:1" onclick="schedImgPick('${date}','${editId||''}')">${window.scNewImg?'画像を変更する':'📷 画像を付ける（任意）'}</button>
+    <label>画像（3枚まで）</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      ${[0,1,2].map(i=>{const u=scImgs()[i];return `
+        <div style="flex:1;position:relative">
+          <div onclick="schedImgPick('${date}','${editId||''}',${i})" style="height:74px;border-radius:10px;overflow:hidden;background:#F0EAF7;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line)">
+            ${u?`<img src="${u}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:20px">📷</span>'}
+          </div>
+          ${u?`<button onclick="schedImgDel(${i},'${date}','${editId||''}')" style="position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:999px;border:0;background:var(--berry);color:#fff;font-size:13px;font-weight:700;line-height:1">✕</button>`:''}
+        </div>`}).join('')}
     </div>
     <label>開始時間</label>
     <select id="sc-t1"><option value="">未定</option>${TIMES.map(t=>`<option value="${t}" ${k.t1===t?'selected':''}>${t}</option>`).join('')}</select>
@@ -4265,7 +4291,10 @@ async function schedShrink(file){
     const fr=new FileReader();fr.onload=()=>img.src=fr.result;fr.readAsDataURL(file);
   });
 }
-window.schedImgPick=(date,editId)=>{window.schedImgDate=date;window.schedImgEdit=editId||'';$('#schedFile').click()};
+window.schedImgPick=(date,editId,slot)=>{window.schedImgDate=date;window.schedImgEdit=editId||'';
+  window.schedImgSlot=(slot==null?scImgs().length:slot);
+  if(window.schedImgSlot>=3){toast('画像は3枚までです');return}
+  $('#schedFile').click()};
 window.schedCreate=async(date,editId)=>{
   const title=$('#sc-title').value.trim();
   if(!title){toast('内容を入れてください');return}
@@ -4273,15 +4302,17 @@ window.schedCreate=async(date,editId)=>{
   const time=t1?(t2?`${t1}〜${t2}`:t1):'';
   if(editId){
     const ev=scheds().find(x=>x.id===editId);
-    if(ev){ev.time=time;ev.title=title;ev.note=$('#sc-note').value.trim();ev.img=window.scNewImg||'';
+    if(ev){ev.time=time;ev.title=title;ev.note=$('#sc-note').value.trim();
+      ev.imgs=scImgs().slice(0,3);ev.img=ev.imgs[0]||'';
       ev.evlink=($('#sc-evlink')&&$('#sc-evlink').value)||'';
       ev.url=($('#sc-url')&&$('#sc-url').value.trim())||''}
-    window.scNewImg='';
+    window.scNewImg='';window.scNewImgs=null;
     await save();closeSheet();renderSched();toast('予定を更新しました');
     return;
   }
   const newId=uid();
-  scheds().push({id:newId,date,time,title,note:$('#sc-note').value.trim(),img:window.scNewImg||'',
+  scheds().push({id:newId,date,time,title,note:$('#sc-note').value.trim(),
+    imgs:scImgs().slice(0,3),img:scImgs()[0]||'',
     evlink:($('#sc-evlink')&&$('#sc-evlink').value)||'',
     url:($('#sc-url')&&$('#sc-url').value.trim())||'',join:[]});
   const wantGcal=!!($('#sc-gcal')&&$('#sc-gcal').checked);
@@ -4303,7 +4334,7 @@ window.schedCreate=async(date,editId)=>{
 window.schedEdit=id=>{
   if(isTalent()){toast('編集は運営のみです');return}
   const ev=scheds().find(x=>x.id===id);if(!ev)return;
-  window.scNewImg=ev.img||'';
+  window.scNewImg=ev.img||'';window.scNewImgs=evImgs(ev).slice(0,3);
   const tt=String(ev.time||'').split('〜');
   schedNewOpen(ev.date,{t1:tt[0]||'',t2:tt[1]||'',title:ev.title,note:ev.note||'',evlink:ev.evlink||'',url:ev.url||''},id);
 };
@@ -4315,10 +4346,41 @@ window.schedDel=async id=>{
   await save();closeSheet();renderSched();toast('削除しました');
 };
 
-const STAFF_TEAM={id:'tmS',name:'スタッフ',members:['しずく','けん','竹林','みゆ','せな']};
+const STAFF_DEFAULT=['しずく','けん','竹林','みゆ','せな'];
+function staffList(){
+  if(!Array.isArray(DB.staff))DB.staff=STAFF_DEFAULT.slice();
+  return DB.staff;
+}
+const STAFF_TEAM={id:'tmS',name:'スタッフ',get members(){return staffList()}};
 const sjTeams=()=>[...teams(),STAFF_TEAM];
 const sjTeamOf=tid=>tid==='tmS'?STAFF_TEAM:teamOf(tid);
-const isStaffName=n=>STAFF_TEAM.members.includes(n);
+const isStaffName=n=>staffList().includes(n);
+window.staffAdd=async()=>{
+  if(!needAdmin())return;
+  const v=($('#stf-new').value||'').trim();
+  if(!v)return;
+  if(staffList().includes(v)){toast('もう登録されています');return}
+  staffList().push(v);await save();renderStaffBox();renderSched();toast(`${v} を追加しました`);
+};
+window.staffDel=async n=>{
+  if(!needAdmin())return;
+  if(!await ask(`${n} をスタッフから外しますか？\n（登録済みの参加はそのまま残ります）`))return;
+  DB.staff=staffList().filter(x=>x!==n);await save();renderStaffBox();renderSched();toast(`${n} を外しました`);
+};
+function renderStaffBox(){
+  const box=document.getElementById('staffBox');if(!box)return;
+  box.innerHTML=`
+    <div class="chips" style="margin-bottom:10px">
+      ${staffList().length?staffList().map(n=>`<button class="chip" style="background:#FDE7EF;border-color:#F5C2D6;color:#C2185B"
+        onclick="staffDel('${esc(n).replace(/'/g,"\\'")}')">🏢 ${esc(n)} ✕</button>`).join('')
+        :'<span class="hint">まだスタッフがいません。</span>'}
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="stf-new" placeholder="スタッフのお名前" style="flex:1;margin:0">
+      <button class="wide" style="margin:0;width:96px;flex:none;padding:12px" onclick="staffAdd()">追加</button>
+    </div>
+    <p class="hint" style="margin:6px 0 0">名前をタップすると外せます。予定の「参加できる！」に出るスタッフです。</p>`;
+}
 const sjLabel=n=>(isStaffName(n)?'🏢':'')+esc(talShort(n));
 window.sjTeam='';
 window.schedTeamPick=(id,tid)=>{window.sjTeam=(window.sjTeam===tid?'':tid);schedJoinOpen(id)};
@@ -4410,7 +4472,9 @@ function renderSched(){
               </div>
 
             </div>
-            ${(ev.img&&imgFresh(ev.date))?`<img src="${ev.img}" onclick="imgZoom(this.src)" style="width:100%;max-height:92px;object-fit:cover;border-radius:8px;margin-top:6px;cursor:zoom-in">`:''}
+            ${imgFresh(ev.date)&&evImgs(ev).length?`<div style="display:flex;gap:4px;margin-top:6px">
+              ${evImgs(ev).map(u=>`<img src="${u}" onclick="imgZoom(this.src)" style="flex:1;min-width:0;height:${evImgs(ev).length>1?'62px':'92px'};object-fit:cover;border-radius:8px;cursor:zoom-in">`).join('')}
+            </div>`:''}
             <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
               ${(ev.join||[]).map(n=>`<span style="background:${isStaffName(n)?'#FDE7EF':'#F0EAF7'};color:${isStaffName(n)?'#C2185B':'var(--grape)'};border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700">${sjLabel(n)}</span>`).join('')}
               <span style="font-size:10.5px;color:var(--mute)">参加 ${(ev.join||[]).length}名</span>
@@ -4974,10 +5038,12 @@ DB.bills=DB.bills||[];DB.payees=DB.payees||[];
     if(!f)return;
     const url=await schedShrink(f);
     if(!url){toast('画像を読み込めませんでした');return}
-    window.scNewImg=url;
-    const keep={url:$('#sc-url')?$('#sc-url').value:'',evlink:$('#sc-evlink')?$('#sc-evlink').value:'',t1:$('#sc-t1')?$('#sc-t1').value:'',t2:$('#sc-t2')?$('#sc-t2').value:'',
-      title:$('#sc-title')?$('#sc-title').value:'',note:$('#sc-note')?$('#sc-note').value:''};
-    schedNewOpen(window.schedImgDate,keep,window.schedImgEdit||'');
+    const arr=scImgs();
+    const slot=(window.schedImgSlot==null?arr.length:window.schedImgSlot);
+    arr[slot]=url;
+    window.scNewImgs=arr.filter(Boolean).slice(0,3);
+    window.scNewImg=window.scNewImgs[0]||'';
+    schedNewOpen(window.schedImgDate,schedFormKeep(),window.schedImgEdit||'');
     toast('画像を設定しました');
   };
   $('#stockFile').onchange=async e=>{
