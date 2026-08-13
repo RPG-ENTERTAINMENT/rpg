@@ -2132,12 +2132,11 @@ function renderSiteCards(){
   const evs=monthEvents();
   const head=$('#siteHead');
   if(head)head.innerHTML=`
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <button class="wide" id="btnEvAdd2" style="margin:0;flex:1;font-size:14px;padding:12px" onclick="evFormToggle()">＋ 現場を追加</button>
-      ${isTalent()?'':`<button class="wide ghost" style="margin:0;flex:1;font-size:12.5px;padding:12px" onclick="goodsToEvents()">🎫 グッズから現場化</button>
-      <button class="wide ghost" style="margin:0;flex:none;font-size:12.5px;padding:12px 10px" onclick="mergeEventsNow()">🧩 統合</button>`}
-
-    </div>
+    <button class="wide" id="btnEvAdd2" style="margin:0 0 8px;font-size:15px;padding:14px" onclick="evFormToggle()">＋ 現場を追加</button>
+    ${isTalent()?'':`<div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="wide ghost" style="margin:0;flex:1;font-size:13px;padding:11px;white-space:nowrap" onclick="goodsToEvents()">🎫 グッズから現場化</button>
+      <button class="wide ghost" style="margin:0;width:96px;flex:none;font-size:13px;padding:11px;white-space:nowrap" onclick="mergeEventsNow()">🧩 統合</button>
+    </div>`}
     <div id="evForm"></div>`;
   renderEvForm();
   const m3=DB.curM==='ALL'
