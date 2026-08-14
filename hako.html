@@ -119,6 +119,9 @@ a.contact{text-decoration:none;display:inline-block}
 .v-open b{display:block;font-size:17px;color:var(--free);line-height:1.1}
 /* signature: 6-month heat ribbon */
 .ribbon{display:flex;gap:1px;padding:0 13px 11px;height:34px;align-items:stretch}
+.ribbon.wide{overflow-x:auto;gap:1px;scrollbar-width:none}
+.ribbon.wide::-webkit-scrollbar{display:none}
+.ribbon.wide .cell{flex:0 0 3px}
 .ribbon .cell{flex:1 1 0;min-width:0;border-radius:1px;background:var(--unknown)}
 .ribbon .cell.free{background:var(--free)}
 .ribbon .cell.hold{background:var(--hold)}
@@ -214,7 +217,7 @@ a.contact{text-decoration:none;display:inline-block}
     <h1>ハコ空きレーダー <span class="thin">都内ライブハウス</span></h1>
     <button class="h-btn" id="btnSettings">設定</button>
   </div>
-  <p class="h-sub">今月から6ヶ月先まで、公開スケジュールの空き日を1画面で</p>
+  <p class="h-sub" id="hSub">今月から1年先まで、公開スケジュールの空き日を1画面で</p>
 </header>
 
 <div class="toolbar">
@@ -318,6 +321,15 @@ a.contact{text-decoration:none;display:inline-block}
   <div class="sheet">
     <h2>設定</h2>
     <p class="hint">データはこの端末に保存されます。</p>
+
+    <div class="field">
+      <label>表示期間（今月から先）</label>
+      <select id="hzSel">
+        <option value="3">3ヶ月</option>
+        <option value="6">6ヶ月</option>
+        <option value="12">12ヶ月（1年）</option>
+      </select>
+    </div>
 
     <h2 style="margin-top:6px">差出人（メール本文に入ります）</h2>
     <div class="field row2">
@@ -552,11 +564,11 @@ const today = new Date(); today.setHours(0,0,0,0);
 const base = new Date(today.getFullYear(), today.getMonth(), 1);
 
 function months(){
-  const out=[];
-  for(let i=0;i<6;i++){ const d=new Date(base.getFullYear(), base.getMonth()+i, 1); out.push({y:d.getFullYear(), m:d.getMonth()}); }
+  const out=[], n=state.horizon||12;
+  for(let i=0;i<n;i++){ const d=new Date(base.getFullYear(), base.getMonth()+i, 1); out.push({y:d.getFullYear(), m:d.getMonth()}); }
   return out;
 }
-const MONTHS = months();
+let MONTHS = [];
 const pad = n => String(n).padStart(2,"0");
 const key = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
 const daysIn = (y,m) => new Date(y,m+1,0).getDate();
@@ -565,7 +577,15 @@ function horizon(){
   MONTHS.forEach(({y,m})=>{ for(let d=1;d<=daysIn(y,m);d++) out.push({y,m,d,k:key(y,m,d),first:d===1}); });
   return out;
 }
-const HORIZON = horizon();
+let HORIZON = [];
+function rebuild(){
+  MONTHS = months();
+  HORIZON = horizon();
+  if(ui.month >= MONTHS.length) ui.month = MONTHS.length-1;
+  const n = state.horizon||12;
+  document.getElementById("hSub").textContent =
+    n>=12 ? `今月から1年先まで、公開スケジュールの空き日を1画面で` : `今月から${n}ヶ月先まで、公開スケジュールの空き日を1画面で`;
+}
 const isPast = k => new Date(k+"T00:00:00") < today;
 
 function uid(){ return "v"+Math.random().toString(36).slice(2,9); }
@@ -590,6 +610,7 @@ async function load(){
   state.marks = state.marks||{}; state.memo = state.memo||{}; state.src = state.src||{};
   if(!state.gh) state.gh = {repo:"RPG-ENTERTAINMENT/talent-app-data", path:"data/hako.json", token:"", auto:false};
   state.log = state.log || [];
+  if(!state.horizon) state.horizon = 12;
   if(!state.sender) state.sender = {
     company:"株式会社RPGエンターテイメント",
     name:"倉石",
@@ -712,7 +733,7 @@ function renderTabs(){
 }
 
 function ribbon(v){
-  const el=document.createElement("div"); el.className="ribbon";
+  const el=document.createElement("div"); el.className="ribbon"+(HORIZON.length>200?" wide":"");
   HORIZON.forEach(d=>{
     const c=document.createElement("div");
     const st = isPast(d.k) ? "past" : mark(v.id,d.k);
@@ -1186,6 +1207,7 @@ async function bulkContacts(){
 /* ============ 調査履歴 ============ */
 function logAdd(type, venue, result, detail){
   state.log = state.log || [];
+  if(!state.horizon) state.horizon = 12;
   state.log.unshift({t:new Date().toISOString(), type, venue, result, detail:detail||""});
   if(state.log.length>300) state.log.length=300;
   save();
@@ -1266,7 +1288,7 @@ async function ghPull(silent, onlyIfNewer){
     const obj=JSON.parse(b64dec((await res.json()).content));
     if(onlyIfNewer && state.updated && obj.updated && obj.updated <= state.updated) return false;
     ["venues","marks","memo","src","sender","log","seedVersion","updated"].forEach(k=>{ if(obj[k]!==undefined) state[k]=obj[k]; });
-    save(); renderTabs(); render();
+    save(); rebuild(); renderTabs(); render();
     if(!silent) toast("オンラインから読み込みました");
     return true;
   }catch(e){ if(!silent) toast("読み込み失敗："+e.message); return false; }
@@ -1338,6 +1360,7 @@ document.getElementById("pCancel").onclick=()=>{ stopFlag=true; document.getElem
 document.getElementById("btnSettings").onclick=()=>{
   document.getElementById("apiKey").value=state.apiKey||"";
   document.getElementById("modelName").value=state.model||"";
+  document.getElementById("hzSel").value=String(state.horizon||12);
   const g=state.gh||{};
   document.getElementById("ghRepo").value=g.repo||"";
   document.getElementById("ghPath").value=g.path||"";
@@ -1387,6 +1410,11 @@ document.getElementById("btnTestKey").onclick=async()=>{
   b.disabled=false; b.textContent="接続をテスト";
 };
 document.getElementById("modelName").onchange=e=>{ state.model=e.target.value.trim(); save(); };
+document.getElementById("hzSel").onchange=e=>{
+  state.horizon=parseInt(e.target.value,10)||12; save();
+  rebuild(); renderTabs(); render();
+  toast(`表示期間を${state.horizon}ヶ月に変更しました`);
+};
 document.getElementById("btnKeyJump").onclick=()=>document.getElementById("btnSettings").click();
 function showKeyWarn(){
   document.getElementById("keyWarn").style.display=(selfHosted() && !state.apiKey)?"":"none";
@@ -1418,7 +1446,7 @@ document.getElementById("btnResetMarks").onclick=()=>{
 };
 
 (async function init(){
-  await load(); renderTabs(); render(); showKeyWarn();
+  await load(); rebuild(); renderTabs(); render(); showKeyWarn();
   if(state.gh && state.gh.auto && state.gh.token) ghPull(true, true);
 })();
 </script>
