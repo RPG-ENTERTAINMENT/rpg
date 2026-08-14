@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ハコ空きレーダー｜都内ライブハウス 6ヶ月表</title>
+<style>
+:root{
+  --paper:#F2F4F7;
+  --card:#FFFFFF;
+  --ink:#111821;
+  --ink-2:#5A6472;
+  --line:#DCE1E8;
+  --brand:#2B4CF2;
+  --free:#0E9F6E;
+  --hold:#E09B2D;
+  --busy:#C4453B;
+  --unknown:#C9D0D9;
+  --past:#EDEFF2;
+  --radius:14px;
+  --mono:ui-monospace,"SF Mono",Menlo,"Roboto Mono",monospace;
+  --jp:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--jp);
+  font-size:15px;line-height:1.6;
+  padding-bottom:env(safe-area-inset-bottom);
+  -webkit-text-size-adjust:100%;
+}
+button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:30;background:var(--ink);color:#fff;
+  padding:calc(12px + env(safe-area-inset-top)) 14px 12px;
+}
+.h-row{display:flex;align-items:baseline;gap:10px}
+h1{
+  margin:0;font-size:19px;font-weight:800;letter-spacing:.04em;
+}
+h1 .thin{font-weight:400;opacity:.62;font-size:13px;letter-spacing:.02em}
+.h-sub{margin:4px 0 0;font-size:11.5px;color:#9AA6B8;letter-spacing:.02em}
+.h-btn{
+  margin-left:auto;background:rgba(255,255,255,.12);border:0;color:#fff;
+  border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:600;
+}
+
+/* ---------- toolbar ---------- */
+.toolbar{
+  position:sticky;top:0;z-index:20;background:var(--paper);
+  border-bottom:1px solid var(--line);padding:10px 0 8px;
+}
+.scroller{display:flex;gap:6px;overflow-x:auto;padding:0 14px 2px;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:999px;
+  padding:6px 13px;font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap;
+}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.month-tab{
+  flex:0 0 auto;background:transparent;border:0;padding:7px 12px 8px;border-radius:10px;
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap;
+  border:1px solid transparent;
+}
+.month-tab[aria-pressed="true"]{background:var(--brand);color:#fff}
+.search-row{display:flex;gap:8px;padding:8px 14px 0}
+.search-row input{
+  flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;font-size:15px;font-family:inherit;color:var(--ink);
+}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:9px 12px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+/* ---------- legend ---------- */
+.legend{display:flex;gap:12px;flex-wrap:wrap;padding:9px 14px 0;font-size:11.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+
+/* ---------- main ---------- */
+main{padding:12px 14px 60px}
+.note{
+  background:#FFF8E6;border:1px solid #F0DCA6;border-radius:12px;
+  padding:10px 12px;font-size:12px;color:#6B5520;margin-bottom:12px;line-height:1.55;
+}
+.bulk{
+  display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;
+}
+a.contact{text-decoration:none;display:inline-block}
+.btn{
+  background:var(--brand);color:#fff;border:0;border-radius:11px;padding:11px 14px;
+  font-size:14px;font-weight:700;letter-spacing:.02em;
+}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:600}
+.btn.sm{padding:8px 11px;font-size:13px;border-radius:9px}
+.btn[disabled]{opacity:.45}
+.count{font-size:12px;color:var(--ink-2);margin-left:auto;font-family:var(--mono)}
+
+/* ---------- venue card ---------- */
+.venue{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  margin-bottom:10px;overflow:hidden;
+}
+.v-head{display:flex;align-items:center;gap:10px;padding:12px 13px 10px;width:100%;background:none;border:0;text-align:left}
+.v-name{font-size:15.5px;font-weight:700;letter-spacing:.01em;line-height:1.3}
+.v-meta{font-size:11.5px;color:var(--ink-2);margin-top:2px;font-family:var(--mono)}
+.v-open{margin-left:auto;flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right}
+.v-open b{display:block;font-size:17px;color:var(--free);line-height:1.1}
+/* signature: 6-month heat ribbon */
+.ribbon{display:flex;gap:1px;padding:0 13px 11px;height:34px;align-items:stretch}
+.ribbon .cell{flex:1 1 0;min-width:0;border-radius:1px;background:var(--unknown)}
+.ribbon .cell.free{background:var(--free)}
+.ribbon .cell.hold{background:var(--hold)}
+.ribbon .cell.busy{background:var(--busy)}
+.ribbon .cell.past{background:var(--past)}
+.ribbon .cell.mstart{box-shadow:inset 1px 0 0 var(--ink)}
+.v-body{border-top:1px solid var(--line);padding:12px 13px 14px;display:none}
+.venue.open .v-body{display:block}
+
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:2px 0 10px}
+.dow{text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--ink-2);padding-bottom:2px}
+.dow.sat{color:#2B6BD6}.dow.sun{color:#C4453B}
+.day{
+  aspect-ratio:1/1;border:1px solid var(--line);border-radius:8px;background:#fff;
+  font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink-2);
+  display:flex;align-items:center;justify-content:center;padding:0;
+}
+.day.blank{border:0;background:transparent}
+.day.past{background:var(--past);color:#AEB6C1;border-color:transparent}
+.day.free{background:var(--free);border-color:var(--free);color:#fff}
+.day.hold{background:var(--hold);border-color:var(--hold);color:#fff}
+.day.busy{background:var(--busy);border-color:var(--busy);color:#fff}
+.v-actions{display:flex;gap:7px;flex-wrap:wrap}
+.memo{
+  width:100%;margin-top:9px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+  font-family:inherit;font-size:13px;resize:vertical;min-height:38px;color:var(--ink);
+}
+.src{font-size:11px;color:var(--ink-2);margin-top:8px;word-break:break-all}
+.src a{color:var(--brand)}
+
+/* ---------- day view ---------- */
+.dayrow{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:7px;
+  padding:11px 13px;
+}
+.dayrow .d-top{display:flex;align-items:center;gap:10px}
+.d-date{font-family:var(--mono);font-size:15px;font-weight:700;min-width:74px}
+.d-date .w{font-size:11px;color:var(--ink-2);margin-left:4px}
+.d-bar{flex:1;height:8px;border-radius:99px;background:var(--past);overflow:hidden}
+.d-bar span{display:block;height:100%;background:var(--free)}
+.d-num{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.d-list{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+.tag{background:#EAF7F1;border:1px solid #BFE5D5;color:#0B7A55;border-radius:7px;padding:4px 8px;font-size:11.5px}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(17,24,33,.45);display:none;align-items:flex-end}
+.modal.open{display:flex}
+.sheet{
+  background:var(--paper);width:100%;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;
+  padding:16px 15px calc(24px + env(safe-area-inset-bottom));
+}
+.sheet h2{margin:0 0 4px;font-size:16px;font-weight:800;letter-spacing:.02em}
+.sheet p.hint{margin:0 0 14px;font-size:12px;color:var(--ink-2)}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:4px}
+.field input,.field select{
+  width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  font-size:15px;font-family:inherit;color:var(--ink);
+}
+.row2{display:flex;gap:8px}.row2>*{flex:1;min-width:0}
+.vlist{background:#fff;border:1px solid var(--line);border-radius:12px;max-height:240px;overflow:auto}
+.vlist div{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line);font-size:13px}
+.vlist div:last-child{border-bottom:0}
+.vlist button{margin-left:auto;background:none;border:0;color:var(--busy);font-size:12px;font-weight:700}
+/* ---------- progress ---------- */
+.progbar{
+  position:fixed;left:10px;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:70;
+  background:var(--ink);color:#fff;border-radius:15px;padding:12px 14px;display:none;
+  box-shadow:0 10px 28px rgba(17,24,33,.28);
+}
+.progbar.on{display:block}
+.p-top{display:flex;align-items:baseline;gap:9px}
+.p-name{font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-pct{font-family:var(--mono);font-size:17px;font-weight:800;letter-spacing:-.02em}
+.p-track{height:6px;border-radius:99px;background:rgba(255,255,255,.16);margin-top:9px;overflow:hidden}
+.p-fill{display:block;height:100%;width:0%;background:var(--free);border-radius:99px;transition:width .25s linear}
+.p-bot{display:flex;align-items:center;gap:8px;margin-top:7px}
+.p-phase{font-size:11.5px;color:#9AA6B8;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-cancel{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:700}
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;
+  background:var(--ink);color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-row">
+    <h1>ハコ空きレーダー <span class="thin">都内ライブハウス</span></h1>
+    <button class="h-btn" id="btnSettings">設定</button>
+  </div>
+  <p class="h-sub">今月から6ヶ月先まで、公開スケジュールの空き日を1画面で</p>
+</header>
+
+<div class="toolbar">
+  <div class="scroller" id="monthTabs"></div>
+  <div class="scroller" id="areaChips" style="margin-top:7px"></div>
+  <div class="scroller" id="genreChips" style="margin-top:7px"></div>
+  <div class="scroller" id="capChips" style="margin-top:7px"></div>
+  <div class="search-row">
+    <input id="q" type="search" placeholder="会場名・エリアで絞り込む" autocomplete="off">
+    <div class="seg">
+      <button id="viewVenue" aria-pressed="true">会場</button>
+      <button id="viewDay" aria-pressed="false">日付</button>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--free)"></i>空き候補</span>
+    <span><i style="background:var(--hold)"></i>仮押さえ</span>
+    <span><i style="background:var(--busy)"></i>公演あり</span>
+    <span><i style="background:var(--unknown)"></i>未確認</span>
+  </div>
+</div>
+
+<main>
+  <div class="note" id="note">
+    ライブハウスの公開スケジュールに載るのは<b>決まった公演だけ</b>です。このアプリの「空き候補」は掲載がない日という意味で、押さえられる保証ではありません。実際の空きはブッキング担当への問い合わせで確定させてください。キャパは目安です（設定から編集可）。
+  </div>
+
+  <div class="bulk">
+    <button class="btn" id="btnBulk">まとめて調べる</button>
+    <button class="btn ghost" id="btnOpenDiscover">会場をAIで探す</button>
+    <button class="btn ghost sm" id="btnStop" style="display:none">中止</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<!-- 会場をAIで探す -->
+<div class="modal" id="discover">
+  <div class="sheet">
+    <h2>会場をAIで探す</h2>
+    <p class="hint">条件に合う会場をウェブ検索で集めて、リストに追加します。</p>
+    <div class="field row2">
+      <div><label>エリア</label><select id="dcArea">
+        <option value="">東京23区内</option>
+        <option value="渋谷">渋谷</option>
+        <option value="新宿">新宿</option>
+        <option value="池袋">池袋</option>
+        <option value="秋葉原">秋葉原</option>
+        <option value="下北沢">下北沢</option>
+        <option value="高円寺・阿佐ヶ谷">高円寺・阿佐ヶ谷</option>
+        <option value="吉祥寺">吉祥寺</option>
+        <option value="中野">中野</option>
+        <option value="目黒・恵比寿">目黒・恵比寿</option>
+        <option value="六本木・青山">六本木・青山</option>
+        <option value="上野・浅草">上野・浅草</option>
+        <option value="品川・大井町">品川・大井町</option>
+      </select></div>
+      <div><label>ジャンル</label><select id="dcGenre">
+        <option value="idol">アイドル</option>
+        <option value="band">バンド</option>
+        <option value="acoustic">弾き語り</option>
+        <option value="theater">演劇・劇場</option>
+      </select></div>
+    </div>
+    <div class="field row2">
+      <div><label>キャパ下限</label><input id="dcMin" type="number" inputmode="numeric" value="100"></div>
+      <div><label>キャパ上限</label><input id="dcMax" type="number" inputmode="numeric" value="500"></div>
+    </div>
+    <button class="btn" id="btnDiscover" style="width:100%">この条件で探す</button>
+    <div class="vlist" id="dcList" style="margin-top:12px"></div>
+    <button class="btn" id="btnAddFound" style="width:100%;margin-top:10px;display:none">チェックした会場を追加</button>
+    <button class="btn ghost" id="btnCloseDiscover" style="width:100%;margin-top:8px">閉じる</button>
+  </div>
+</div>
+
+<!-- 設定シート -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h2>設定</h2>
+    <p class="hint">データはこの端末に保存されます。</p>
+
+    <h2 style="margin-top:6px">差出人（メール本文に入ります）</h2>
+    <div class="field row2">
+      <div><label>会社名</label><input id="sdCompany" placeholder="株式会社○○"></div>
+      <div><label>担当者名</label><input id="sdName" placeholder="山田 太郎"></div>
+    </div>
+    <div class="field row2">
+      <div><label>電話</label><input id="sdTel" type="tel" placeholder="03-0000-0000"></div>
+      <div><label>メール</label><input id="sdMail" type="email" placeholder="info@example.com"></div>
+    </div>
+
+    <div class="field">
+      <label>Anthropic APIキー（このHTMLを自分のサーバーに置いた場合のみ必要）</label>
+      <input id="apiKey" type="password" placeholder="sk-ant-... 空欄でもClaude内では動きます">
+    </div>
+
+    <h2 style="margin-top:18px">会場を追加</h2>
+    <div class="field row2">
+      <div><label>会場名</label><input id="nvName" placeholder="渋谷○○"></div>
+      <div><label>エリア</label><input id="nvArea" placeholder="渋谷"></div>
+    </div>
+    <div class="field row2">
+      <div><label>キャパ（人）</label><input id="nvCap" type="number" inputmode="numeric" placeholder="300"></div>
+      <div><label>ジャンル</label><select id="nvGenre">
+        <option value="band">バンド</option>
+        <option value="idol">アイドル</option>
+        <option value="acoustic">弾き語り</option>
+        <option value="theater">演劇・劇場</option>
+      </select></div>
+    </div>
+    <button class="btn" id="btnAddVenue" style="width:100%">追加する</button>
+
+    <h2 style="margin-top:18px">会場リスト</h2>
+    <p class="hint">キャパをタップすると編集できます。</p>
+    <div class="vlist" id="vlist"></div>
+
+    <h2 style="margin-top:18px">データ</h2>
+    <div class="field row2">
+      <button class="btn ghost" id="btnExport">書き出す</button>
+      <button class="btn ghost" id="btnImport">読み込む</button>
+    </div>
+    <input type="file" id="fileIn" accept="application/json" style="display:none">
+    <button class="btn ghost" id="btnResetMarks" style="width:100%;margin-top:4px">記録した空き状況を全消去</button>
+
+    <button class="btn" id="btnClose" style="width:100%;margin-top:20px">閉じる</button>
+  </div>
+</div>
+
+<div class="progbar" id="progbar">
+  <div class="p-top">
+    <span class="p-name" id="pName">準備中</span>
+    <span class="p-pct" id="pPct">0%</span>
+  </div>
+  <div class="p-track"><span class="p-fill" id="pFill"></span></div>
+  <div class="p-bot">
+    <span class="p-phase" id="pPhase">接続しています</span>
+    <button class="p-cancel" id="pCancel">中止</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ seed venues (キャパは目安 / tags: idol=アイドル band=バンド acoustic=弾き語り theater=演劇) ============ */
+const SEED = [
+// --- バンド／ライブハウス ---
+["下北沢SHELTER","下北沢",250,["band"]],
+["下北沢CLUB Que","下北沢",250,["band"]],
+["下北沢ERA","下北沢",150,["band","acoustic"]],
+["下北沢BASEMENT BAR","下北沢",180,["band"]],
+["下北沢LIVEHAUS","下北沢",200,["band"]],
+["下北沢近松","下北沢",120,["band","acoustic"]],
+["渋谷CLUB QUATTRO","渋谷",750,["band","idol"]],
+["渋谷WWW","渋谷",450,["band","idol"]],
+["渋谷WWW X","渋谷",700,["band","idol"]],
+["Spotify O-EAST","渋谷",1300,["band","idol"]],
+["Spotify O-WEST","渋谷",600,["band","idol"]],
+["Spotify O-Crest","渋谷",250,["band","idol"]],
+["Spotify O-nest","渋谷",350,["band","acoustic"]],
+["渋谷eggman","渋谷",350,["band","idol"]],
+["渋谷La.mama","渋谷",250,["band","acoustic"]],
+["渋谷CYCLONE","渋谷",300,["band","idol"]],
+["新宿LOFT","新宿",500,["band","idol"]],
+["新宿ANTIKNOCK","新宿",250,["band"]],
+["新宿MARZ","新宿",250,["band","idol"]],
+["新宿RUIDO K4","新宿",300,["band","idol"]],
+["新宿SAMURAI","新宿",150,["band","idol"]],
+["高円寺HIGH","高円寺",300,["band"]],
+["高円寺ShowBoat","高円寺",150,["band","acoustic"]],
+["吉祥寺CLUB SEATA","吉祥寺",400,["band","idol"]],
+["吉祥寺WARP","吉祥寺",300,["band"]],
+["吉祥寺Planet K","吉祥寺",150,["band","acoustic"]],
+["池袋EDGE","池袋",200,["band","idol"]],
+["池袋Adm","池袋",300,["band","idol"]],
+["池袋手刀","池袋",100,["band","acoustic"]],
+["恵比寿LIQUIDROOM","恵比寿",900,["band"]],
+["代官山UNIT","代官山",500,["band"]],
+["目黒鹿鳴館","目黒",250,["band"]],
+["目黒LIVE STATION","目黒",200,["band","idol"]],
+["秋葉原CLUB GOODMAN","秋葉原",250,["band","idol"]],
+["中野MOON STEP","中野",100,["band","acoustic"]],
+["三軒茶屋HEAVEN'S DOOR","三軒茶屋",100,["band","acoustic"]],
+["荻窪club Doctor","荻窪",100,["band"]],
+["六本木morph-tokyo","六本木",300,["band","idol"]],
+// --- アイドル寄り ---
+["新宿BLAZE","新宿",700,["idol","band"]],
+["新宿ReNY","新宿",400,["idol","band"]],
+["渋谷duo MUSIC EXCHANGE","渋谷",700,["idol","band"]],
+["渋谷Star lounge","渋谷",200,["idol","band"]],
+["渋谷DESEO","渋谷",150,["idol","band"]],
+["Veats Shibuya","渋谷",500,["idol","band"]],
+["品川ステラボール","品川",700,["idol"]],
+["池袋harevutai","池袋",300,["idol"]],
+["秋葉原ZEST","秋葉原",200,["idol","band"]],
+["秋葉原ディアステージ","秋葉原",100,["idol"]],
+["上野音横丁","上野",200,["idol"]],
+["白金高輪SELENE b2","白金高輪",250,["idol"]],
+["表参道GROUND","表参道",300,["idol","band"]],
+// --- 弾き語り／アコースティック ---
+["下北沢mona records","下北沢",80,["acoustic"]],
+["下北沢lete","下北沢",30,["acoustic"]],
+["下北沢ラ・カーニャ","下北沢",100,["acoustic","band"]],
+["高円寺JIROKICHI","高円寺",100,["acoustic","band"]],
+["吉祥寺MANDA-LA2","吉祥寺",100,["acoustic"]],
+["南青山MANDALA","南青山",120,["acoustic"]],
+["青山 月見ル君想フ","青山",200,["acoustic","band"]],
+["渋谷7th FLOOR","渋谷",100,["acoustic"]],
+["荻窪velvet sun","荻窪",60,["acoustic"]],
+["三軒茶屋Grapefruit Moon","三軒茶屋",80,["acoustic"]],
+["原宿ストロボカフェ","原宿",100,["acoustic","idol"]],
+// --- 演劇／小劇場 ---
+["本多劇場","下北沢",386,["theater"]],
+["ザ・スズナリ","下北沢",200,["theater"]],
+["駅前劇場","下北沢",100,["theater"]],
+["OFF・OFFシアター","下北沢",50,["theater"]],
+["小劇場 楽園","下北沢",60,["theater"]],
+["シアター711","下北沢",100,["theater"]],
+["中野ザ・ポケット","中野",100,["theater"]],
+["中野スタジオあくとれ","中野",60,["theater"]],
+["新宿シアタートップス","新宿",150,["theater"]],
+["新宿村LIVE","新宿",200,["theater"]],
+["王子小劇場","王子",100,["theater"]],
+["シアターグリーン BIG TREE THEATER","池袋",200,["theater"]],
+["あうるすぽっと","池袋",301,["theater"]],
+["東京芸術劇場 シアターウエスト","池袋",324,["theater"]],
+["阿佐ヶ谷アルシェ","阿佐ヶ谷",100,["theater"]],
+["六行会ホール","品川",300,["theater"]],
+// --- 渋谷 追加 ---
+["渋谷CHELSEA HOTEL","渋谷",250,["band","idol"]],
+["渋谷LUSH","渋谷",200,["band","idol"]],
+["渋谷Milkyway","渋谷",150,["idol","band"]],
+["渋谷GARRET udagawa","渋谷",100,["idol","acoustic"]],
+["渋谷REX","渋谷",200,["idol"]],
+// --- 新宿 追加 ---
+["新宿Motion","新宿",150,["band"]],
+["新宿Wild Side Tokyo","新宿",150,["idol","band"]],
+["新宿HEAD POWER","新宿",100,["band"]],
+["新宿レッドクロス","新宿",100,["band"]],
+["新宿nine spices","新宿",150,["band"]],
+["新宿FACE","新宿",600,["idol","theater"]],
+["新宿ロフトプラスワン","新宿",150,["acoustic","theater"]],
+// --- 池袋 追加 ---
+["池袋Black Hole","池袋",150,["band"]],
+["池袋LIVE INN ROSA","池袋",250,["idol","band"]],
+["池袋CYBER","池袋",300,["idol"]],
+["シアターKASSAI","池袋",150,["theater"]],
+// --- 秋葉原 追加 ---
+["秋葉原MOGRA","秋葉原",150,["idol","band"]],
+["Twin Box AKIHABARA","秋葉原",150,["idol"]]
+];
+
+const GENRES = [
+  {id:"all",label:"全ジャンル"},
+  {id:"idol",label:"アイドル"},
+  {id:"band",label:"バンド"},
+  {id:"acoustic",label:"弾き語り"},
+  {id:"theater",label:"演劇・劇場"}
+];
+const GLABEL={idol:"アイドル",band:"バンド",acoustic:"弾き語り",theater:"演劇"};
+const AREA_PIN=["渋谷","新宿","池袋","秋葉原","下北沢"];
+
+const CAPS = [
+  {id:"all",label:"キャパ全部",min:0,max:99999},
+  {id:"s",label:"〜100",min:0,max:100},
+  {id:"m",label:"100〜300",min:101,max:300},
+  {id:"l",label:"300〜800",min:301,max:800},
+  {id:"xl",label:"800〜",min:801,max:99999}
+];
+const DOW = ["日","月","火","水","木","金","土"];
+const KEY = "hakoradar:v2";
+
+/* ============ storage (Claude内: window.storage / 自前ホスト: localStorage) ============ */
+const store = {
+  async get(k){
+    if(window.storage){ try{ const r = await window.storage.get(k); return r ? r.value : null; }catch(e){ return null; } }
+    try{ return window.localStorage.getItem(k); }catch(e){ return null; }
+  },
+  async set(k,v){
+    if(window.storage){ try{ await window.storage.set(k,v); }catch(e){} return; }
+    try{ window.localStorage.setItem(k,v); }catch(e){}
+  }
+};
+
+/* ============ state ============ */
+let state = { venues:[], marks:{}, memo:{}, src:{}, apiKey:"" };
+let ui = { month:0, cap:"all", genre:"all", area:"all", q:"", view:"venue", open:{} };
+let stopFlag = false;
+
+const today = new Date(); today.setHours(0,0,0,0);
+const base = new Date(today.getFullYear(), today.getMonth(), 1);
+
+function months(){
+  const out=[];
+  for(let i=0;i<6;i++){ const d=new Date(base.getFullYear(), base.getMonth()+i, 1); out.push({y:d.getFullYear(), m:d.getMonth()}); }
+  return out;
+}
+const MONTHS = months();
+const pad = n => String(n).padStart(2,"0");
+const key = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
+const daysIn = (y,m) => new Date(y,m+1,0).getDate();
+function horizon(){
+  const out=[];
+  MONTHS.forEach(({y,m})=>{ for(let d=1;d<=daysIn(y,m);d++) out.push({y,m,d,k:key(y,m,d),first:d===1}); });
+  return out;
+}
+const HORIZON = horizon();
+const isPast = k => new Date(k+"T00:00:00") < today;
+
+function uid(){ return "v"+Math.random().toString(36).slice(2,9); }
+
+async function load(){
+  const raw = await store.get(KEY);
+  if(raw){ try{ state = Object.assign(state, JSON.parse(raw)); }catch(e){} }
+  if(!state.venues || !state.venues.length){
+    state.venues = SEED.map(([name,area,cap,tags])=>({id:uid(),name,area,cap,tags:tags.slice()}));
+    state.seedVersion = 3;
+  }
+  // 旧データにジャンルを付け、新しく足した会場（劇場・弾き語り系など）を一度だけ追加
+  const byName={}; SEED.forEach(([n,a,c,t])=>byName[n]={area:a,cap:c,tags:t});
+  state.venues.forEach(v=>{
+    if(!Array.isArray(v.tags) || !v.tags.length) v.tags = (byName[v.name]||{}).tags ? byName[v.name].tags.slice() : ["band"];
+  });
+  if(state.seedVersion!==3){
+    const have=new Set(state.venues.map(v=>v.name));
+    SEED.forEach(([n,a,c,t])=>{ if(!have.has(n)) state.venues.push({id:uid(),name:n,area:a,cap:c,tags:t.slice()}); });
+    state.seedVersion=3;
+  }
+  state.marks = state.marks||{}; state.memo = state.memo||{}; state.src = state.src||{};
+}
+let saveTimer=null;
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>store.set(KEY, JSON.stringify(state)), 250); }
+
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+/* ============ progress ============ */
+const PHASES=[[0,"接続しています"],[1800,"公式スケジュールを検索しています"],[6000,"ページを読み取っています"],[14000,"公演日を書き出しています"],[26000,"時間がかかっています。もう少しお待ちください"]];
+const P={
+  on:false,total:1,index:0,inner:0,name:"",t0:0,timer:null,btn:null,
+  begin(total){
+    this.on=true;this.total=Math.max(1,total);this.index=0;this.inner=0;this.name="";
+    document.getElementById("progbar").classList.add("on");
+    clearInterval(this.timer);
+    this.timer=setInterval(()=>{ this.inner=Math.min(93,this.inner+(93-this.inner)*0.045); this.draw(); },160);
+    this.draw();
+  },
+  venue(name){ this.name=name; this.inner=0; this.force=null; this.t0=Date.now(); this.draw(); },
+  say(txt){ this.force=txt; this.draw(); },
+  done(){ this.inner=100; this.draw(); this.index++; },
+  pct(){ return Math.min(100, Math.round(((this.index + this.inner/100)/this.total)*100)); },
+  phase(){
+    if(this.force) return this.force;
+    const e=Date.now()-this.t0; let t=PHASES[0][1];
+    PHASES.forEach(([ms,txt])=>{ if(e>=ms) t=txt; });
+    return t;
+  },
+  draw(){
+    if(!this.on) return;
+    const p=this.pct();
+    document.getElementById("pPct").textContent=p+"%";
+    document.getElementById("pFill").style.width=p+"%";
+    document.getElementById("pName").textContent=
+      this.total>1 ? `${Math.min(this.index+1,this.total)}/${this.total}　${this.name}` : this.name;
+    document.getElementById("pPhase").textContent=this.phase();
+    if(this.btn) this.btn.textContent=`調査中 ${Math.min(99,Math.round(this.inner))}%`;
+  },
+  end(){
+    this.on=false; clearInterval(this.timer); this.timer=null; this.btn=null;
+    document.getElementById("progbar").classList.remove("on");
+  }
+};
+
+/* ============ filters ============ */
+function filtered(){
+  const c = CAPS.find(x=>x.id===ui.cap);
+  const q = ui.q.trim().toLowerCase();
+  return state.venues.filter(v=>{
+    if(v.cap < c.min || v.cap > c.max) return false;
+    if(ui.genre!=="all" && !(v.tags||[]).includes(ui.genre)) return false;
+    if(ui.area!=="all" && (v.area||"")!==ui.area) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || (v.area||"").toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function mark(vid,k){ return (state.marks[vid]||{})[k] || "unknown"; }
+function setMark(vid,k,val){
+  if(!state.marks[vid]) state.marks[vid]={};
+  if(val==="unknown") delete state.marks[vid][k]; else state.marks[vid][k]=val;
+  save();
+}
+function freeCount(vid){
+  const mm = state.marks[vid]||{};
+  return HORIZON.filter(d=>!isPast(d.k) && mm[d.k]==="free").length;
+}
+
+/* ============ render ============ */
+function renderTabs(){
+  const wrap=document.getElementById("monthTabs"); wrap.innerHTML="";
+  MONTHS.forEach((mo,i)=>{
+    const b=document.createElement("button");
+    b.className="month-tab"; b.setAttribute("aria-pressed", i===ui.month);
+    b.textContent = `${mo.y}.${pad(mo.m+1)}`;
+    b.onclick=()=>{ ui.month=i; renderTabs(); render(); };
+    wrap.appendChild(b);
+  });
+  const aw=document.getElementById("areaChips"); aw.innerHTML="";
+  const tally={};
+  state.venues.forEach(v=>{ const a=v.area||"その他"; tally[a]=(tally[a]||0)+1; });
+  const areas=Object.keys(tally).sort((x,y)=>{
+    const px=AREA_PIN.indexOf(x), py=AREA_PIN.indexOf(y);
+    if(px>=0||py>=0) return (px<0?99:px)-(py<0?99:py);
+    return tally[y]-tally[x];
+  });
+  [{id:"all",label:"全エリア"}].concat(areas.map(a=>({id:a,label:`${a} ${tally[a]}`}))).forEach(a=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.setAttribute("aria-pressed", a.id===ui.area); b.textContent=a.label;
+    b.onclick=()=>{ ui.area=a.id; renderTabs(); render(); };
+    aw.appendChild(b);
+  });
+  const gw=document.getElementById("genreChips"); gw.innerHTML="";
+  GENRES.forEach(g=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.setAttribute("aria-pressed", g.id===ui.genre); b.textContent=g.label;
+    b.onclick=()=>{ ui.genre=g.id; renderTabs(); render(); };
+    gw.appendChild(b);
+  });
+  const cw=document.getElementById("capChips"); cw.innerHTML="";
+  CAPS.forEach(c=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.setAttribute("aria-pressed", c.id===ui.cap); b.textContent=c.label;
+    b.onclick=()=>{ ui.cap=c.id; renderTabs(); render(); };
+    cw.appendChild(b);
+  });
+}
+
+function ribbon(v){
+  const el=document.createElement("div"); el.className="ribbon";
+  HORIZON.forEach(d=>{
+    const c=document.createElement("div");
+    const st = isPast(d.k) ? "past" : mark(v.id,d.k);
+    c.className="cell "+(st==="unknown"?"":st)+(d.first?" mstart":"");
+    el.appendChild(c);
+  });
+  return el;
+}
+
+function monthGrid(v){
+  const {y,m}=MONTHS[ui.month];
+  const g=document.createElement("div"); g.className="grid";
+  DOW.forEach((w,i)=>{
+    const h=document.createElement("div");
+    h.className="dow"+(i===6?" sat":i===0?" sun":""); h.textContent=w; g.appendChild(h);
+  });
+  const lead=new Date(y,m,1).getDay();
+  for(let i=0;i<lead;i++){ const b=document.createElement("div"); b.className="day blank"; g.appendChild(b); }
+  for(let d=1;d<=daysIn(y,m);d++){
+    const k=key(y,m,d);
+    const b=document.createElement("button");
+    const past=isPast(k);
+    b.className="day "+(past?"past":mark(v.id,k));
+    b.textContent=d;
+    if(!past){
+      b.onclick=()=>{
+        const cyc={unknown:"free",free:"hold",hold:"busy",busy:"unknown"};
+        setMark(v.id,k,cyc[mark(v.id,k)]);
+        render();
+      };
+    }
+    g.appendChild(b);
+  }
+  return g;
+}
+
+function venueCard(v){
+  const card=document.createElement("div");
+  card.className="venue"+(ui.open[v.id]?" open":"");
+
+  const head=document.createElement("button"); head.className="v-head";
+  head.innerHTML=`<div><div class="v-name">${esc(v.name)}</div>
+    <div class="v-meta">${esc(v.area||"—")} ・ 約${v.cap}${(v.tags||[]).includes("theater")?"席":"人"} ・ ${(v.tags||[]).map(t=>GLABEL[t]||t).join("／")}</div></div>
+    <div class="v-open"><b>${freeCount(v.id)}</b>空き候補</div>`;
+  head.onclick=()=>{ ui.open[v.id]=!ui.open[v.id]; render(); };
+  card.appendChild(head);
+  card.appendChild(ribbon(v));
+
+  const body=document.createElement("div"); body.className="v-body";
+  body.appendChild(monthGrid(v));
+
+  const acts=document.createElement("div"); acts.className="v-actions";
+  const {y,m}=MONTHS[ui.month];
+
+  const ai=document.createElement("button");
+  ai.className="btn sm"; ai.textContent=`${m+1}月をAIで調べる`;
+  ai.onclick=async(e)=>{
+    e.stopPropagation(); ai.disabled=true;
+    P.begin(1); P.btn=ai; P.venue(v.name);
+    await checkVenue(v, ui.month);
+    P.done(); P.end(); render();
+  };
+  acts.appendChild(ai);
+
+  const link=document.createElement("button");
+  link.className="btn ghost sm"; link.textContent=v.url?"公式スケジュールを開く":"公式スケジュールを検索";
+  link.onclick=(e)=>{ e.stopPropagation();
+    if(v.url){ window.open(v.url,"_blank"); return; }
+    const q=encodeURIComponent(`${v.name} スケジュール ${y}年${m+1}月`);
+    window.open("https://www.google.com/search?q="+q,"_blank");
+  };
+  acts.appendChild(link);
+
+  const clr=document.createElement("button");
+  clr.className="btn ghost sm"; clr.textContent="この月をクリア";
+  clr.onclick=(e)=>{ e.stopPropagation();
+    for(let d=1;d<=daysIn(y,m);d++) setMark(v.id,key(y,m,d),"unknown");
+    delete (state.src[v.id]||{})[`${y}-${pad(m+1)}`]; save(); render();
+  };
+  acts.appendChild(clr);
+  body.appendChild(acts);
+
+  /* --- 連絡先 --- */
+  const con=document.createElement("div"); con.className="v-actions"; con.style.marginTop="7px";
+
+  if(v.tel){
+    const t=document.createElement("a");
+    t.className="btn sm contact"; t.href="tel:"+v.tel.replace(/[^0-9+]/g,"");
+    t.textContent="電話 "+v.tel;
+    t.onclick=e=>e.stopPropagation();
+    con.appendChild(t);
+  }
+  if(v.mail){
+    const ml=document.createElement("a");
+    ml.className="btn sm contact"; ml.style.background="var(--free)";
+    ml.href=mailtoURL(v); ml.textContent="メールで問い合わせ";
+    ml.onclick=e=>e.stopPropagation();
+    con.appendChild(ml);
+  }else if(v.form){
+    const f=document.createElement("button");
+    f.className="btn ghost sm"; f.textContent="問い合わせフォームを開く";
+    f.onclick=e=>{ e.stopPropagation(); window.open(v.form,"_blank"); };
+    con.appendChild(f);
+  }
+  const fc=document.createElement("button");
+  fc.className="btn ghost sm";
+  fc.textContent=(v.tel||v.mail||v.form)?"連絡先を再取得":"連絡先をAIで調べる";
+  fc.onclick=async(e)=>{ e.stopPropagation(); fc.disabled=true;
+    P.begin(1); P.btn=fc; P.venue(v.name); P.say("公式サイトの連絡先を探しています");
+    const ok=await fetchContact(v);
+    P.done(); P.end(); render();
+    toast(ok?`${v.name}：連絡先を取得しました`:`${v.name}：連絡先が確認できませんでした`);
+  };
+  con.appendChild(fc);
+  body.appendChild(con);
+
+  if(v.tel||v.mail){
+    const w=document.createElement("div"); w.className="src";
+    w.textContent="※連絡先はAIが取得したものです。発信前に公式サイトでご確認ください。";
+    body.appendChild(w);
+  }
+
+  const memo=document.createElement("textarea");
+  memo.className="memo"; memo.placeholder="ブッキング窓口・料金・メモ";
+  memo.value=state.memo[v.id]||"";
+  memo.oninput=()=>{ state.memo[v.id]=memo.value; save(); };
+  body.appendChild(memo);
+
+  const s=(state.src[v.id]||{})[`${y}-${pad(m+1)}`];
+  if(s){
+    const p=document.createElement("div"); p.className="src";
+    p.innerHTML = `AI調査 ${esc(s.at)}｜${s.url?`<a href="${esc(s.url)}" target="_blank">出典</a>`:"出典URLなし"}${s.note?"｜"+esc(s.note):""}`;
+    body.appendChild(p);
+  }
+  card.appendChild(body);
+  return card;
+}
+
+function dayView(){
+  const {y,m}=MONTHS[ui.month];
+  const vs=filtered();
+  const box=document.createDocumentFragment();
+  for(let d=1;d<=daysIn(y,m);d++){
+    const k=key(y,m,d);
+    if(isPast(k)) continue;
+    const free=vs.filter(v=>mark(v.id,k)==="free");
+    const row=document.createElement("div"); row.className="dayrow";
+    const w=new Date(y,m,d).getDay();
+    row.innerHTML=`<div class="d-top">
+      <div class="d-date">${m+1}/${d}<span class="w" style="color:${w===0?"var(--busy)":w===6?"#2B6BD6":"var(--ink-2)"}">${DOW[w]}</span></div>
+      <div class="d-bar"><span style="width:${vs.length?Math.round(free.length/vs.length*100):0}%"></span></div>
+      <div class="d-num">${free.length}/${vs.length}</div></div>`;
+    if(free.length){
+      const l=document.createElement("div"); l.className="d-list";
+      free.forEach(v=>{ const t=document.createElement("span"); t.className="tag"; t.textContent=`${v.name}（${v.cap}）`; l.appendChild(t); });
+      row.appendChild(l);
+    }
+    box.appendChild(row);
+  }
+  return box;
+}
+
+function render(){
+  const list=document.getElementById("list"); list.innerHTML="";
+  const vs=filtered();
+  document.getElementById("count").textContent=`${vs.length}件`;
+  if(!vs.length){
+    list.innerHTML=`<div class="dayrow" style="text-align:center;color:var(--ink-2)">条件に合う会場がありません。キャパや検索語を変えてください。</div>`;
+    return;
+  }
+  if(ui.view==="day"){ list.appendChild(dayView()); return; }
+  vs.forEach(v=>list.appendChild(venueCard(v)));
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ============ Claude API ============ */
+async function callClaude(prompt){
+  const headers={"Content-Type":"application/json"};
+  if(state.apiKey){
+    headers["x-api-key"]=state.apiKey;
+    headers["anthropic-version"]="2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"]="true";
+  }
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",headers,
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens:1000,
+      messages:[{role:"user",content:prompt}],
+      tools:[{type:"web_search_20250305",name:"web_search"}]
+    })
+  });
+  if(!res.ok) throw new Error("API "+res.status);
+  const data=await res.json();
+  return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+}
+
+async function checkVenue(v, mi){
+  const {y,m}=MONTHS[mi];
+  const kind = (v.tags||[]).includes("theater") ? "劇場" : "ライブハウス";
+  const ym = `${y}-${pad(m+1)}`;
+  const fmt =
+`次のJSONだけを出力してください。前置き・説明・コードフェンスは一切不要です。
+{"found":true または false,"url":"参照したページのURL","booked":["${y}-${pad(m+1)}-01 形式の、公演が入っている日付"],"note":"30字以内の補足"}
+・bookedには公演が掲載されている日だけを入れてください。
+・推測で日付を埋めないでください。確認できた日だけを入れてください。
+・スケジュールが1件も確認できない場合のみ found:false にしてください。`;
+
+  const prompts = [
+`日本の東京にある${kind}「${v.name}」の${y}年${m+1}月の公演スケジュールを、ウェブ検索で調べてください。
+公式サイトのスケジュールページ（schedule / event / 公演情報）を最優先で確認してください。
+${fmt}`,
+`日本の東京にある${kind}「${v.name}」の${y}年${m+1}月に開催される公演・イベントを、ウェブ検索で調べてください。
+公式サイトで確認できない場合は、チケット販売サイト（イープラス・チケットぴあ・ZAIKO・LivePocket）、
+会場の公式X（旧Twitter）、ライブ情報サイトなど、公式サイト以外の情報源も使ってください。
+${fmt}`
+  ];
+
+  let last="";
+  for(let pass=0; pass<prompts.length; pass++){
+    if(pass===1) P.say("別の情報源で再検索しています");
+    try{
+      const raw = await callClaude(prompts[pass]);
+      const j = raw.replace(/```json|```/g,"").trim();
+      const s = j.indexOf("{"), e = j.lastIndexOf("}");
+      if(s<0||e<0) throw new Error("形式エラー");
+      const obj = JSON.parse(j.slice(s,e+1));
+      if(!obj.found || !(obj.booked||[]).length){
+        last = obj.note || "スケジュール未確認";
+        if(obj.url && !v.url){ v.url=obj.url; }
+        continue;
+      }
+      const booked=new Set((obj.booked||[]).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x) && x.startsWith(ym)));
+      for(let d=1;d<=daysIn(y,m);d++){
+        const k=key(y,m,d);
+        if(isPast(k)) continue;
+        if(mark(v.id,k)==="hold") continue; // 仮押さえは上書きしない
+        setMark(v.id,k, booked.has(k) ? "busy" : "free");
+      }
+      if(obj.url && !v.url) v.url=obj.url;
+      if(!state.src[v.id]) state.src[v.id]={};
+      state.src[v.id][ym]={at:stamp(),url:obj.url||"",note:(pass?"公式以外の情報源｜":"")+(obj.note||"")};
+      save(); return true;
+    }catch(err){ last=err.message; }
+  }
+  if(!state.src[v.id]) state.src[v.id]={};
+  state.src[v.id][ym]={at:stamp(),url:v.url||"",note:"取得できず（"+last+"）"};
+  save(); return false;
+}
+function stamp(){ const d=new Date(); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+
+async function bulk(){
+  const vs=filtered(); stopFlag=false;
+  const b=document.getElementById("btnBulk"), stop=document.getElementById("btnStop");
+  b.disabled=true; stop.style.display="";
+  P.begin(vs.length);
+  let ok=0;
+  for(let i=0;i<vs.length;i++){
+    if(stopFlag) break;
+    P.venue(vs[i].name);
+    b.textContent=`調査中 ${P.pct()}%`;
+    if(await checkVenue(vs[i], ui.month)) ok++;
+    P.done();
+    render();
+  }
+  P.end();
+  b.disabled=false; b.textContent="まとめて調べる"; stop.style.display="none";
+  toast(stopFlag ? `中止しました（${ok}件取得）` : `完了：${vs.length}件中${ok}件のスケジュールを取得`);
+}
+
+/* ============ 連絡先 ============ */
+async function fetchContact(v){
+  const kind=(v.tags||[]).includes("theater")?"劇場":"ライブハウス";
+  const prompt=
+`日本の東京にある${kind}「${v.name}」の公式サイトをウェブ検索で探し、公式の連絡先を調べてください。
+
+次のJSONだけを出力してください。前置き・説明・コードフェンスは一切不要です。
+{"found":true または false,"url":"公式サイトのURL","tel":"03-1234-5678 形式の代表電話","mail":"ブッキング・問い合わせ用のメールアドレス","form":"問い合わせフォームのURL","note":"20字以内の補足"}
+・公式サイトに記載が確認できたものだけを入れてください。
+・電話番号やメールアドレスを推測で作らないでください。確認できない項目は空文字 "" にしてください。
+・ブッキング専用の窓口があればそちらを優先してください。`;
+  try{
+    const raw=await callClaude(prompt);
+    const j=raw.replace(/```json|```/g,"").trim();
+    const s=j.indexOf("{"), e=j.lastIndexOf("}");
+    if(s<0||e<0) return false;
+    const o=JSON.parse(j.slice(s,e+1));
+    let got=false;
+    if(o.url) { v.url=o.url; got=true; }
+    if(o.tel && /[0-9]{2,}/.test(o.tel)) { v.tel=o.tel.trim(); got=true; }
+    if(o.mail && /@/.test(o.mail)) { v.mail=o.mail.trim(); got=true; }
+    if(o.form && /^https?:/.test(o.form)) { v.form=o.form.trim(); got=true; }
+    save();
+    return got && !!(v.tel||v.mail||v.form);
+  }catch(err){ return false; }
+}
+
+function mailtoURL(v){
+  const {y,m}=MONTHS[ui.month];
+  const days=[];
+  for(let d=1;d<=daysIn(y,m);d++){
+    const k=key(y,m,d);
+    if(isPast(k)) continue;
+    const st=mark(v.id,k);
+    if(st==="free"||st==="hold") days.push(`${m+1}/${d}(${DOW[new Date(y,m,d).getDay()]})`);
+  }
+  const s=state.sender||{};
+  const subject=`【会場利用のご相談】${y}年${m+1}月の空き状況について`;
+  const body=
+`${v.name}
+ご担当者様
+
+突然のご連絡失礼いたします。
+${s.company||"（社名）"}の${s.name||"（担当者名）"}と申します。
+
+${y}年${m+1}月に貴会場でのイベント開催を検討しており、
+空き状況とご利用条件をお伺いしたくご連絡いたしました。
+
+■ 希望日
+${days.length ? days.slice(0,12).join("、") : "（調整可能です）"}
+■ 内容
+（出演者・イベント形式）
+■ 想定動員
+（　　名程度）
+
+空き日程、ご利用料金、ノルマ・チャージバック等の条件をお教えいただけますと幸いです。
+お手数をおかけしますが、何卒よろしくお願いいたします。
+
+────────────
+${s.company||""}
+${s.name||""}
+TEL: ${s.tel||""}
+Mail: ${s.mail||""}
+────────────`;
+  return `mailto:${v.mail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/* ============ 会場をAIで探す ============ */
+let found=[];
+async function discover(){
+  const area=document.getElementById("dcArea").value.trim();
+  const g=document.getElementById("dcGenre").value;
+  const mn=parseInt(document.getElementById("dcMin").value,10)||0;
+  const mx=parseInt(document.getElementById("dcMax").value,10)||99999;
+  const kind = g==="theater" ? "小劇場・劇場" : "ライブハウス";
+  const gtxt = {idol:"アイドルのライブでよく使われる",band:"バンド・ミュージシャンのライブが中心の",acoustic:"弾き語り・アコースティックのライブに向いた",theater:"演劇公演に使われる"}[g];
+  const prompt=
+`東京の${area||"23区内"}にある、${gtxt}${kind}をウェブ検索で調べて一覧にしてください。
+収容人数が${mn}〜${mx===99999?"上限なし":mx}人の範囲の会場だけを挙げてください。
+
+次のJSONだけを出力してください。前置き・説明・コードフェンスは一切不要です。
+{"venues":[{"name":"会場名","area":"最寄りエリア","cap":収容人数の数値,"tel":"電話番号","url":"公式サイトURL"}]}
+・実在し、現在も営業している会場だけを挙げてください。閉店・休館した会場は除外してください。
+・最大12件。会場名は正式名称で書いてください。
+・電話番号は公式サイトで確認できたものだけを入れ、不明なら "" にしてください。
+・収容人数が確認できない場合は cap:0 にしてください。`;
+
+  const btn=document.getElementById("btnDiscover");
+  btn.disabled=true;
+  P.begin(1); P.btn=btn; P.venue(`${area||"東京"}の会場を探しています`); P.say("候補を検索しています");
+  try{
+    const raw=await callClaude(prompt);
+    const j=raw.replace(/```json|```/g,"").trim();
+    const s=j.indexOf("{"), e=j.lastIndexOf("}");
+    const o=JSON.parse(j.slice(s,e+1));
+    const have=new Set(state.venues.map(x=>x.name.replace(/\s/g,"")));
+    found=(o.venues||[]).map(x=>({
+      name:String(x.name||"").trim(), area:String(x.area||"").trim(),
+      cap:parseInt(x.cap,10)||0, tel:String(x.tel||"").trim(), url:String(x.url||"").trim(),
+      tags:[g], dup:have.has(String(x.name||"").replace(/\s/g,""))
+    })).filter(x=>x.name);
+    renderFound();
+  }catch(err){
+    document.getElementById("dcList").innerHTML=`<div>候補を取得できませんでした。エリアやジャンルを変えてもう一度お試しください。</div>`;
+  }
+  P.done(); P.end(); btn.disabled=false; btn.textContent="この条件で探す";
+}
+
+function renderFound(){
+  const w=document.getElementById("dcList"); w.innerHTML="";
+  if(!found.length){ w.innerHTML=`<div>条件に合う会場が見つかりませんでした。</div>`; return; }
+  found.forEach((f,i)=>{
+    const row=document.createElement("div");
+    const cb=document.createElement("input");
+    cb.type="checkbox"; cb.checked=!f.dup; cb.disabled=f.dup; cb.dataset.i=i;
+    cb.style.cssText="width:20px;height:20px;flex:0 0 auto";
+    row.appendChild(cb);
+    const sp=document.createElement("span");
+    sp.style.cssText="flex:1;min-width:0";
+    sp.innerHTML=`${esc(f.name)}${f.dup?'<span style="color:var(--ink-2)">（登録済み）</span>':""}<br>
+      <span style="color:var(--ink-2);font-size:11px">${esc(f.area||"—")}${f.cap?" ・ 約"+f.cap+"人":" ・ キャパ不明"}${f.tel?" ・ "+esc(f.tel):""}</span>`;
+    row.appendChild(sp);
+    w.appendChild(row);
+  });
+  document.getElementById("btnAddFound").style.display="";
+}
+
+function addFound(){
+  const boxes=[...document.querySelectorAll("#dcList input[type=checkbox]")];
+  let n=0;
+  boxes.forEach(b=>{
+    if(!b.checked || b.disabled) return;
+    const f=found[+b.dataset.i];
+    state.venues.push({id:uid(),name:f.name,area:f.area,cap:f.cap||100,tags:f.tags.slice(),tel:f.tel,url:f.url});
+    n++;
+  });
+  save(); render(); renderVlist();
+  toast(n?`${n}件を追加しました`:"追加する会場が選ばれていません");
+  if(n) document.getElementById("discover").classList.remove("open");
+}
+
+/* ============ settings ============ */
+function renderVlist(){
+  const w=document.getElementById("vlist"); w.innerHTML="";
+  state.venues.forEach(v=>{
+    const row=document.createElement("div");
+    row.innerHTML=`<span style="flex:1;min-width:0">${esc(v.name)}<br><span style="color:var(--ink-2);font-size:11px">${esc(v.area||"")}</span></span>`;
+    const gsel=document.createElement("select");
+    gsel.style.cssText="width:96px;border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:12px;background:#fff";
+    GENRES.filter(g=>g.id!=="all").forEach(g=>{
+      const o=document.createElement("option"); o.value=g.id; o.textContent=g.label;
+      if((v.tags||[]).includes(g.id)) o.selected=true;
+      gsel.appendChild(o);
+    });
+    gsel.onchange=()=>{ v.tags=[gsel.value]; save(); render(); };
+    row.appendChild(gsel);
+    const cap=document.createElement("input");
+    cap.type="number"; cap.value=v.cap; cap.inputMode="numeric";
+    cap.style.cssText="width:74px;border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:13px;font-family:var(--mono)";
+    cap.onchange=()=>{ v.cap=parseInt(cap.value,10)||0; save(); render(); };
+    row.appendChild(cap);
+    const del=document.createElement("button"); del.textContent="削除";
+    del.onclick=()=>{ if(confirm(`${v.name} を削除しますか？`)){
+      state.venues=state.venues.filter(x=>x.id!==v.id); delete state.marks[v.id]; save(); renderVlist(); render(); } };
+    row.appendChild(del);
+    w.appendChild(row);
+  });
+}
+
+/* ============ wiring ============ */
+document.getElementById("q").oninput=e=>{ ui.q=e.target.value; render(); };
+document.getElementById("viewVenue").onclick=()=>{ ui.view="venue";
+  document.getElementById("viewVenue").setAttribute("aria-pressed",true);
+  document.getElementById("viewDay").setAttribute("aria-pressed",false); render(); };
+document.getElementById("viewDay").onclick=()=>{ ui.view="day";
+  document.getElementById("viewDay").setAttribute("aria-pressed",true);
+  document.getElementById("viewVenue").setAttribute("aria-pressed",false); render(); };
+document.getElementById("btnBulk").onclick=bulk;
+document.getElementById("btnStop").onclick=()=>{ stopFlag=true; };
+document.getElementById("pCancel").onclick=()=>{ stopFlag=true; document.getElementById("pPhase").textContent="この会場が終わり次第、中止します"; };
+
+document.getElementById("btnSettings").onclick=()=>{
+  document.getElementById("apiKey").value=state.apiKey||"";
+  const s=state.sender||{};
+  document.getElementById("sdCompany").value=s.company||"";
+  document.getElementById("sdName").value=s.name||"";
+  document.getElementById("sdTel").value=s.tel||"";
+  document.getElementById("sdMail").value=s.mail||"";
+  renderVlist(); document.getElementById("modal").classList.add("open");
+};
+["sdCompany","sdName","sdTel","sdMail"].forEach(id=>{
+  document.getElementById(id).oninput=()=>{
+    state.sender=state.sender||{};
+    state.sender[id.replace("sd","").toLowerCase()==="company"?"company":id==="sdName"?"name":id==="sdTel"?"tel":"mail"]=document.getElementById(id).value;
+    save();
+  };
+});
+document.getElementById("btnOpenDiscover").onclick=()=>{
+  found=[]; document.getElementById("dcList").innerHTML="";
+  document.getElementById("btnAddFound").style.display="none";
+  document.getElementById("discover").classList.add("open");
+};
+document.getElementById("btnCloseDiscover").onclick=()=>document.getElementById("discover").classList.remove("open");
+document.getElementById("discover").onclick=e=>{ if(e.target.id==="discover") e.currentTarget.classList.remove("open"); };
+document.getElementById("btnDiscover").onclick=discover;
+document.getElementById("btnAddFound").onclick=addFound;
+document.getElementById("btnClose").onclick=()=>document.getElementById("modal").classList.remove("open");
+document.getElementById("modal").onclick=e=>{ if(e.target.id==="modal") e.currentTarget.classList.remove("open"); };
+document.getElementById("apiKey").onchange=e=>{ state.apiKey=e.target.value.trim(); save(); };
+
+document.getElementById("btnAddVenue").onclick=()=>{
+  const n=document.getElementById("nvName").value.trim();
+  if(!n){ toast("会場名を入れてください"); return; }
+  state.venues.push({id:uid(),name:n,area:document.getElementById("nvArea").value.trim(),cap:parseInt(document.getElementById("nvCap").value,10)||100,tags:[document.getElementById("nvGenre").value]});
+  document.getElementById("nvName").value=""; document.getElementById("nvArea").value=""; document.getElementById("nvCap").value="";
+  save(); renderVlist(); render(); toast("追加しました");
+};
+document.getElementById("btnExport").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`hako-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+document.getElementById("btnImport").onclick=()=>document.getElementById("fileIn").click();
+document.getElementById("fileIn").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ state=Object.assign(state,JSON.parse(r.result)); save(); renderVlist(); render(); toast("読み込みました"); }
+    catch(err){ toast("読み込めませんでした"); } };
+  r.readAsText(f);
+};
+document.getElementById("btnResetMarks").onclick=()=>{
+  if(confirm("記録した空き状況をすべて消します。よろしいですか？")){ state.marks={}; state.src={}; save(); render(); toast("消去しました"); }
+};
+
+(async function init(){ await load(); renderTabs(); render(); })();
+</script>
+</body>
+</html>
