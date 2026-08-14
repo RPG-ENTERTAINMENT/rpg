@@ -299,7 +299,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.14 10:35</span>
+    <span id="verChip">ver 2026.08.14 10:55</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -366,9 +366,9 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 10:35</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 10:55</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 10:35</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 10:55</div>
     </div>
 
     <div class="card admin-only">
@@ -496,7 +496,7 @@ body.staff .admin-only{display:none!important}
     <div class="eyebrow" style="color:#C9B6DE">RPG GOODS &amp; TICKETS</div>
     <h2>タレント経理総合アプリ</h2>
     <p>ログインしてください</p>
-    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.14 10:35</p>
+    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.14 10:55</p>
     <input type="password" id="lg-code" inputmode="numeric" placeholder="パスコード" autocomplete="off">
     <button class="wide" onclick="login('admin')">責任者としてログイン</button>
     <button class="wide ghost" onclick="login('staff')">スタッフとしてログイン</button>
@@ -918,14 +918,38 @@ function talMatch(txt){
   for(const [key,full] of cand){if(key.length>=2&&x.includes(key))return full}
   return '';
 }
+/* SNS名に入っている「星乃」などの名字からタレントを推定する */
+function talMatchSns(txt){
+  const x=String(txt||'');
+  if(x.length<2)return '';
+  const names=talentNames().filter(n=>n&&n!=='未指定');
+  const direct=talMatch(x);
+  if(direct)return direct;
+  /* 名字（先頭2〜3文字）が一致する候補を集める */
+  const cand=[];
+  names.forEach(n=>{
+    [n.slice(0,3),n.slice(0,2)].forEach(sur=>{
+      if(sur.length>=2&&x.includes(sur))cand.push({n,sur});
+    });
+  });
+  if(!cand.length)return '';
+  /* 候補が複数なら、下の名前の文字が多く一致する方を選ぶ */
+  const score=c=>{
+    const rest=c.n.slice(c.sur.length);
+    return c.sur.length*2+[...rest].filter(ch=>x.includes(ch)).length;
+  };
+  cand.sort((a,b)=>score(b)-score(a));
+  if(cand.length>1&&score(cand[0])===score(cand[1])&&cand[0].n!==cand[1].n)return '';
+  return cand[0].n;
+}
 window.fixGoodsTalent=async()=>{
   if(!needAdmin())return;
   const target=(DB.goods||[]).filter(g=>!g.talent);
   if(!target.length){toast('未指定のグッズはありません');return}
   let n=0;const hit={};
   target.forEach(g=>{
-    /* 「推しの名前」など、オプションの中からタレント名を探す */
-    const t=talMatch(g.option)||talMatch(g.item);
+    /* 推しの名前 → 商品名 → お客様のSNS名（星乃◯◯ など）の順に探す */
+    const t=talMatch(g.option)||talMatch(g.item)||talMatchSns(g.sns)||talMatchSns(g.name);
     if(t){g.talent=t;n++;hit[t]=(hit[t]||0)+1}
   });
   if(!n){toast(`${target.length}件を調べましたが、手がかりがありませんでした`);return}
