@@ -102,7 +102,17 @@ a.contact{text-decoration:none;display:inline-block}
   background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
   margin-bottom:10px;overflow:hidden;
 }
-.v-head{display:flex;align-items:center;gap:10px;padding:12px 13px 10px;width:100%;background:none;border:0;text-align:left}
+.v-head{display:flex;align-items:center;gap:7px;padding:12px 13px 10px}
+.v-title{flex:1;min-width:0;background:none;border:0;text-align:left;padding:0}
+.icon{
+  width:38px;height:38px;flex:0 0 auto;border-radius:11px;border:1px solid var(--line);
+  background:#fff;display:flex;align-items:center;justify-content:center;padding:0;
+  text-decoration:none;color:var(--ink);
+}
+.icon svg{width:19px;height:19px;display:block}
+.icon.tel-on{background:var(--brand);border-color:var(--brand);color:#fff}
+.icon.mail-on{background:var(--free);border-color:var(--free);color:#fff}
+.icon.dim{color:#B9C1CC;background:#F7F8FA}
 .v-name{font-size:15.5px;font-weight:700;letter-spacing:.01em;line-height:1.3}
 .v-meta{font-size:11.5px;color:var(--ink-2);margin-top:2px;font-family:var(--mono)}
 .v-open{margin-left:auto;flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right}
@@ -239,14 +249,30 @@ a.contact{text-decoration:none;display:inline-block}
   </div>
 
   <div class="bulk">
-    <button class="btn" id="btnBulk">まとめて調べる</button>
+    <button class="btn" id="btnBulk">空きをまとめて調べる</button>
+    <button class="btn" id="btnBulkContact" style="background:var(--free)">連絡先をまとめて調べる</button>
     <button class="btn ghost" id="btnOpenDiscover">会場をAIで探す</button>
+    <button class="btn ghost" id="btnLog">調査履歴</button>
     <button class="btn ghost sm" id="btnStop" style="display:none">中止</button>
     <span class="count" id="count"></span>
   </div>
 
   <div id="list"></div>
 </main>
+
+<!-- 調査履歴 -->
+<div class="modal" id="logSheet">
+  <div class="sheet">
+    <h2>調査履歴</h2>
+    <p class="hint">AIで調べた結果を新しい順に記録しています（最新300件）。</p>
+    <div class="vlist" id="logList" style="max-height:56vh"></div>
+    <div class="field row2" style="margin-top:12px">
+      <button class="btn ghost" id="btnLogCsv">履歴をCSVで書き出す</button>
+      <button class="btn ghost" id="btnLogClear">履歴を消去</button>
+    </div>
+    <button class="btn" id="btnCloseLog" style="width:100%;margin-top:4px">閉じる</button>
+  </div>
+</div>
 
 <!-- 会場をAIで探す -->
 <div class="modal" id="discover">
@@ -335,12 +361,27 @@ a.contact{text-decoration:none;display:inline-block}
     <p class="hint">キャパをタップすると編集できます。</p>
     <div class="vlist" id="vlist"></div>
 
+    <h2 style="margin-top:18px">オンライン保存（GitHub）</h2>
+    <p class="hint">端末を変えてもデータが残ります。APIキーとトークンは同期されません。</p>
+    <div class="field"><label>リポジトリ</label><input id="ghRepo" placeholder="RPG-ENTERTAINMENT/talent-app-data"></div>
+    <div class="field"><label>ファイルパス</label><input id="ghPath" placeholder="data/hako.json"></div>
+    <div class="field"><label>アクセストークン</label><input id="ghToken" type="password" placeholder="ghp_..."></div>
+    <div class="field" style="display:flex;align-items:center;gap:9px">
+      <input type="checkbox" id="ghAuto" style="width:21px;height:21px;flex:0 0 auto">
+      <label for="ghAuto" style="margin:0">変更したら自動で保存する</label>
+    </div>
+    <div class="field row2">
+      <button class="btn ghost" id="btnGhPush">今すぐ保存</button>
+      <button class="btn ghost" id="btnGhPull">読み込む</button>
+    </div>
+
     <h2 style="margin-top:18px">データ</h2>
     <div class="field row2">
       <button class="btn ghost" id="btnExport">書き出す</button>
       <button class="btn ghost" id="btnImport">読み込む</button>
     </div>
     <input type="file" id="fileIn" accept="application/json" style="display:none">
+    <button class="btn ghost" id="btnCsv" style="width:100%;margin-top:4px">連絡先をCSVで書き出す</button>
     <button class="btn ghost" id="btnResetMarks" style="width:100%;margin-top:4px">記録した空き状況を全消去</button>
 
     <button class="btn" id="btnClose" style="width:100%;margin-top:20px">閉じる</button>
@@ -547,9 +588,22 @@ async function load(){
     state.seedVersion=3;
   }
   state.marks = state.marks||{}; state.memo = state.memo||{}; state.src = state.src||{};
+  if(!state.gh) state.gh = {repo:"RPG-ENTERTAINMENT/talent-app-data", path:"data/hako.json", token:"", auto:false};
+  state.log = state.log || [];
+  if(!state.sender) state.sender = {
+    company:"株式会社RPGエンターテイメント",
+    name:"倉石",
+    tel:"03-5738-2335",
+    mail:"rpgentertainment2014@gmail.com"
+  };
 }
 let saveTimer=null;
-function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>store.set(KEY, JSON.stringify(state)), 250); }
+function save(){
+  state.updated=new Date().toISOString();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>store.set(KEY, JSON.stringify(state)), 250);
+  ghAutoQueue();
+}
 
 function toast(msg){
   const t=document.getElementById("toast");
@@ -695,15 +749,55 @@ function monthGrid(v){
   return g;
 }
 
+function lookupIcon(v, svg, label){
+  const b=document.createElement("button");
+  b.className="icon dim"; b.innerHTML=svg; b.setAttribute("aria-label",v.name+"の"+label);
+  b.onclick=async(e)=>{
+    e.stopPropagation(); b.disabled=true;
+    P.begin(1); P.venue(v.name); P.say("公式サイトの連絡先を探しています");
+    const ok=await fetchContact(v);
+    P.done(); P.end(); render();
+    toast(ok?`${v.name}：連絡先を取得しました`:`${v.name}：連絡先が確認できませんでした`);
+  };
+  return b;
+}
+
 function venueCard(v){
   const card=document.createElement("div");
   card.className="venue"+(ui.open[v.id]?" open":"");
 
-  const head=document.createElement("button"); head.className="v-head";
-  head.innerHTML=`<div><div class="v-name">${esc(v.name)}</div>
-    <div class="v-meta">${esc(v.area||"—")} ・ 約${v.cap}${(v.tags||[]).includes("theater")?"席":"人"} ・ ${(v.tags||[]).map(t=>GLABEL[t]||t).join("／")}</div></div>
-    <div class="v-open"><b>${freeCount(v.id)}</b>空き候補</div>`;
-  head.onclick=()=>{ ui.open[v.id]=!ui.open[v.id]; render(); };
+  const head=document.createElement("div"); head.className="v-head";
+
+  const title=document.createElement("button"); title.className="v-title";
+  title.innerHTML=`<div class="v-name">${esc(v.name)}</div>
+    <div class="v-meta">${esc(v.area||"—")} ・ 約${v.cap}${(v.tags||[]).includes("theater")?"席":"人"} ・ ${(v.tags||[]).map(t=>GLABEL[t]||t).join("／")}</div>`;
+  title.onclick=()=>{ ui.open[v.id]=!ui.open[v.id]; render(); };
+  head.appendChild(title);
+
+  const SVG_TEL=`<svg viewBox="0 0 24 24"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .58 3.6 1 1 0 0 1-.25 1z" fill="currentColor"/></svg>`;
+  const SVG_MAIL=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6.5L20.5 7"/></svg>`;
+
+  if(v.tel){
+    const t=document.createElement("a");
+    t.className="icon tel-on"; t.href="tel:"+v.tel.replace(/[^0-9+]/g,"");
+    t.innerHTML=SVG_TEL; t.setAttribute("aria-label",v.name+"に電話");
+    head.appendChild(t);
+  }else{
+    head.appendChild(lookupIcon(v, SVG_TEL, "電話番号を調べる"));
+  }
+
+  if(v.mail){
+    const ml=document.createElement("a");
+    ml.className="icon mail-on"; ml.href=mailtoURL(v);
+    ml.innerHTML=SVG_MAIL; ml.setAttribute("aria-label",v.name+"にメール");
+    head.appendChild(ml);
+  }else{
+    head.appendChild(lookupIcon(v, SVG_MAIL, "メールアドレスを調べる"));
+  }
+
+  const badge=document.createElement("div"); badge.className="v-open";
+  badge.innerHTML=`<b>${freeCount(v.id)}</b>空き`;
+  head.appendChild(badge);
   card.appendChild(head);
   card.appendChild(ribbon(v));
 
@@ -744,20 +838,7 @@ function venueCard(v){
   /* --- 連絡先 --- */
   const con=document.createElement("div"); con.className="v-actions"; con.style.marginTop="7px";
 
-  if(v.tel){
-    const t=document.createElement("a");
-    t.className="btn sm contact"; t.href="tel:"+v.tel.replace(/[^0-9+]/g,"");
-    t.textContent="電話 "+v.tel;
-    t.onclick=e=>e.stopPropagation();
-    con.appendChild(t);
-  }
-  if(v.mail){
-    const ml=document.createElement("a");
-    ml.className="btn sm contact"; ml.style.background="var(--free)";
-    ml.href=mailtoURL(v); ml.textContent="メールで問い合わせ";
-    ml.onclick=e=>e.stopPropagation();
-    con.appendChild(ml);
-  }else if(v.form){
+  if(!v.mail && v.form){
     const f=document.createElement("button");
     f.className="btn ghost sm"; f.textContent="問い合わせフォームを開く";
     f.onclick=e=>{ e.stopPropagation(); window.open(v.form,"_blank"); };
@@ -777,7 +858,7 @@ function venueCard(v){
 
   if(v.tel||v.mail){
     const w=document.createElement("div"); w.className="src";
-    w.textContent="※連絡先はAIが取得したものです。発信前に公式サイトでご確認ください。";
+    w.textContent=`${v.tel?"TEL "+v.tel+"　":""}${v.mail||""}　※AI取得のため発信前にご確認ください`;
     body.appendChild(w);
   }
 
@@ -909,11 +990,13 @@ ${fmt}`
       if(obj.url && !v.url) v.url=obj.url;
       if(!state.src[v.id]) state.src[v.id]={};
       state.src[v.id][ym]={at:stamp(),url:obj.url||"",note:(pass?"公式以外の情報源｜":"")+(obj.note||"")};
+      logAdd("空き調査", v.name, "ok", `${y}年${m+1}月 公演${booked.size}件／空き候補${daysIn(y,m)-booked.size}日`);
       save(); return true;
     }catch(err){ last=err.message; }
   }
   if(!state.src[v.id]) state.src[v.id]={};
   state.src[v.id][ym]={at:stamp(),url:v.url||"",note:"取得できず（"+last+"）"};
+  logAdd("空き調査", v.name, "ng", `${y}年${m+1}月 ${last}`);
   save(); return false;
 }
 function stamp(){ const d=new Date(); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
@@ -960,8 +1043,10 @@ async function fetchContact(v){
     if(o.mail && /@/.test(o.mail)) { v.mail=o.mail.trim(); got=true; }
     if(o.form && /^https?:/.test(o.form)) { v.form=o.form.trim(); got=true; }
     save();
-    return got && !!(v.tel||v.mail||v.form);
-  }catch(err){ return false; }
+    const hit = got && !!(v.tel||v.mail||v.form);
+    logAdd("連絡先", v.name, hit?"ok":"ng", hit?[v.tel||"",v.mail||""].filter(Boolean).join(" / "):"公式サイトに記載を確認できず");
+    return hit;
+  }catch(err){ logAdd("連絡先", v.name, "ng", err.message); return false; }
 }
 
 function mailtoURL(v){
@@ -997,7 +1082,7 @@ ${days.length ? days.slice(0,12).join("、") : "（調整可能です）"}
 
 ────────────
 ${s.company||""}
-${s.name||""}
+担当：${s.name||""}
 TEL: ${s.tel||""}
 Mail: ${s.mail||""}
 ────────────`;
@@ -1078,6 +1163,121 @@ function addFound(){
   if(n) document.getElementById("discover").classList.remove("open");
 }
 
+async function bulkContacts(){
+  const all=filtered();
+  const vs=all.filter(v=>!(v.tel&&v.mail));
+  if(!vs.length){ toast("表示中の会場はすべて取得済みです"); return; }
+  stopFlag=false;
+  const b=document.getElementById("btnBulkContact"), stop=document.getElementById("btnStop");
+  b.disabled=true; stop.style.display="";
+  P.begin(vs.length); P.btn=b;
+  let ok=0;
+  for(let i=0;i<vs.length;i++){
+    if(stopFlag) break;
+    P.venue(vs[i].name); P.say("公式サイトの連絡先を探しています");
+    if(await fetchContact(vs[i])) ok++;
+    P.done(); render();
+  }
+  P.end();
+  b.disabled=false; b.textContent="連絡先をまとめて調べる"; stop.style.display="none";
+  toast(stopFlag ? `中止しました（${ok}件取得）` : `完了：${vs.length}件中${ok}件の連絡先を取得`);
+}
+
+/* ============ 調査履歴 ============ */
+function logAdd(type, venue, result, detail){
+  state.log = state.log || [];
+  state.log.unshift({t:new Date().toISOString(), type, venue, result, detail:detail||""});
+  if(state.log.length>300) state.log.length=300;
+  save();
+}
+function renderLog(){
+  const w=document.getElementById("logList"); w.innerHTML="";
+  const L=state.log||[];
+  if(!L.length){ w.innerHTML=`<div style="color:var(--ink-2)">まだ調査履歴はありません。「空きをまとめて調べる」を実行すると記録されます。</div>`; return; }
+  L.forEach(e=>{
+    const d=new Date(e.t);
+    const row=document.createElement("div");
+    row.innerHTML=`<span style="flex:1;min-width:0">${esc(e.venue)}<br>
+      <span style="color:var(--ink-2);font-size:11px">${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())} ・ ${esc(e.type)}${e.detail?" ・ "+esc(e.detail):""}</span></span>
+      <span style="flex:0 0 auto;font-weight:700;font-size:12px;color:${e.result==="ok"?"var(--free)":"var(--busy)"}">${e.result==="ok"?"取得":"失敗"}</span>`;
+    w.appendChild(row);
+  });
+}
+
+/* ============ CSV ============ */
+function dl(name, text, mime){
+  const blob=new Blob([text],{type:mime||"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function csvLine(arr){ return arr.map(x=>`"${String(x==null?"":x).replace(/"/g,'""')}"`).join(","); }
+function exportContactsCSV(){
+  const rows=[csvLine(["会場名","エリア","キャパ","ジャンル","電話","メール","公式URL","メモ"])];
+  state.venues.forEach(v=>rows.push(csvLine([
+    v.name, v.area||"", v.cap, (v.tags||[]).map(t=>GLABEL[t]||t).join("／"),
+    v.tel||"", v.mail||"", v.url||"", (state.memo[v.id]||"").replace(/[\r\n]+/g," ")
+  ])));
+  dl(`hako-contacts-${new Date().toISOString().slice(0,10)}.csv`, "\ufeff"+rows.join("\r\n"));
+  toast(`${state.venues.length}件を書き出しました`);
+}
+function exportLogCSV(){
+  const rows=[csvLine(["日時","種別","会場","結果","詳細"])];
+  (state.log||[]).forEach(e=>{
+    const d=new Date(e.t);
+    rows.push(csvLine([`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      e.type, e.venue, e.result==="ok"?"取得":"失敗", e.detail||""]));
+  });
+  dl(`hako-log-${new Date().toISOString().slice(0,10)}.csv`, "\ufeff"+rows.join("\r\n"));
+}
+
+/* ============ GitHub オンライン保存 ============ */
+function b64enc(str){ const b=new TextEncoder().encode(str); let s=""; b.forEach(c=>s+=String.fromCharCode(c)); return btoa(s); }
+function b64dec(b64){ const bin=atob(String(b64).replace(/\s/g,"")); return new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); }
+function ghHeaders(){ return {Authorization:"Bearer "+(state.gh.token||""), Accept:"application/vnd.github+json"}; }
+function ghURL(){ return `https://api.github.com/repos/${state.gh.repo}/contents/${state.gh.path||"data/hako.json"}`; }
+function syncPayload(){
+  const o={};
+  ["venues","marks","memo","src","sender","log","seedVersion","updated"].forEach(k=>{ if(state[k]!==undefined) o[k]=state[k]; });
+  return JSON.stringify(o,null,1);
+}
+async function ghPush(silent){
+  const g=state.gh||{};
+  if(!g.repo || !g.token){ if(!silent) toast("リポジトリとトークンを設定してください"); return false; }
+  try{
+    let sha=null;
+    const head=await fetch(ghURL(),{headers:ghHeaders()});
+    if(head.ok){ sha=(await head.json()).sha; }
+    else if(head.status===401||head.status===403) throw new Error("トークンが無効です");
+    const body={message:`hako update ${stamp()}`, content:b64enc(syncPayload())};
+    if(sha) body.sha=sha;
+    const res=await fetch(ghURL(),{method:"PUT",headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!res.ok) throw new Error("GitHub "+res.status);
+    if(!silent) toast("オンラインに保存しました");
+    return true;
+  }catch(e){ if(!silent) toast("保存失敗："+e.message); return false; }
+}
+async function ghPull(silent, onlyIfNewer){
+  const g=state.gh||{};
+  if(!g.repo || !g.token){ if(!silent) toast("リポジトリとトークンを設定してください"); return false; }
+  try{
+    const res=await fetch(ghURL(),{headers:ghHeaders()});
+    if(res.status===404){ if(!silent) toast("まだ保存されていません"); return false; }
+    if(!res.ok) throw new Error("GitHub "+res.status);
+    const obj=JSON.parse(b64dec((await res.json()).content));
+    if(onlyIfNewer && state.updated && obj.updated && obj.updated <= state.updated) return false;
+    ["venues","marks","memo","src","sender","log","seedVersion","updated"].forEach(k=>{ if(obj[k]!==undefined) state[k]=obj[k]; });
+    save(); renderTabs(); render();
+    if(!silent) toast("オンラインから読み込みました");
+    return true;
+  }catch(e){ if(!silent) toast("読み込み失敗："+e.message); return false; }
+}
+let ghTimer=null;
+function ghAutoQueue(){
+  if(!state.gh || !state.gh.auto || !state.gh.token) return;
+  clearTimeout(ghTimer);
+  ghTimer=setTimeout(()=>ghPush(true), 8000);
+}
+
 /* ============ settings ============ */
 function renderVlist(){
   const w=document.getElementById("vlist"); w.innerHTML="";
@@ -1115,12 +1315,34 @@ document.getElementById("viewDay").onclick=()=>{ ui.view="day";
   document.getElementById("viewDay").setAttribute("aria-pressed",true);
   document.getElementById("viewVenue").setAttribute("aria-pressed",false); render(); };
 document.getElementById("btnBulk").onclick=bulk;
+document.getElementById("btnBulkContact").onclick=bulkContacts;
+document.getElementById("btnLog").onclick=()=>{ renderLog(); document.getElementById("logSheet").classList.add("open"); };
+document.getElementById("btnCloseLog").onclick=()=>document.getElementById("logSheet").classList.remove("open");
+document.getElementById("logSheet").onclick=e=>{ if(e.target.id==="logSheet") e.currentTarget.classList.remove("open"); };
+document.getElementById("btnLogCsv").onclick=exportLogCSV;
+document.getElementById("btnLogClear").onclick=()=>{ if(confirm("調査履歴を消去しますか？")){ state.log=[]; save(); renderLog(); toast("消去しました"); } };
+document.getElementById("btnCsv").onclick=exportContactsCSV;
+document.getElementById("btnGhPush").onclick=()=>ghPush(false);
+document.getElementById("btnGhPull").onclick=()=>ghPull(false);
+["ghRepo","ghPath","ghToken"].forEach(id=>{
+  document.getElementById(id).oninput=()=>{
+    state.gh=state.gh||{};
+    state.gh[{ghRepo:"repo",ghPath:"path",ghToken:"token"}[id]]=document.getElementById(id).value.trim();
+    save();
+  };
+});
+document.getElementById("ghAuto").onchange=e=>{ state.gh=state.gh||{}; state.gh.auto=e.target.checked; save(); };
 document.getElementById("btnStop").onclick=()=>{ stopFlag=true; };
 document.getElementById("pCancel").onclick=()=>{ stopFlag=true; document.getElementById("pPhase").textContent="この会場が終わり次第、中止します"; };
 
 document.getElementById("btnSettings").onclick=()=>{
   document.getElementById("apiKey").value=state.apiKey||"";
   document.getElementById("modelName").value=state.model||"";
+  const g=state.gh||{};
+  document.getElementById("ghRepo").value=g.repo||"";
+  document.getElementById("ghPath").value=g.path||"";
+  document.getElementById("ghToken").value=g.token||"";
+  document.getElementById("ghAuto").checked=!!g.auto;
   const s=state.sender||{};
   document.getElementById("sdCompany").value=s.company||"";
   document.getElementById("sdName").value=s.name||"";
@@ -1195,7 +1417,10 @@ document.getElementById("btnResetMarks").onclick=()=>{
   if(confirm("記録した空き状況をすべて消します。よろしいですか？")){ state.marks={}; state.src={}; save(); render(); toast("消去しました"); }
 };
 
-(async function init(){ await load(); renderTabs(); render(); showKeyWarn(); })();
+(async function init(){
+  await load(); renderTabs(); render(); showKeyWarn();
+  if(state.gh && state.gh.auto && state.gh.token) ghPull(true, true);
+})();
 </script>
 </body>
 </html>
