@@ -299,7 +299,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.14 13:20</span>
+    <span id="verChip">ver 2026.08.14 10:15</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -366,9 +366,9 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 13:20</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 10:15</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 13:20</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 10:15</div>
     </div>
 
     <div class="card admin-only">
@@ -496,7 +496,7 @@ body.staff .admin-only{display:none!important}
     <div class="eyebrow" style="color:#C9B6DE">RPG GOODS &amp; TICKETS</div>
     <h2>タレント経理総合アプリ</h2>
     <p>ログインしてください</p>
-    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.14 13:20</p>
+    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.14 10:15</p>
     <input type="password" id="lg-code" inputmode="numeric" placeholder="パスコード" autocomplete="off">
     <button class="wide" onclick="login('admin')">責任者としてログイン</button>
     <button class="wide ghost" onclick="login('staff')">スタッフとしてログイン</button>
@@ -869,6 +869,41 @@ function applyGSeed(){
 const curGoods=()=>(DB.goods||[]).filter(g=>!g.moved&&inScope(g.ev));
 const gTotal=g=>(Number(g.amount)||0);
 
+/* 未指定のグッズに、オプション等からタレントを自動で割り当てる */
+function talMatch(txt){
+  const x=String(txt||'');
+  if(!x)return '';
+  const names=talentNames().filter(n=>n&&n!=='未指定');
+  /* 長い名前から先に照合（部分一致の取り違え防止） */
+  const cand=[];
+  names.forEach(n=>{cand.push([n,n]);const sh=talShort(n);if(sh&&sh!==n)cand.push([sh,n])});
+  cand.sort((a,b)=>b[0].length-a[0].length);
+  for(const [key,full] of cand){if(key.length>=2&&x.includes(key))return full}
+  return '';
+}
+window.fixGoodsTalent=async()=>{
+  if(!needAdmin())return;
+  const target=(DB.goods||[]).filter(g=>!g.talent);
+  if(!target.length){toast('未指定のグッズはありません');return}
+  let n=0;const hit={};
+  target.forEach(g=>{
+    /* 「推しの名前」など、オプションの中からタレント名を探す */
+    const t=talMatch(g.option)||talMatch(g.item);
+    if(t){g.talent=t;n++;hit[t]=(hit[t]||0)+1}
+  });
+  if(!n){toast(`${target.length}件を調べましたが、手がかりがありませんでした`);return}
+  await save();renderAll();
+  toast(`${n}件を振り分けました（${Object.entries(hit).map(([k,v])=>talShort(k)+v).join('・')}）`);
+};
+/* 表示中のグッズをまとめて1人のタレントに設定 */
+window.bulkSetTalent=async v=>{
+  if(!needAdmin()||!v)return;
+  const ids=window.goodsShownIds||[];
+  if(!ids.length)return;
+  if(!await ask(`表示中の${ids.length}件を「${v}」にしますか？`))return;
+  let n=0;(DB.goods||[]).forEach(g=>{if(ids.includes(g.id)){g.talent=v;n++}});
+  await save();window.goodsTal='';renderAll();toast(`${n}件を ${v} にしました`);
+};
 /* クラファン判定（商品名・オプション・現場名のいずれかに該当） */
 const CF_RE=/クラファン|クラウドファンディング|支援|新衣装|目標/i;
 const isCF=g=>CF_RE.test([g.item,g.option,((DB.events||[]).find(e=>e.id===g.ev)||{}).title].filter(Boolean).join(' '));
@@ -947,6 +982,7 @@ function renderGoods(){
   })():[];
   const a=base.filter(g=>pick(g)&&(!tal||talOf(g)===tal)&&hitQ(g))
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
+  window.goodsShownIds=a.map(g=>g.id);
   const live=a.filter(g=>!g.cancel);
   const item=live.reduce((s,g)=>s+(Number(g.amount)||0),0);
   let _lastM='';
@@ -973,6 +1009,14 @@ function renderGoods(){
       ${(teamOf(tf).members||[]).map(m=>`<button class="chip mem ${tal===m?'on':''}"
         onclick="window.goodsTal='${esc(m).replace(/'/g,"\\'")}';renderGoods()">${esc(talShort(m))}</button>`).join('')}
     </div>`:''}
+    ${(cf||ps)&&isAdmin()?`<div style="display:flex;gap:6px;margin:-2px 0 8px">
+      <button class="wide ghost" style="margin:0;flex:1;padding:9px;font-size:12px" onclick="fixGoodsTalent()">🧷 未指定をタレントに自動振り分け</button>
+    </div>`:''}
+    ${(cf||ps)&&isAdmin()&&tal==='未指定'?`<div style="margin:0 0 10px">
+      <select onchange="bulkSetTalent(this.value);this.value=''" style="margin:0">
+        <option value="">表示中の${a.length}件をまとめて設定…</option>
+        ${talentNames().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+      </select></div>`:''}
     ${(cf||ps)&&byTal.length?`<div class="chips" style="margin:-2px 0 10px">
       <button class="chip mem ${!tal?'on':''}" onclick="window.goodsTal='';renderGoods()">全体 ${yen(byTal.reduce((s,x)=>s+x[1].amt,0))}</button>
       ${byTal.map(([n,v])=>`<button class="chip mem ${tal===n?'on':''}"
