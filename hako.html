@@ -232,6 +232,12 @@ a.contact{text-decoration:none;display:inline-block}
     ライブハウスの公開スケジュールに載るのは<b>決まった公演だけ</b>です。このアプリの「空き候補」は掲載がない日という意味で、押さえられる保証ではありません。実際の空きはブッキング担当への問い合わせで確定させてください。キャパは目安です（設定から編集可）。
   </div>
 
+  <div class="note" id="keyWarn" style="display:none;background:#FDECEA;border-color:#F3B9B3;color:#8A2E26">
+    <b>AIを使うにはAPIキーが必要です。</b><br>
+    このページはご自身のサーバー（GitHub Pages）で動いているため、Anthropic Consoleで発行したAPIキーを設定画面に入れてください。未設定のままだと「Load failed」になります。
+    <button class="btn sm" id="btnKeyJump" style="margin-top:8px;background:#8A2E26">設定を開く</button>
+  </div>
+
   <div class="bulk">
     <button class="btn" id="btnBulk">まとめて調べる</button>
     <button class="btn ghost" id="btnOpenDiscover">会場をAIで探す</button>
@@ -300,6 +306,13 @@ a.contact{text-decoration:none;display:inline-block}
     <div class="field">
       <label>Anthropic APIキー（このHTMLを自分のサーバーに置いた場合のみ必要）</label>
       <input id="apiKey" type="password" placeholder="sk-ant-... 空欄でもClaude内では動きます">
+      <button class="btn ghost sm" id="btnPasteKey" style="width:100%;margin-top:6px">クリップボードから貼り付け</button>
+      <button class="btn ghost sm" id="btnTestKey" style="width:100%;margin-top:6px">接続をテスト</button>
+    </div>
+
+    <div class="field">
+      <label>モデル名（変更する場合のみ）</label>
+      <input id="modelName" placeholder="claude-sonnet-4-6">
     </div>
 
     <h2 style="margin-top:18px">会場を追加</h2>
@@ -822,22 +835,30 @@ function render(){
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* ============ Claude API ============ */
+const selfHosted = () => !window.storage;
 async function callClaude(prompt){
+  if(selfHosted() && !state.apiKey) throw new Error("APIキー未設定");
   const headers={"Content-Type":"application/json"};
   if(state.apiKey){
     headers["x-api-key"]=state.apiKey;
     headers["anthropic-version"]="2023-06-01";
     headers["anthropic-dangerous-direct-browser-access"]="true";
   }
-  const res=await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",headers,
-    body:JSON.stringify({
-      model:"claude-sonnet-4-6",
-      max_tokens:1000,
-      messages:[{role:"user",content:prompt}],
-      tools:[{type:"web_search_20250305",name:"web_search"}]
-    })
-  });
+  let res;
+  try{
+    res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers,
+      body:JSON.stringify({
+        model: state.model || "claude-sonnet-4-6",
+        max_tokens:1000,
+        messages:[{role:"user",content:prompt}],
+        tools:[{type:"web_search_20250305",name:"web_search"}]
+      })
+    });
+  }catch(e){ throw new Error("通信失敗：APIキーをご確認ください"); }
+  if(res.status===401||res.status===403) throw new Error("APIキーが無効です");
+  if(res.status===404) throw new Error("モデル名が無効です（設定で変更できます）");
+  if(res.status===429) throw new Error("レート上限：少し待って再実行してください");
   if(!res.ok) throw new Error("API "+res.status);
   const data=await res.json();
   return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
@@ -1099,6 +1120,7 @@ document.getElementById("pCancel").onclick=()=>{ stopFlag=true; document.getElem
 
 document.getElementById("btnSettings").onclick=()=>{
   document.getElementById("apiKey").value=state.apiKey||"";
+  document.getElementById("modelName").value=state.model||"";
   const s=state.sender||{};
   document.getElementById("sdCompany").value=s.company||"";
   document.getElementById("sdName").value=s.name||"";
@@ -1124,7 +1146,29 @@ document.getElementById("btnDiscover").onclick=discover;
 document.getElementById("btnAddFound").onclick=addFound;
 document.getElementById("btnClose").onclick=()=>document.getElementById("modal").classList.remove("open");
 document.getElementById("modal").onclick=e=>{ if(e.target.id==="modal") e.currentTarget.classList.remove("open"); };
-document.getElementById("apiKey").onchange=e=>{ state.apiKey=e.target.value.trim(); save(); };
+document.getElementById("apiKey").onchange=e=>{ state.apiKey=e.target.value.trim(); save(); showKeyWarn(); };
+document.getElementById("btnPasteKey").onclick=async()=>{
+  try{
+    const t=(await navigator.clipboard.readText()).trim();
+    if(!t){ toast("クリップボードが空です"); return; }
+    document.getElementById("apiKey").value=t;
+    state.apiKey=t; save(); showKeyWarn(); toast("貼り付けました");
+  }catch(e){ toast("貼り付けできません。長押しでペーストしてください"); }
+};
+document.getElementById("btnTestKey").onclick=async()=>{
+  const b=document.getElementById("btnTestKey");
+  b.disabled=true; b.textContent="テスト中…";
+  try{
+    await callClaude("「OK」とだけ返してください。検索は不要です。");
+    toast("接続できました");
+  }catch(e){ toast("失敗："+e.message); }
+  b.disabled=false; b.textContent="接続をテスト";
+};
+document.getElementById("modelName").onchange=e=>{ state.model=e.target.value.trim(); save(); };
+document.getElementById("btnKeyJump").onclick=()=>document.getElementById("btnSettings").click();
+function showKeyWarn(){
+  document.getElementById("keyWarn").style.display=(selfHosted() && !state.apiKey)?"":"none";
+}
 
 document.getElementById("btnAddVenue").onclick=()=>{
   const n=document.getElementById("nvName").value.trim();
@@ -1151,7 +1195,7 @@ document.getElementById("btnResetMarks").onclick=()=>{
   if(confirm("記録した空き状況をすべて消します。よろしいですか？")){ state.marks={}; state.src={}; save(); render(); toast("消去しました"); }
 };
 
-(async function init(){ await load(); renderTabs(); render(); })();
+(async function init(){ await load(); renderTabs(); render(); showKeyWarn(); })();
 </script>
 </body>
 </html>
