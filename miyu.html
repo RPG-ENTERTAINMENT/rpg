@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FFF8FB">
+<title>miyu♪ファンクラブ 会員台帳</title>
+<style>
+:root{
+  --bg:#FFF8FB;
+  --card:#FFFFFF;
+  --pink:#FF7FAC;
+  --pink-lt:#FFC9DC;
+  --pink-bg:#FFEFF5;
+  --lav:#B9A5F2;
+  --lav-bg:#F3EEFF;
+  --mint:#54CFA8;
+  --mint-bg:#E4F8F1;
+  --sun:#FFA84D;
+  --sun-bg:#FFF1E0;
+  --text:#55424E;
+  --muted:#B0A0AB;
+  --line:#F7E7EF;
+  --sh:0 4px 16px rgba(255,127,172,.14);
+  --sh-sm:0 2px 8px rgba(255,127,172,.12);
+  --num:"Avenir Next","Avenir","Hiragino Maru Gothic ProN",sans-serif;
+  --jp:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--jp);
+  font-size:15px;line-height:1.75;
+  -webkit-text-size-adjust:100%;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+}
+input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--text)}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:30;
+  padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
+  background:linear-gradient(180deg,var(--bg) 68%,rgba(255,248,251,0));
+  backdrop-filter:blur(10px);
+}
+.brand{display:flex;align-items:center;gap:9px}
+.brand .tag{
+  width:30px;height:30px;border-radius:50%;flex:0 0 30px;
+  background:linear-gradient(140deg,#FFA9C7,var(--pink));color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+  box-shadow:var(--sh-sm)
+}
+.brand h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.02em}
+.sub{margin:3px 0 0 39px;font-size:11px;color:var(--muted)}
+
+main{padding:2px 18px 24px;max-width:620px;margin:0 auto}
+section[hidden]{display:none}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0 8px}
+.stat{background:var(--card);border-radius:20px;padding:14px 8px 12px;text-align:center;box-shadow:var(--sh-sm)}
+.stat b{display:block;font-family:var(--num);font-size:27px;line-height:1;font-weight:600}
+.stat span{display:block;margin-top:7px;font-size:10.5px;color:var(--muted)}
+.stat.ok b{color:var(--mint)}
+.stat.warn b{color:var(--sun)}
+.stat.out b{color:var(--muted)}
+.stat[data-f],.stat[data-go]{cursor:pointer}
+.stat[data-f]:active,.stat[data-go]:active{transform:scale(.96);background:var(--pink-bg)}
+.stat[data-f] span::after,.stat[data-go] span::after{content:" ›";color:var(--pink);font-weight:700}
+
+/* ---------- section titles ---------- */
+.stitle{display:flex;align-items:center;gap:9px;margin:26px 0 12px}
+.stitle h2{margin:0;font-size:13.5px;font-weight:600}
+.stitle .count{
+  font-family:var(--num);font-size:11px;color:#fff;background:var(--pink);
+  border-radius:999px;padding:1px 9px;font-weight:600
+}
+.stitle .rule{flex:1;height:1px;background:var(--line)}
+
+/* ---------- member card ---------- */
+.card{
+  position:relative;display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+  background:var(--card);border-radius:22px;padding:13px 15px 13px 13px;
+  margin-bottom:10px;box-shadow:var(--sh-sm)
+}
+.cardfoot{flex:0 0 100%;display:flex;justify-content:flex-end;gap:8px;margin-top:2px}
+.card:active{transform:scale(.985)}
+.card.warn{box-shadow:0 3px 14px rgba(255,168,77,.22)}
+.card.out{opacity:.68}
+.card .bar{display:none}
+.ava{
+  width:48px;height:48px;border-radius:50%;flex:0 0 48px;overflow:hidden;
+  background:var(--pink-bg);display:flex;align-items:center;justify-content:center;
+  color:var(--pink);font-size:17px;font-weight:600
+}
+.ava img{width:100%;height:100%;object-fit:cover}
+.who{flex:1;min-width:0}
+.who .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .nk{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .ex{font-size:11px;color:var(--muted);margin-top:1px}
+.left{text-align:center;flex:0 0 auto;padding-left:6px;min-width:56px}
+.left b{display:block;font-family:var(--num);font-size:24px;line-height:1.1;font-weight:600}
+.left small{font-size:9.5px;color:var(--muted)}
+.left.ok b{color:var(--mint)}
+.left.warn b{color:var(--sun)}
+.left.out b{color:var(--muted);font-size:13px;padding-top:5px}
+
+.empty{
+  background:var(--card);border-radius:20px;padding:22px 16px;text-align:center;
+  color:var(--muted);font-size:12.5px;box-shadow:var(--sh-sm)
+}
+
+/* ---------- search / chips ---------- */
+.search{
+  width:100%;background:var(--card);border:0;border-radius:999px;
+  padding:13px 18px;margin-bottom:12px;box-shadow:var(--sh-sm)
+}
+.search::placeholder{color:var(--muted)}
+.chips{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 4px}
+.chip{
+  border:0;background:var(--card);color:var(--muted);box-shadow:var(--sh-sm);
+  border-radius:999px;padding:8px 15px;font-size:12.5px;white-space:nowrap
+}
+.chip.on{background:var(--pink);color:#fff;font-weight:600}
+
+/* ---------- forms ---------- */
+.field{margin-bottom:15px}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:7px;padding-left:4px}
+.field label .req{color:var(--pink)}
+.field input,.field textarea,.field select{
+  width:100%;background:var(--card);border:0;border-radius:18px;
+  padding:14px 16px;box-shadow:var(--sh-sm)
+}
+.field textarea{min-height:76px;resize:vertical;line-height:1.7}
+.field input:focus,.field textarea:focus{outline:2px solid var(--pink-lt);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{display:flex;align-items:center;background:var(--card);border-radius:999px;overflow:hidden;box-shadow:var(--sh-sm)}
+.stepper button{width:54px;height:50px;background:transparent;border:0;color:var(--pink);font-size:22px}
+.stepper button:active{background:var(--pink-bg)}
+.stepper input{flex:1;text-align:center;background:transparent;border:0;font-family:var(--num);font-size:20px;font-weight:600}
+.money{font-family:var(--num);font-size:12px;color:var(--muted);margin:8px 8px 0 0;text-align:right}
+.money b{color:var(--pink);font-size:18px}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:block;width:100%;border:0;border-radius:999px;padding:15px;
+  background:linear-gradient(135deg,#FFA0C2,var(--pink));color:#fff;
+  font-weight:600;font-size:15px;box-shadow:var(--sh)
+}
+.btn:active{transform:scale(.985)}
+.btn[disabled]{opacity:.45}
+.btn.ghost{background:var(--card);color:var(--pink);box-shadow:var(--sh-sm)}
+.btn.dark{background:var(--lav-bg);color:#7E6BC0;box-shadow:var(--sh-sm)}
+.btn.danger{background:var(--card);color:#F0819B;box-shadow:var(--sh-sm)}
+.btn.sm{padding:12px;font-size:13px}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+/* ---------- photos ---------- */
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:8px}
+.ph{position:relative;aspect-ratio:1;border-radius:18px;overflow:hidden;background:var(--card);box-shadow:var(--sh-sm)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .del{
+  position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;
+  background:rgba(85,66,78,.62);color:#fff;border:0;font-size:13px;line-height:24px;padding:0
+}
+.addph{
+  aspect-ratio:1;border:1.5px dashed var(--pink-lt);border-radius:18px;background:var(--card);
+  color:var(--muted);font-size:10.5px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px
+}
+.addph .plus{font-size:22px;color:var(--pink);line-height:1}
+
+/* ---------- sheet ---------- */
+.sheet{
+  position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:calc(14px + env(safe-area-inset-top)) 18px calc(34px + env(safe-area-inset-bottom));
+  animation:up .24s ease
+}
+@keyframes up{from{transform:translateY(16px);opacity:.3}to{transform:none;opacity:1}}
+.sheet[hidden]{display:none}
+.shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.shead h2{margin:0;font-size:16px;font-weight:600}
+.x{background:var(--card);border:0;color:var(--muted);font-size:19px;width:34px;height:34px;border-radius:50%;box-shadow:var(--sh-sm);padding:0}
+
+/* ---------- hero + ring ---------- */
+.hero{background:var(--card);border-radius:26px;padding:20px;text-align:center;margin-bottom:18px;box-shadow:var(--sh)}
+.ring{position:relative;width:168px;height:168px;margin:2px auto 6px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:11;stroke-linecap:round}
+.r-bg{stroke:var(--pink-bg)}
+.r-fg{stroke:var(--mint);transition:stroke-dashoffset .5s ease}
+.ring-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hero .big{font-family:var(--num);font-size:46px;line-height:1;font-weight:600;color:var(--mint)}
+.hero .big small{font-size:14px;color:var(--muted);margin-left:3px;font-family:var(--jp)}
+.hero .lab{font-size:11px;color:var(--muted);margin-top:7px}
+.hero .exp{font-size:12px;color:var(--muted);margin-top:4px}
+.hero.warn .big{color:var(--sun)}
+.hero.warn .r-fg{stroke:var(--sun)}
+.hero.out .big{color:var(--muted)}
+.hero.out .r-fg{stroke:var(--pink-lt)}
+.track{display:none}
+
+.kv{background:var(--card);border-radius:20px;padding:4px 16px;box-shadow:var(--sh-sm)}
+.kv div{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv div:last-child{border-bottom:0}
+.kv span{color:var(--muted);font-size:12px;flex:0 0 auto}
+.kv b{font-weight:600;text-align:right;word-break:break-all}
+
+.hist{background:var(--card);border-radius:20px;padding:4px 16px;box-shadow:var(--sh-sm);font-size:13px}
+.hist div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+.hist div:last-child{border-bottom:0}
+.hist b{color:var(--text);font-family:var(--num)}
+.hist .empty{box-shadow:none;padding:16px 0}
+
+/* ---------- scan ---------- */
+.scan{background:var(--pink-bg);border-radius:26px;padding:17px;margin-bottom:26px}
+.scan h3{margin:0 0 5px;font-size:14px;font-weight:600}
+.scan .lead{margin:0 0 14px;font-size:11.5px;color:#B58EA0;line-height:1.75}
+.drop{
+  width:100%;border:1.5px dashed var(--pink-lt);border-radius:20px;background:var(--card);
+  padding:24px 12px;text-align:center;color:var(--muted);font-size:12.5px
+}
+.drop .plus{display:block;font-size:26px;color:var(--pink);line-height:1;margin-bottom:5px}
+.shots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.status{font-size:12px;color:#B58EA0;margin-top:12px;min-height:18px;line-height:1.7;padding:0 4px}
+.spin{
+  display:inline-block;width:12px;height:12px;border:2px solid var(--pink-lt);
+  border-top-color:var(--pink);border-radius:50%;animation:sp .7s linear infinite;
+  vertical-align:-1px;margin-right:7px
+}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- review / recipients ---------- */
+.rev{
+  display:flex;gap:12px;align-items:center;background:var(--card);
+  border-radius:20px;padding:13px 15px;margin-bottom:9px;box-shadow:var(--sh-sm)
+}
+.rev.off{opacity:.5}
+.rev .ck{
+  flex:0 0 24px;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--pink-lt);
+  background:var(--card);color:#fff;font-size:12px;padding:0;line-height:21px
+}
+.rev .ck.on{background:var(--pink);border-color:var(--pink)}
+.lav{
+  position:relative;flex:0 0 46px;width:46px;height:46px;border:0;padding:0;
+  border-radius:50%;background:transparent
+}
+.lav .pic{
+  width:46px;height:46px;border-radius:50%;overflow:hidden;
+  background:var(--pink-bg);color:var(--pink);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px
+}
+.lav .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.lav .dot{
+  position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;
+  border:2px solid var(--card);background:#D8D2D6;color:#fff;
+  font-size:11px;line-height:17px;text-align:center;font-weight:700
+}
+.lav.on .dot{background:#06C755}
+.lav:active{transform:scale(.94)}
+.rev .bd{flex:1;min-width:0}
+.rev .nm{font-weight:600;font-size:14px}
+.rev .mt{font-size:11px;color:var(--muted);margin-top:2px;word-break:break-all}
+.tagx{display:inline-block;font-size:10px;font-weight:600;border-radius:999px;padding:1px 9px;margin-left:7px}
+.tagx.new{background:var(--mint-bg);color:#3FAF8B}
+.tagx.up{background:var(--sun-bg);color:#E08A2E}
+.tagx.dup{background:#FFE0E9;color:#D6537C}
+.tagx.cash{background:#FFF2D4;color:#C08A11}
+.nochip{
+  display:inline-block;background:#F2ECF0;color:#9A8B94;
+  border-radius:7px;padding:1px 7px;font-size:10.5px;font-weight:700;
+  margin-right:7px;vertical-align:1px;letter-spacing:.2px
+}
+.toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--pink-bg);border:0;width:100%;text-align:left;
+  border-radius:16px;padding:13px 15px;margin-bottom:9px
+}
+.toggle b{font-size:13.5px;color:var(--ink);font-weight:600}
+.toggle small{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
+.toggle .sw{
+  flex:0 0 46px;width:46px;height:27px;border-radius:999px;background:#DDD5DA;position:relative;transition:.15s
+}
+.toggle .sw::after{
+  content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;
+  border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.2)
+}
+.toggle.on{background:#FFF2D4}
+.toggle.on .sw{background:#E5A81C}
+.toggle.on .sw::after{left:22px}
+.mini{
+  flex:0 0 auto;border:0;background:var(--pink-bg);color:var(--pink);
+  border-radius:999px;padding:7px 13px;font-size:11.5px;font-weight:600;align-self:center
+}
+.mini:active{background:var(--pink-lt)}
+.mini.line{background:#06C755;color:#fff}
+.mini.line:active{background:#05A648}
+.linebadge{
+  display:inline-flex;align-items:center;gap:3px;vertical-align:middle;
+  background:#06C755;color:#fff;border-radius:6px;
+  padding:2px 6px;font-size:10px;font-weight:700;margin-left:7px;letter-spacing:.3px
+}
+.linebadge.off{background:#E7E2E5;color:#A99BA3}
+.mini.mail{background:var(--ink);color:#fff}
+.mini.mail:active{background:#3B3038}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;
+  background:rgba(255,255,255,.93);backdrop-filter:blur(16px);
+  box-shadow:0 -3px 18px rgba(255,127,172,.13);
+  padding-bottom:env(safe-area-inset-bottom)
+}
+nav button{
+  position:relative;flex:1;background:transparent;border:0;color:var(--muted);
+  padding:11px 0 10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px
+}
+nav button .ic{font-size:19px;line-height:1}
+nav button.on{color:var(--pink);font-weight:600}
+nav .badge{
+  position:absolute;top:6px;left:50%;margin-left:6px;background:var(--sun);color:#fff;
+  font-family:var(--num);font-size:10px;font-weight:600;border-radius:999px;padding:0 5px;min-width:16px;line-height:15px
+}
+
+/* ---------- toast / notes ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  background:var(--pink);color:#fff;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;
+  z-index:90;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;max-width:90vw;
+  box-shadow:var(--sh)
+}
+#toast.on{opacity:1}
+#warnbar{background:var(--sun-bg);color:#C97A21;border-radius:18px;padding:12px 15px;font-size:12px;margin:0 18px 10px;line-height:1.7}
+.note{font-size:11px;color:var(--muted);line-height:1.8;margin-top:14px;padding:0 6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="tag">♪</span><h1>miyu♪ ファンクラブ</h1></div>
+  <p class="sub" id="today"></p>
+</header>
+
+<div id="warnbar" hidden></div>
+
+<main>
+
+<!-- ============ HOME ============ -->
+<section id="v-home">
+  <div class="stats">
+    <div class="stat ok" data-f="ok"><b class="num" id="s-ok">0</b><span>有効</span></div>
+    <div class="stat warn" data-f="warn"><b class="num" id="s-warn">0</b><span>もうすぐ</span></div>
+    <div class="stat out" data-f="out"><b class="num" id="s-out">0</b><span>期限ぎれ</span></div>
+  </div>
+
+  <div class="stitle"><h2>もうすぐ期限（1ヶ月以内）</h2><span class="count num" id="c-warn">0</span><i class="rule"></i></div>
+  <div id="list-warn"></div>
+  <button class="btn sm" id="mailbtn" hidden>期限のお知らせメールを送る</button>
+
+  <div class="stitle"><h2>期限がすぎた人</h2><span class="count num" id="c-out">0</span><i class="rule"></i></div>
+  <div id="list-out"></div>
+
+  <div class="stitle"><h2>今月の入会・更新</h2><span class="count num" id="c-month">0</span><i class="rule"></i></div>
+  <div id="list-month"></div>
+</section>
+
+<!-- ============ LIST ============ -->
+<section id="v-list" hidden>
+  <input class="search" id="q" type="search" placeholder="本名・ニックネーム・メアドで検索">
+  <div class="chips">
+    <button class="chip on" data-f="all">ぜんぶ</button>
+    <button class="chip" data-f="ok">有効</button>
+    <button class="chip" data-f="warn">もうすぐ</button>
+    <button class="chip" data-f="out">期限ぎれ</button>
+    <button class="chip" data-f="cash">現金対応済み</button>
+  </div>
+  <div id="list-all"></div>
+  <div class="btnrow" style="margin-top:20px">
+    <button class="btn ghost sm" id="exp-csv">CSVで書き出す</button>
+    <button class="btn ghost sm" id="exp-json">バックアップ保存</button>
+  </div>
+  <button class="btn ghost sm" id="renum" style="margin-top:9px">入会日順にふり直す（台帳の番号は消えます）</button>
+  <button class="btn dark sm" id="imp-json" style="margin-top:9px">バックアップから復元</button>
+  <input type="file" id="impfile" accept="application/json" hidden>
+  <p class="note" id="storagenote"></p>
+</section>
+
+<!-- ============ LINE ============ -->
+<section id="v-line" hidden>
+  <div class="stats">
+    <div class="stat ok" data-go="line-in"><b class="num" id="l-in">0</b><span>グループ在籍</span></div>
+    <div class="stat warn" data-go="line-out"><b class="num" id="l-need">0</b><span>まだ未参加</span></div>
+    <div class="stat out" data-go="line-old"><b class="num" id="l-old">0</b><span>期限ぎれ在籍</span></div>
+  </div>
+  <p class="note" style="margin-top:2px">左のアイコンを押すと、グループに入っている／いないを切り替えられます。名前の部分を押すと会員ページが開きます。</p>
+
+  <div class="stitle"><h2>いま入っている人</h2><span class="count num" id="l-c1">0</span><i class="rule"></i></div>
+  <div id="line-in"></div>
+
+  <div class="stitle"><h2>まだ入っていない会員</h2><span class="count num" id="l-c2">0</span><i class="rule"></i></div>
+  <div id="line-out"></div>
+  <button class="btn sm" id="invitebtn" style="background:#06C755" hidden>LINE招待メールをまとめて送る</button>
+
+  <div class="stitle"><h2>期限がすぎたのに在籍中</h2><span class="count num" id="l-c3">0</span><i class="rule"></i></div>
+  <div id="line-old"></div>
+</section>
+
+<!-- ============ PURCHASE ============ -->
+<section id="v-buy" hidden>
+  <div class="stitle"><h2>お客様購入登録</h2><i class="rule"></i></div>
+
+  <div class="scan">
+    <h3>納品書・決済画面から読み取る</h3>
+    <p class="lead">スクショを貼るとAIが氏名・日付・金額を読み取ります。1人ならフォームに入力、複数人ならまとめて登録できます。</p>
+    <div class="shots" id="shots"></div>
+    <button class="drop" type="button" id="pickshot"><span class="plus">＋</span>画像を選ぶ／撮影する</button>
+    <input type="file" id="shotfile" accept="image/*" multiple hidden>
+    <button class="btn sm" id="scanbtn" style="margin-top:11px" hidden>この画像を読み取る</button>
+    <div class="status" id="scanstat"></div>
+
+    <div style="height:1px;background:#FFD9E7;margin:18px 0 16px"></div>
+
+    <h3>BASEの注文CSVから取り込む</h3>
+    <p class="lead">BASEの「注文データダウンロード App」で出したCSV、またはGoogleスプレッドシートの台帳をCSVにしたものを選べます。台帳の場合は本名・ニックネーム・メール・入会日・更新日・チケット個数・小計金額を読み取ります。</p>
+    <div class="field" style="margin-bottom:11px">
+      <label>商品名でしぼりこむ（空にすると全件）</label>
+      <input id="csvkey" type="text" value="みゆらー">
+    </div>
+    <button class="btn ghost sm" id="csvpick">CSVファイルを選ぶ</button>
+    <input type="file" id="csvfile" accept=".csv,text/csv,text/comma-separated-values,application/vnd.ms-excel" hidden>
+    <div class="status" id="csvstat"></div>
+
+    <div id="review" style="margin-top:12px"></div>
+    <button class="btn sm" id="bulk" style="margin-top:6px" hidden>選択した会員を登録する</button>
+    <button class="btn ghost sm" id="setkey" style="margin-top:9px">APIキーを設定</button>
+    <button class="btn ghost sm" id="setgh" style="margin-top:9px">GitHubに記録する設定</button>
+  </div>
+
+  <div class="field">
+    <label>本名 <span class="req">＊</span></label>
+    <input id="f-name" type="text" placeholder="山田 花子">
+  </div>
+  <div class="row2">
+    <div class="field"><label>ニックネーム</label><input id="f-nick" type="text" placeholder="はなちゃん"></div>
+    <div class="field"><label>電話番号</label><input id="f-tel" type="tel" inputmode="tel" placeholder="090-0000-0000"></div>
+  </div>
+  <div class="field"><label>メールアドレス</label><input id="f-mail" type="email" inputmode="email" autocapitalize="off" placeholder="mail@example.com"></div>
+  <div class="field"><label>住所</label><textarea id="f-addr" placeholder="〒000-0000 都道府県市区町村…" style="min-height:60px"></textarea></div>
+  <div class="field"><label>注文ID</label><input id="f-order" type="text" autocapitalize="off" placeholder="納品書の注文ID"></div>
+  <div class="field"><label>購入日（この日から1年間が会員期間）</label><input id="f-date" type="date"></div>
+
+  <div class="field">
+    <label>チケット口数（1口 ¥10,000）</label>
+    <div class="stepper">
+      <button type="button" id="k-minus">−</button>
+      <input id="f-kuchi" type="number" inputmode="numeric" value="1" min="1">
+      <button type="button" id="k-plus">＋</button>
+    </div>
+    <p class="money">小計 <b id="f-amount">¥10,000</b></p>
+  </div>
+
+  <div class="field"><label>メモ</label><textarea id="f-memo" placeholder="推し歴、物販の希望、備考など"></textarea></div>
+
+  <div class="field">
+    <label>お客様の写真</label>
+    <div class="photos" id="newphotos"></div>
+    <input type="file" id="newfile" accept="image/*" multiple hidden>
+  </div>
+
+  <button class="btn" id="save">この内容で登録する</button>
+  <p class="note">登録すると、購入日の1年後が有効期限になります。期限の1ヶ月前からホームでお知らせします。</p>
+</section>
+
+</main>
+
+<!-- ============ DETAIL SHEET ============ -->
+<div class="sheet" id="detail" hidden>
+  <div class="shead"><h2 id="d-title">会員情報</h2><button class="x" id="d-close">×</button></div>
+  <div class="hero" id="d-hero">
+    <div class="ring">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="r-bg" cx="60" cy="60" r="52"></circle>
+        <circle class="r-fg" cx="60" cy="60" r="52" id="d-arc"></circle>
+      </svg>
+      <div class="ring-in">
+        <div class="big num"><span id="d-days">0</span><small id="d-unit">日</small></div>
+        <div class="lab" id="d-lab">のこり</div>
+      </div>
+    </div>
+    <div class="exp" id="d-exp"></div>
+  </div>
+
+  <div class="btnrow" style="margin-bottom:18px">
+    <button class="btn sm" id="d-renew">更新する（＋1年）</button>
+    <button class="btn dark sm" id="d-edit">情報を編集</button>
+  </div>
+
+  <button class="toggle" id="d-cash" type="button">
+    <span><b>現金対応済み</b><small>現場で現金をいただいて継続した方</small></span>
+    <span class="sw"></span>
+  </button>
+  <button class="btn sm" id="d-invite" style="margin-bottom:9px;background:#06C755">LINEグループへの招待メールを送る</button>
+  <button class="btn sm" id="d-sendline" style="margin-bottom:9px;background:#06C755">LINEでお知らせを送る</button>
+  <button class="btn sm" id="d-copy" style="margin-bottom:9px">お知らせ文をコピー</button>
+  <div class="btnrow" style="margin-bottom:18px">
+    <button class="btn dark sm" id="d-mail">更新のお願いメール</button>
+    <button class="btn ghost sm" id="d-line">LINEグループ</button>
+  </div>
+
+  <div class="stitle"><h2>お客様の写真</h2><i class="rule"></i></div>
+  <div class="photos" id="d-photos"></div>
+  <input type="file" id="d-file" accept="image/*" multiple hidden>
+
+  <div class="stitle"><h2>納品書・決済画面</h2><i class="rule"></i></div>
+  <div class="photos" id="d-receipts"></div>
+  <input type="file" id="d-rfile" accept="image/*" multiple hidden>
+
+  <div class="stitle"><h2>会員情報</h2><i class="rule"></i></div>
+  <div class="kv" id="d-kv"></div>
+
+  <div class="stitle"><h2>購入・更新履歴</h2><i class="rule"></i></div>
+  <div class="hist" id="d-hist"></div>
+
+  <button class="btn danger sm" id="d-del" style="margin-top:22px">この会員を削除する</button>
+</div>
+
+<!-- ============ EDIT SHEET ============ -->
+<div class="sheet" id="edit" hidden>
+  <div class="shead"><h2>情報を編集</h2><button class="x" id="e-close">×</button></div>
+  <div class="field"><label>本名 <span class="req">＊</span></label><input id="e-name" type="text"></div>
+  <div class="row2">
+    <div class="field"><label>ニックネーム</label><input id="e-nick" type="text"></div>
+    <div class="field"><label>電話番号</label><input id="e-tel" type="tel"></div>
+  </div>
+  <div class="field"><label>メールアドレス</label><input id="e-mail" type="email" autocapitalize="off"></div>
+  <div class="field"><label>住所</label><textarea id="e-addr" style="min-height:60px"></textarea></div>
+  <div class="field"><label>注文ID</label><input id="e-order" type="text" autocapitalize="off"></div>
+  <div class="field"><label>LINE表示名</label><input id="e-lname" type="text" placeholder="グループでの表示名"></div>
+  <div class="row2">
+    <div class="field"><label>入会日</label><input id="e-join" type="date"></div>
+    <div class="field"><label>更新日（期限の起点）</label><input id="e-renew" type="date"></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>チケット個数（累計）</label><input id="e-kuchi" type="number" inputmode="numeric"></div>
+    <div class="field"><label>売り上げ個数</label><input id="e-sales" type="number" inputmode="numeric"></div>
+  </div>
+  <div class="field"><label>小計金額（累計）</label><input id="e-amount" type="number" inputmode="numeric"></div>
+  <div class="field"><label>メモ</label><textarea id="e-memo"></textarea></div>
+  <button class="btn" id="e-save">保存する</button>
+</div>
+
+<!-- ============ RENEW SHEET ============ -->
+<div class="sheet" id="renew" hidden>
+  <div class="shead"><h2>会員を更新する</h2><button class="x" id="r-close">×</button></div>
+  <p class="note" id="r-who" style="margin:0 0 16px;color:var(--muted);font-size:13px"></p>
+  <div class="field"><label>更新日</label><input id="r-date" type="date"></div>
+  <div class="field">
+    <label>チケット口数（1口 ¥10,000）</label>
+    <div class="stepper">
+      <button type="button" id="r-minus">−</button>
+      <input id="r-kuchi" type="number" inputmode="numeric" value="1" min="1">
+      <button type="button" id="r-plus">＋</button>
+    </div>
+    <p class="money">小計 <b id="r-amount">¥10,000</b></p>
+  </div>
+  <div class="hero" style="text-align:left;padding:14px 16px">
+    <div style="font-size:11px;letter-spacing:.14em;color:var(--muted)">更新後の有効期限</div>
+    <div class="num" id="r-newexp" style="font-size:26px;margin-top:4px"></div>
+  </div>
+  <button class="btn" id="r-save">更新を確定する</button>
+</div>
+
+<!-- ============ MAIL SHEET ============ -->
+<div class="sheet" id="mail" hidden>
+  <div class="shead"><h2>期限のお知らせメール</h2><button class="x" id="m-close">×</button></div>
+
+  <div class="stitle"><h2>送る相手</h2><span class="count num" id="m-count">0</span><i class="rule"></i></div>
+  <div class="chips">
+    <button class="chip on" data-t="warn">もうすぐ（1ヶ月以内）</button>
+    <button class="chip" data-t="out">期限ぎれ</button>
+    <button class="chip" data-t="both">両方</button>
+    <button class="chip" data-t="noline">LINE未参加</button>
+    <button class="chip" data-t="all">ぜんぶ</button>
+  </div>
+  <div id="m-list"></div>
+
+  <div class="stitle"><h2>文面</h2><i class="rule"></i></div>
+  <div class="field">
+    <label>更新ページのURL（全文面の {url} に入ります）</label>
+    <input id="m-url" type="url" inputmode="url" autocapitalize="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label>LINEグループの招待URL（{lineurl} に入ります）</label>
+    <input id="m-lineurl" type="url" inputmode="url" autocapitalize="off" spellcheck="false">
+  </div>
+  <div class="chips">
+    <button class="chip on" data-tpl="warn">もうすぐ用</button>
+    <button class="chip" data-tpl="out">期限ぎれ用</button>
+    <button class="chip" data-tpl="invite">LINE招待用</button>
+    <button class="chip" data-tpl="bcc">一斉送信用</button>
+  </div>
+  <div class="field"><label>件名</label><input id="m-sub" type="text"></div>
+  <div class="field"><label>本文</label><textarea id="m-body" style="min-height:190px"></textarea></div>
+  <p class="note" style="margin-top:0">差し込みタグ　{name} 本名／{nick} ニックネーム／{expiry} 有効期限／{days} 残り日数／{join} 入会日／{url} 更新ページ／{lineurl} LINEグループ</p>
+  <p class="note" style="margin-top:0;color:var(--pink)">LINE招待用の文面には、更新のお願いや期限の記載は入れていません。ご案内だけの内容です。</p>
+
+  <div class="stitle"><h2>送信</h2><i class="rule"></i></div>
+  <div id="m-queue" hidden>
+    <div class="hero" style="padding:14px 16px;text-align:left">
+      <div style="font-size:11px;letter-spacing:.14em;color:var(--muted)" id="m-prog"></div>
+      <div style="font-size:17px;font-weight:700;margin-top:4px" id="m-who"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px" id="m-addr"></div>
+    </div>
+    <button class="btn" id="m-open">この人にメールを開く</button>
+    <button class="btn ghost sm" id="m-copyone" style="margin-top:9px">この人の文面をコピー</button>
+    <div class="btnrow" style="margin-top:9px">
+      <button class="btn dark sm" id="m-skip">スキップ</button>
+      <button class="btn ghost sm" id="m-stop">やめる</button>
+    </div>
+  </div>
+  <div id="m-actions">
+    <button class="btn" id="m-one">1人ずつ送る（宛名入り）</button>
+    <div class="btnrow" style="margin-top:9px">
+      <button class="btn dark sm" id="m-bcc">BCCでまとめて送る</button>
+      <button class="btn ghost sm" id="m-copy">メアドをコピー</button>
+    </div>
+  </div>
+  <p class="note">メールはiPhoneの標準メールアプリが開き、内容を確認してから自分で送信します。BCCは宛名が入らない代わりに一度で送れます。</p>
+</div>
+
+<!-- ============ API KEY SHEET ============ -->
+<div class="sheet" id="fallback" hidden>
+  <div class="shead"><b>メールアプリが開けません</b><button class="x" id="f-close">✕</button></div>
+  <div class="sbody">
+    <p class="lead">この画面はチャットの中で動いているため、外のアプリを開けない仕組みになっています。<b>ファイルをダウンロードしてSafariで開く</b>と、ボタンからそのまま送れます。</p>
+    <p class="lead">いますぐ送るときは、下をコピーしてメールアプリに貼ってください。</p>
+    <div class="field"><label>宛先</label><input id="f-to" type="text" readonly></div>
+    <button class="btn ghost sm" id="f-cto" style="margin-bottom:13px">宛先をコピー</button>
+    <div class="field"><label>件名</label><input id="f-sub" type="text" readonly></div>
+    <button class="btn ghost sm" id="f-csub" style="margin-bottom:13px">件名をコピー</button>
+    <div class="field"><label>本文</label><textarea id="f-body" rows="11" readonly></textarea></div>
+    <button class="btn" id="f-cbody">本文をコピー</button>
+  </div>
+</div>
+
+<div class="sheet" id="keysheet" hidden>
+  <div class="shead"><h2>APIキーを設定</h2><button class="x" id="k-close">×</button></div>
+  <p class="lead" style="color:var(--muted);font-size:12px;line-height:1.8;margin:0 0 16px">
+    納品書の読み取りにはAnthropicのAPIキーが必要です。console.anthropic.com で発行したキーを貼り付けてください。キーはこの端末のSafari内だけに保存され、送信先はAnthropicのAPIのみです。
+  </p>
+  <div class="field"><label>APIキー</label><input id="k-input" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-..."></div>
+  <button class="btn" id="k-save">保存する</button>
+  <button class="btn dark sm" id="k-test" style="margin-top:9px">接続テスト</button>
+  <div class="status" id="k-stat"></div>
+  <button class="btn danger sm" id="k-clear" style="margin-top:9px">保存したキーを削除</button>
+</div>
+
+<div class="sheet" id="ghsheet" hidden>
+  <div class="shead"><h2>GitHubに記録</h2><button class="x" id="g-close">×</button></div>
+  <p class="lead" style="color:var(--muted);font-size:12px;line-height:1.8;margin:0 0 16px">
+    会員のデータをGitHubのリポジトリにJSONで保存します。iPhoneを変えてもデータが残り、パソコンからも中身を見られます。トークンはこの端末のSafari内だけに保存されます。<b>かならず非公開（Private）のリポジトリ</b>をお使いください。
+  </p>
+  <div class="field"><label>ユーザー名（オーナー）</label><input id="g-owner" type="text" autocapitalize="off" spellcheck="false" placeholder="rpg-entertainment"></div>
+  <div class="field"><label>リポジトリ名</label><input id="g-repo" type="text" autocapitalize="off" spellcheck="false" placeholder="fanclub-data"></div>
+  <div class="field"><label>ファイルのパス</label><input id="g-path" type="text" autocapitalize="off" spellcheck="false" placeholder="data/fanclub.json"></div>
+  <div class="field"><label>ブランチ</label><input id="g-branch" type="text" autocapitalize="off" spellcheck="false" placeholder="main"></div>
+  <div class="field"><label>アクセストークン</label><input id="g-token" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..."></div>
+  <button class="btn sm" id="g-save">設定を保存</button>
+  <button class="btn dark sm" id="g-test" style="margin-top:9px">つながるか試す</button>
+  <div class="status" id="g-stat"></div>
+
+  <div style="height:1px;background:#FFD9E7;margin:18px 0 16px"></div>
+  <button class="btn" id="g-push">GitHubに保存する</button>
+  <button class="btn ghost sm" id="g-pull" style="margin-top:9px">GitHubから読み込む</button>
+  <button class="toggle" id="g-auto" type="button" style="margin-top:13px">
+    <span><b>変えたら自動で保存</b><small>登録や編集のたびにGitHubへ送ります</small></span>
+    <span class="sw"></span>
+  </button>
+  <p class="note" id="g-last" style="margin-top:4px"></p>
+  <button class="btn danger sm" id="g-clear" style="margin-top:9px">設定を消す</button>
+</div>
+
+<nav>
+  <button class="on" data-v="home"><span class="ic">🏠</span>ホーム<span class="badge num" id="nav-badge" hidden>0</span></button>
+  <button data-v="list"><span class="ic">🎀</span>メンバー</button>
+  <button data-v="line"><span class="ic">💬</span>LINE</button>
+  <button data-v="buy"><span class="ic">🎟️</span>登録</button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const KEY="miyu_fanclub_v1", PRICE=10000, WARN=30;
+let memoryOnly=false;
+
+/* ---------- storage ---------- */
+function load(){
+  try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):[];}
+  catch(e){memoryOnly=true;return [];}
+}
+function save(){
+  if(typeof ghAutoPush==="function")ghAutoPush();
+  if(memoryOnly)return true;
+  try{localStorage.setItem(KEY,JSON.stringify(DB));return true;}
+  catch(e){
+    toast("保存できません。写真を減らすか、バックアップを取ってください");
+    return false;
+  }
+}
+let DB=load();
+if(memoryOnly){
+  const w=document.getElementById("warnbar");
+  w.hidden=false;
+  w.textContent="このブラウザではデータを保存できません。HTMLファイルをiPhoneに保存し、Safariで開いて使ってください（プレビュー中は入力が残りません）。";
+}
+
+/* ---------- date utils ---------- */
+const pad=n=>String(n).padStart(2,"0");
+function iso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function parseD(s){const p=(s||"").split("-").map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function today(){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate());}
+function addYear(s,n){const d=parseD(s);return iso(new Date(d.getFullYear()+(n||1),d.getMonth(),d.getDate()));}
+function jp(s){if(!s)return"—";const d=parseD(s);return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日";}
+function daysLeft(m){return Math.round((parseD(expiryOf(m))-today())/86400000);}
+function expiryOf(m){return addYear(m.renewDate||m.joinDate,1);}
+function statusOf(m){const d=daysLeft(m);return d<0?"out":(d<=WARN?"warn":"ok");}
+const yen=n=>"¥"+Number(n||0).toLocaleString("ja-JP");
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("on");
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2400);
+}
+
+/* ---------- images ---------- */
+function compress(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=900,sc=Math.min(1,max/Math.max(img.width,img.height));
+        const c=document.createElement("canvas");
+        c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        res(c.toDataURL("image/jpeg",.72));
+      };
+      img.onerror=()=>rej(new Error("画像を読み込めません"));
+      img.src=fr.result;
+    };
+    fr.onerror=()=>rej(new Error("画像を読み込めません"));
+    fr.readAsDataURL(file);
+  });
+}
+async function pick(files){
+  const out=[];
+  for(const f of files){
+    if(!f.type.startsWith("image/"))continue;
+    try{out.push(await compress(f));}catch(e){toast(e.message);}
+  }
+  return out;
+}
+
+/* ---------- views ---------- */
+function goView(v){
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.v===v));
+  ["home","list","line","buy"].forEach(k=>document.getElementById("v-"+k).hidden=(k!==v));
+  window.scrollTo(0,0);
+  render();
+}
+document.querySelectorAll("nav button").forEach(b=>{b.onclick=()=>goView(b.dataset.v);});
+document.querySelectorAll("#v-home .stat[data-f]").forEach(el=>{
+  el.onclick=()=>{
+    filter=el.dataset.f;
+    document.querySelectorAll(".chip[data-f]").forEach(c=>c.classList.toggle("on",c.dataset.f===filter));
+    document.getElementById("q").value="";
+    goView("list");
+  };
+});
+document.querySelectorAll("#v-line .stat[data-go]").forEach(el=>{
+  el.onclick=()=>{
+    const t=document.getElementById(el.dataset.go);
+    if(t)t.scrollIntoView({behavior:"smooth",block:"start"});
+  };
+});
+
+/* ---------- cards ---------- */
+function card(m){
+  const st=statusOf(m),d=daysLeft(m);
+  const el=document.createElement("div");
+  el.className="card "+st;
+  const initial=(m.nick||m.name||"?").trim().charAt(0);
+  const img=m.photos&&m.photos[0]?'<img src="'+m.photos[0]+'" alt="">':initial;
+  el.innerHTML=
+    '<i class="bar"></i>'+
+    '<div class="ava">'+img+'</div>'+
+    '<div class="who">'+
+      '<div class="nm"></div>'+
+      '<div class="nk"></div>'+
+      '<div class="ex">期限 '+jp(expiryOf(m))+'</div>'+
+    '</div>'+
+    '<div class="left '+st+'">'+
+      (st==="out"?'<b>期限ぎれ</b><small>'+Math.abs(d)+'日すぎ</small>'
+                 :'<b>'+d+'</b><small>日のこり</small>')+
+    '</div>'+
+    '<div class="cardfoot">'+
+      '<button class="mini line" type="button">LINEで送る</button>'+
+      (m.email?'<button class="mini mail" type="button">✉️ メール</button>':"")+
+      '<button class="mini copy" type="button">コピー</button>'+
+    '</div>';
+  const cnm=el.querySelector(".nm");
+  const cno=document.createElement("span");
+  cno.className="nochip";
+  cno.textContent="No."+(m.no!=null&&m.no!==""?m.no:"-");
+  cnm.appendChild(cno);
+  cnm.appendChild(document.createTextNode(m.name||"（名前未設定）"));
+  if(m.line){
+    const b=document.createElement("span");
+    b.className="linebadge";b.textContent="LINE";
+    el.querySelector(".nm").appendChild(b);
+  }
+  if(m.cash){
+    const c=document.createElement("span");
+    c.className="tagx cash";c.textContent="現金対応済み";
+    el.querySelector(".nm").appendChild(c);
+  }
+  el.querySelector(".nk").textContent=(m.nick?m.nick:"")+(m.email?"　"+m.email:"");
+  el.querySelector(".mini.copy").onclick=ev=>{
+    ev.stopPropagation();
+    copyText(msgFor(m),m.name+"さんの文面をコピーしました");
+  };
+  const mb=el.querySelector(".mini.mail");
+  if(mb)mb.onclick=ev=>{ev.stopPropagation();openMailApp(m);};
+  el.querySelector(".mini.line").onclick=ev=>{ev.stopPropagation();openLine(m);};
+  el.onclick=()=>openDetail(m.id);
+  return el;
+}
+function fill(node,arr,emptyMsg){
+  node.innerHTML="";
+  if(!arr.length){node.innerHTML='<div class="empty">'+emptyMsg+'</div>';return;}
+  arr.forEach(m=>node.appendChild(card(m)));
+}
+
+function lineRow(m){
+  const st=statusOf(m);
+  const el=document.createElement("div");
+  el.className="rev"+(m.line?"":" off");
+  const initial=(m.lineName||m.nick||m.name||"?").trim().charAt(0);
+  const pic=m.photos&&m.photos[0]?'<img src="'+m.photos[0]+'" alt="">':initial;
+  el.innerHTML=
+    '<button class="lav '+(m.line?"on":"")+'" type="button">'+
+      '<span class="pic">'+pic+'</span>'+
+      '<span class="dot">'+(m.line?"✓":"−")+'</span>'+
+    '</button>'+
+    '<div class="bd"><div class="nm"></div><div class="mt"></div></div>'+
+    (m.line
+      ? '<button class="mini line" type="button">LINE</button>'
+      : '<button class="mini line" type="button">招待</button>')+
+    '<button class="mini" type="button">文面</button>';
+  const nm=el.querySelector(".nm");
+  const noc=document.createElement("span");
+  noc.className="nochip";
+  noc.textContent="No."+(m.no!=null&&m.no!==""?m.no:"-");
+  nm.appendChild(noc);
+  nm.appendChild(document.createTextNode(m.lineName||m.nick||m.name));
+  const tag=document.createElement("span");
+  tag.className="tagx "+(st==="ok"?"new":"up");
+  tag.textContent=st==="out"?"期限ぎれ":(st==="warn"?"あと"+daysLeft(m)+"日":"有効");
+  nm.appendChild(tag);
+  if(m.cash){
+    const c=document.createElement("span");
+    c.className="tagx cash";c.textContent="現金";
+    nm.appendChild(c);
+  }
+  el.querySelector(".mt").textContent=m.name+"　期限 "+jp(expiryOf(m));
+  el.querySelector(".lav").onclick=()=>{m.line=!m.line;save();render();};
+  el.querySelector(".bd").onclick=()=>openDetail(m.id);
+  el.querySelectorAll(".mini")[1].onclick=ev=>{
+    ev.stopPropagation();
+    if(m.line)copyText(msgFor(m),m.name+"さんの文面をコピーしました");
+    else copyText(inviteFor(m),m.name+"さんの招待文をコピーしました");
+  };
+  el.querySelector(".mini.line").onclick=ev=>{
+    ev.stopPropagation();
+    if(m.line)openLine(m);
+    else if(!openInviteMail(m))toast(m.name+"さんはメアド未登録です。招待文をコピーしました");
+  };
+  return el;
+}
+function fillLine(node,arr,msg){
+  node.innerHTML="";
+  if(!arr.length){node.innerHTML='<div class="empty">'+msg+'</div>';return;}
+  arr.forEach(m=>node.appendChild(lineRow(m)));
+}
+function renderLine(){
+  const inG=DB.filter(m=>m.line&&statusOf(m)!=="out").sort((a,b)=>daysLeft(a)-daysLeft(b));
+  const notG=DB.filter(m=>!m.line&&statusOf(m)!=="out").sort((a,b)=>daysLeft(a)-daysLeft(b));
+  const oldG=DB.filter(m=>m.line&&statusOf(m)==="out").sort((a,b)=>daysLeft(b)-daysLeft(a));
+  document.getElementById("l-in").textContent=inG.length;
+  document.getElementById("l-need").textContent=notG.length;
+  document.getElementById("l-old").textContent=oldG.length;
+  document.getElementById("l-c1").textContent=inG.length;
+  document.getElementById("l-c2").textContent=notG.length;
+  document.getElementById("l-c3").textContent=oldG.length;
+  fillLine(document.getElementById("line-in"),inG,"まだ誰も入っていません。");
+  fillLine(document.getElementById("line-out"),notG,"全員がグループに入っています。");
+  const ib=document.getElementById("invitebtn");
+  ib.hidden=!notG.length;
+  ib.textContent="LINE招待メールをまとめて送る（"+notG.filter(m=>m.email).length+"人）";
+  fillLine(document.getElementById("line-old"),oldG,"期限ぎれのまま残っている人はいません。");
+}
+
+/* ---------- render ---------- */
+let filter="all";
+function render(){
+  const n=new Date();
+  document.getElementById("today").textContent=
+    n.getFullYear()+"年"+(n.getMonth()+1)+"月"+n.getDate()+"日　会員 "+DB.length+"名";
+
+  const ok=DB.filter(m=>statusOf(m)==="ok");
+  const warn=DB.filter(m=>statusOf(m)==="warn").sort((a,b)=>daysLeft(a)-daysLeft(b));
+  const out=DB.filter(m=>statusOf(m)==="out").sort((a,b)=>daysLeft(b)-daysLeft(a));
+
+  document.getElementById("s-ok").textContent=ok.length;
+  document.getElementById("s-warn").textContent=warn.length;
+  document.getElementById("s-out").textContent=out.length;
+  document.getElementById("c-warn").textContent=warn.length;
+  document.getElementById("c-out").textContent=out.length;
+
+  const badge=document.getElementById("nav-badge");
+  badge.hidden=warn.length===0;badge.textContent=warn.length;
+
+  fill(document.getElementById("list-warn"),warn,"期限が近い人はいません。");
+  const mb=document.getElementById("mailbtn");
+  mb.hidden=(warn.length+out.length)===0;
+  mb.textContent="期限のお知らせメールを送る（"+warn.length+"人）";
+
+  fill(document.getElementById("list-out"),out,"期限がすぎた人はいません。");
+
+  const ym=n.getFullYear()+"-"+pad(n.getMonth()+1);
+  const month=DB.filter(m=>(m.renewDate||"").startsWith(ym)||(m.joinDate||"").startsWith(ym));
+  document.getElementById("c-month").textContent=month.length;
+  fill(document.getElementById("list-month"),month,"今月の入会・更新はまだありません。");
+
+  const q=(document.getElementById("q").value||"").trim().toLowerCase();
+  let list=DB.slice();
+  list=list.sort((a,b)=>(a.no||0)-(b.no||0));
+  if(filter==="cash")list=list.filter(m=>m.cash);
+  else if(filter!=="all")list=list.filter(m=>statusOf(m)===filter);
+  if(q)list=list.filter(m=>((m.name||"")+(m.nick||"")+(m.email||"")+(m.tel||"")).toLowerCase().includes(q));
+  list.sort((a,b)=>daysLeft(a)-daysLeft(b));
+  fill(document.getElementById("list-all"),list,
+    DB.length?"さがしている人が見つかりません。":"まだ会員がいません。「登録」から追加してください。");
+
+  renderLine();
+
+  const bytes=memoryOnly?0:new Blob([JSON.stringify(DB)]).size;
+  document.getElementById("storagenote").textContent=
+    "保存データ "+(bytes/1024/1024).toFixed(2)+"MB／目安5MBまで。写真が多いときは定期的にバックアップを取ってください。";
+}
+document.getElementById("q").oninput=render;
+document.querySelectorAll(".chip").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");filter=c.dataset.f;render();
+  };
+});
+
+/* ---------- purchase form ---------- */
+const fDate=document.getElementById("f-date"),fKuchi=document.getElementById("f-kuchi");
+fDate.value=iso(new Date());
+let newPhotos=[];
+function calcBuy(){
+  const k=Math.max(1,parseInt(fKuchi.value||"1",10));
+  fKuchi.value=k;
+  document.getElementById("f-amount").textContent=yen(k*PRICE);
+}
+document.getElementById("k-minus").onclick=()=>{fKuchi.value=Math.max(1,(parseInt(fKuchi.value,10)||1)-1);calcBuy();};
+document.getElementById("k-plus").onclick=()=>{fKuchi.value=(parseInt(fKuchi.value,10)||1)+1;calcBuy();};
+fKuchi.oninput=calcBuy;calcBuy();
+
+function drawNewPhotos(){
+  const box=document.getElementById("newphotos");
+  box.innerHTML="";
+  newPhotos.forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.className="ph";
+    d.innerHTML='<img src="'+p+'" alt=""><button class="del" type="button">×</button>';
+    d.querySelector(".del").onclick=()=>{newPhotos.splice(i,1);drawNewPhotos();};
+    box.appendChild(d);
+  });
+  const b=document.createElement("button");
+  b.type="button";b.className="addph";
+  b.innerHTML='<span class="plus">＋</span>画像を追加';
+  b.onclick=()=>document.getElementById("newfile").click();
+  box.appendChild(b);
+}
+document.getElementById("newfile").onchange=async e=>{
+  newPhotos=newPhotos.concat(await pick(e.target.files));
+  e.target.value="";drawNewPhotos();
+};
+drawNewPhotos();
+
+document.getElementById("save").onclick=()=>{
+  const name=document.getElementById("f-name").value.trim();
+  if(!name){toast("本名を入力してください");document.getElementById("f-name").focus();return;}
+  if(!fDate.value){toast("購入日を選んでください");return;}
+  const k=Math.max(1,parseInt(fKuchi.value||"1",10));
+  const amount=k*PRICE;
+  const od0=document.getElementById("f-order").value.trim();
+  const owner=orderOwner({orderId:od0});
+  if(owner&&!confirm("この注文ID（"+od0+"）は "+owner.name+"さんですでに登録ずみです。\n\nこのまま進めると期限がもう1年のびて、金額も二重に足されます。\n本当に登録しますか？")){return;}
+  const dup=findMember(name);
+  if(dup&&confirm(name+"さんはすでに登録されています。\n新規ではなく「更新（期限＋1年）」にしますか？\n\nOK：更新する／キャンセル：別の人として登録")){
+    dup.renewDate=fDate.value;
+    dup.kuchi=(dup.kuchi||0)+k;
+    dup.amount=(dup.amount||0)+amount;
+    const nk=document.getElementById("f-nick").value.trim(),
+          ml=document.getElementById("f-mail").value.trim(),
+          tl=document.getElementById("f-tel").value.trim(),
+          ad=document.getElementById("f-addr").value.trim(),
+          od=document.getElementById("f-order").value.trim();
+    if(nk)dup.nick=nk; if(ml)dup.email=ml; if(tl)dup.tel=tl;
+    if(ad)dup.addr=ad; if(od)dup.orderId=od;
+    if(newPhotos.length)dup.photos=(dup.photos||[]).concat(newPhotos);
+    if(pendingReceipt)dup.receipts=(dup.receipts||[]).concat([pendingReceipt]);
+    (dup.history=dup.history||[]).push({date:fDate.value,kuchi:k,amount:amount,type:"更新",orderId:od0});
+    save();
+    ["f-name","f-nick","f-mail","f-tel","f-memo","f-addr","f-order"].forEach(id=>document.getElementById(id).value="");
+    fDate.value=iso(new Date());fKuchi.value=1;calcBuy();
+    newPhotos=[];drawNewPhotos();pendingReceipt=null;clearScan();
+    render();
+    toast(dup.name+"さんを更新しました（期限 "+jp(expiryOf(dup))+"）");
+    return;
+  }
+  const m={
+    id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    no:(DB.reduce((a,x)=>Math.max(a,x.no||0),0))+1,
+    name:name,
+    nick:document.getElementById("f-nick").value.trim(),
+    email:document.getElementById("f-mail").value.trim(),
+    tel:document.getElementById("f-tel").value.trim(),
+    addr:document.getElementById("f-addr").value.trim(),
+    orderId:document.getElementById("f-order").value.trim(),
+    joinDate:fDate.value,renewDate:fDate.value,
+    kuchi:k,amount:amount,sales:0,
+    memo:document.getElementById("f-memo").value.trim(),
+    photos:newPhotos.slice(),
+    receipts:pendingReceipt?[pendingReceipt]:[],
+    history:[{date:fDate.value,kuchi:k,amount:amount,type:"新規",orderId:document.getElementById("f-order").value.trim()}]
+  };
+  DB.push(m);
+  if(!save()){DB.pop();return;}
+  ["f-name","f-nick","f-mail","f-tel","f-memo","f-addr","f-order"].forEach(id=>document.getElementById(id).value="");
+  fDate.value=iso(new Date());fKuchi.value=1;calcBuy();
+  newPhotos=[];drawNewPhotos();
+  pendingReceipt=null;clearScan();
+  render();
+  toast(m.name+"さんを登録しました（期限 "+jp(expiryOf(m))+"）");
+};
+
+/* ---------- 納品書・決済画面の読み取り ---------- */
+const KEYKEY="miyu_api_key";
+let shots=[],review=[],pendingReceipt=null;
+
+function getKey(){try{return localStorage.getItem(KEYKEY)||"";}catch(e){return "";}}
+function status(html){document.getElementById("scanstat").innerHTML=html;}
+
+function drawShots(){
+  const box=document.getElementById("shots");
+  box.innerHTML="";
+  shots.forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.className="ph";
+    d.innerHTML='<img src="'+p+'" alt=""><button class="del" type="button">×</button>';
+    d.querySelector(".del").onclick=()=>{shots.splice(i,1);drawShots();};
+    box.appendChild(d);
+  });
+  const sb=document.getElementById("scanbtn");
+  sb.hidden=false;
+  sb.textContent=shots.length?"この画像を読み取る（"+shots.length+"枚）":"この画像を読み取る";
+  document.getElementById("pickshot").innerHTML=shots.length
+    ?'<span class="plus">＋</span>画像を追加する'
+    :'<span class="plus">＋</span>画像を選ぶ／撮影する';
+}
+function clearScan(){
+  shots=[];review=[];drawShots();
+  document.getElementById("review").innerHTML="";
+  document.getElementById("bulk").hidden=true;
+  status("");
+}
+document.getElementById("pickshot").onclick=()=>document.getElementById("shotfile").click();
+document.getElementById("shotfile").onchange=async e=>{
+  status('<span class="spin"></span>画像を準備しています…');
+  shots=shots.concat(await pick(e.target.files));
+  e.target.value="";drawShots();status("");
+};
+
+const API="https://api.anthropic.com/v1/messages",MODEL="claude-sonnet-4-6";
+function mediaOf(u){const m=/^data:([^;]+);/.exec(u||"");return m?m[1]:"image/jpeg";}
+
+async function attempt(content,useKey){
+  const headers={"Content-Type":"application/json"};
+  if(useKey){
+    const key=getKey();
+    if(!key){const e=new Error("NOKEY");e.skip=true;throw e;}
+    headers["x-api-key"]=key;
+    headers["anthropic-version"]="2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"]="true";
+  }
+  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),60000);
+  let r;
+  try{
+    r=await fetch(API,{
+      method:"POST",headers:headers,signal:ctl.signal,
+      body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:"user",content:content}]})
+    });
+  }catch(err){
+    throw new Error(err&&err.name==="AbortError"?"TIMEOUT":"NETWORK");
+  }finally{clearTimeout(timer);}
+  if(!r.ok){
+    let detail="";
+    try{const j=await r.json();detail=(j.error&&j.error.message)||"";}catch(e){}
+    const e=new Error("HTTP "+r.status+(detail?"／"+detail:""));
+    e.code=r.status;throw e;
+  }
+  const d=await r.json();
+  return (d.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n");
+}
+
+async function callClaude(content){
+  const order=getKey()?[true,false]:[false,true];
+  let last=null;
+  for(const useKey of order){
+    try{return await attempt(content,useKey);}
+    catch(e){
+      if(e.skip)continue;
+      last=e;
+      if(e.code&&e.code!==401&&e.code!==403)throw e;
+    }
+  }
+  throw last||new Error("NOKEY");
+}
+
+const PROMPT=
+"これは日本のファンクラブの納品書、または決済管理画面のスクリーンショットです。購入者を全員抽出してください。\n"+
+"返答はJSONのみ。前置き・説明・コードフェンスは一切書かないこと。\n"+
+'形式: {"records":[{"name":"","nick":"","email":"","tel":"","addr":"","orderId":"","date":"YYYY-MM-DD","amount":0,"qty":0}]}\n'+
+"ルール:\n"+
+"- name は「お届け先」または氏名欄の名前。敬称「様」は外し、姓名の間の空白は残す。\n"+
+"- nick は商品名の下などにある「入れて欲しいあなたの名前」「あなたのニックネーム名」「お客様のSNS名」などの記載。コロンより後ろだけを取り、金額表記（¥0など）や注意書きのカッコは外す。無ければ空文字。\n"+
+"- addr は郵便番号を含むお届け先住所を1行にまとめる。\n"+
+"- orderId は注文ID・受注番号。\n"+
+"- date は注文日・決済日・発行日。時刻は捨てて日付だけ。年の記載が無ければ "+(new Date().getFullYear())+" 年とする。\n"+
+"- amount は合計金額（税込）の数字のみ。¥やカンマは除く。\n"+
+"- qty は明細の数量。読めなければ0。\n"+
+"- 読み取れない文字列は空文字、数値は0。\n"+
+"- 「対応済」などの状態列やヘッダー行、空行は無視する。購入者が複数行あれば全て records に入れる。";
+
+function parseJSON(txt){
+  const s=txt.replace(/```json|```/g,"").trim();
+  const a=s.indexOf("{"),b=s.lastIndexOf("}");
+  return JSON.parse(a>=0?s.slice(a,b+1):s);
+}
+function norm(s){return (s||"").replace(/[\s　]/g,"");}
+function findMember(name){return DB.find(m=>norm(m.name)===norm(name)&&norm(name));}
+function orderSeen(m,r){
+  if(!m)return false;
+  const oid=norm(r.orderId||"");
+  if(oid)return norm(m.orderId||"")===oid||(m.history||[]).some(h=>norm(h.orderId||"")===oid);
+  return (m.history||[]).some(h=>h.date===r.date&&Number(h.amount||0)===Number(r.amount||0));
+}
+function orderOwner(r){
+  const oid=norm(r.orderId||"");
+  if(!oid)return null;
+  return DB.find(m=>norm(m.orderId||"")===oid||(m.history||[]).some(h=>norm(h.orderId||"")===oid))||null;
+}
+
+document.getElementById("scanbtn").onclick=async()=>{
+  const btn=document.getElementById("scanbtn");
+  if(!shots.length){status("先に画像を選んでください。");return;}
+  const bad=shots.map(mediaOf).find(t=>!/^image\/(jpeg|png|webp|gif)$/.test(t));
+  if(bad){status("この形式（"+bad+"）は読み取れません。写真を撮り直すかスクショで貼り直してください。");return;}
+  status('<span class="spin"></span>AIが読み取っています…（10秒ほど）');
+  btn.disabled=true;btn.textContent="読み取り中…";
+  try{
+    const content=shots.map(p=>({
+      type:"image",
+      source:{type:"base64",media_type:mediaOf(p),data:p.split(",")[1]}
+    }));
+    content.push({type:"text",text:PROMPT});
+    const txt=await callClaude(content);
+    let data;
+    try{data=parseJSON(txt);}
+    catch(e){status("読み取り結果を解釈できませんでした。もう一度お試しください。");return;}
+    let recs=(data.records||[]).filter(r=>r&&(r.name||r.amount));
+    recs=recs.map(r=>{
+      const amt=parseInt(String(r.amount||0).replace(/[^0-9]/g,""),10)||0;
+      const qty=parseInt(String(r.qty||0).replace(/[^0-9]/g,""),10)||0;
+      return{
+        name:(r.name||"").replace(/\s*様\s*$/,"").trim(),nick:(r.nick||"").trim(),
+        email:(r.email||"").trim(),tel:(r.tel||"").trim(),
+        addr:(r.addr||"").trim(),orderId:(r.orderId||"").trim(),
+        date:/^\d{4}-\d{2}-\d{2}$/.test(r.date||"")?r.date:iso(new Date()),
+        amount:amt,kuchi:Math.max(1,qty||Math.round(amt/PRICE))
+      };
+    });
+    if(!recs.length){status("購入者を読み取れませんでした。氏名と金額が写るように撮り直してください。");return;}
+    const dup=recs.length===1?(findMember(recs[0].name)||orderOwner(recs[0])):null;
+    const same=recs.length===1&&orderSeen(dup,recs[0]);
+    if(recs.length===1&&!dup){
+      fillForm(recs[0]);
+      pendingReceipt=shots[0];
+      status("読み取りました。下のフォームを確認して「この内容で登録する」を押してください。");
+      document.getElementById("review").innerHTML="";
+      document.getElementById("bulk").hidden=true;
+      document.getElementById("f-name").scrollIntoView({behavior:"smooth",block:"center"});
+    }else{
+      review=recs.map(r=>Object.assign({on:!orderSeen(findMember(r.name)||orderOwner(r),r)},r));
+      drawReview();
+      status(same
+        ? "⚠️ この納品書は登録ずみです。"+dup.name+"さんの注文ID "+(recs[0].orderId||"")+" はすでに台帳に入っています。二重に登録すると期限がもう1年のびてしまいます。"
+        : dup
+          ? dup.name+"さんは登録ずみです。このまま押すと新規ではなく更新（期限＋1年）になります。"
+          : recs.length+"人を読み取りました。登録する人を選んでください。");
+    }
+  }catch(e){
+    const m=e.message||"";
+    if(m==="NOKEY"||e.code===401||e.code===403){
+      status("APIキーが必要です。「APIキーを設定」から登録してください。");
+      openKey();
+    }else if(m==="NETWORK"){
+      status("APIに接続できませんでした。通信状況を確認し、APIキーを設定してから、キー設定画面の「接続テスト」を試してください。");
+    }else if(m==="TIMEOUT"){
+      status("応答がありませんでした。画像の枚数を減らすか、画質の粗いスクショで試してください。");
+    }else{
+      status("読み取りに失敗しました。<br>詳細："+m);
+    }
+  }finally{
+    document.getElementById("scanbtn").disabled=false;
+    document.getElementById("scanbtn").textContent="この画像を読み取る";
+  }
+};
+
+function fillForm(r){
+  document.getElementById("f-name").value=r.name;
+  if(r.nick)document.getElementById("f-nick").value=r.nick;
+  if(r.email)document.getElementById("f-mail").value=r.email;
+  if(r.tel)document.getElementById("f-tel").value=r.tel;
+  if(r.addr)document.getElementById("f-addr").value=r.addr;
+  if(r.orderId)document.getElementById("f-order").value=r.orderId;
+  document.getElementById("f-date").value=r.date;
+  fKuchi.value=r.kuchi;calcBuy();
+}
+function drawReview(){
+  const box=document.getElementById("review");
+  box.innerHTML="";
+  review.forEach((r,i)=>{
+    const ex=findMember(r.name)||orderOwner(r);
+    const dup=orderSeen(ex,r);
+    r.dup=dup;
+    const el=document.createElement("div");
+    el.className="rev"+(r.on?"":" off");
+    el.innerHTML=
+      '<button class="ck '+(r.on?"on":"")+'" type="button">'+(r.on?"✓":"")+'</button>'+
+      '<div class="bd"><div class="nm"></div>'+
+      '<div class="mt">'+r.date.replace(/-/g,"/")+"　"+r.kuchi+"口　"+yen(r.amount)+
+      (dup?'<br><span style="color:#D6537C">この注文はすでに登録ずみです</span>':"")+'</div></div>';
+    const nm=el.querySelector(".nm");
+    nm.textContent=r.name||"（氏名不明）";
+    const tag=document.createElement("span");
+    tag.className="tagx "+(dup?"dup":(ex?"up":"new"));
+    tag.textContent=dup?"登録ずみ":(ex?"既存 → 更新":"新規");
+    nm.appendChild(tag);
+    el.querySelector(".ck").onclick=()=>{r.on=!r.on;drawReview();};
+    box.appendChild(el);
+  });
+  const b=document.getElementById("bulk");
+  const n=review.filter(r=>r.on).length;
+  b.hidden=review.length===0;
+  b.textContent="選択した "+n+" 人を登録する";
+  b.disabled=n===0;
+}
+document.getElementById("bulk").onclick=()=>{
+  const sel=review.filter(r=>r.on&&r.name);
+  if(!sel.length){toast("登録する人を選んでください");return;}
+  const dups=sel.filter(r=>r.dup);
+  if(dups.length&&!confirm(dups.length+"件は、すでに登録ずみの注文です。\n（"+dups.map(r=>r.name).join("、")+"）\n\nこのまま進めると期限がもう1年のびて、金額も二重に足されます。\n本当に登録しますか？")){return;}
+  let added=0,updated=0;
+  sel.forEach(r=>{
+    const ex=findMember(r.name);
+    if(ex){
+      ex.renewDate=r.date;
+      ex.kuchi=(ex.kuchi||0)+r.kuchi;
+      ex.amount=(ex.amount||0)+r.amount;
+      if(!ex.nick&&r.nick)ex.nick=r.nick;
+      if(!ex.email&&r.email)ex.email=r.email;
+      if(!ex.tel&&r.tel)ex.tel=r.tel;
+      if(!ex.addr&&r.addr)ex.addr=r.addr;
+      if(r.orderId)ex.orderId=r.orderId;
+      if(sel.length===1&&shots[0])ex.receipts=(ex.receipts||[]).concat([shots[0]]);
+      (ex.history=ex.history||[]).push({date:r.date,kuchi:r.kuchi,amount:r.amount,type:"更新",orderId:r.orderId||""});
+      updated++;
+    }else{
+      DB.push({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+        no:r.no||((DB.reduce((a,x)=>Math.max(a,x.no||0),0))+1),
+        name:r.name,nick:r.nick,email:r.email,tel:r.tel,
+        addr:r.addr||"",orderId:r.orderId||"",
+        joinDate:r.join||r.date,renewDate:r.date,
+        kuchi:r.kuchi,amount:r.amount,sales:r.sales||0,memo:"",
+        photos:[],receipts:[],
+        history:[{date:r.date,kuchi:r.kuchi,amount:r.amount,type:"新規",orderId:r.orderId||""}]
+      });
+      added++;
+    }
+  });
+  save();clearScan();render();
+  toast("新規 "+added+"件・更新 "+updated+"件を登録しました");
+};
+
+/* ---------- BASE 注文CSVの取り込み ---------- */
+function parseCSV(text){
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=c;
+    }else{
+      if(c==='"')q=true;
+      else if(c===","){row.push(cur);cur="";}
+      else if(c==="\n"){row.push(cur);cur="";rows.push(row);row=[];}
+      else if(c!=="\r")cur+=c;
+    }
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(r=>r.some(v=>String(v).trim()!==""));
+}
+function colOf(head,words,ng){
+  for(let i=0;i<head.length;i++){
+    const h=String(head[i]||"");
+    if(ng&&ng.some(n=>h.indexOf(n)>=0))continue;
+    if(words.some(w=>h.indexOf(w)>=0))return i;
+  }
+  return -1;
+}
+function csvDate(v){
+  const s=String(v||"");
+  const m=s.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  return m?m[1]+"-"+pad(+m[2])+"-"+pad(+m[3]):"";
+}
+function csvNum(v){return parseInt(String(v||"").replace(/[^0-9]/g,""),10)||0;}
+function csvNick(v){
+  let s=String(v||"").replace(/[（(]\s*[¥￥]?[\d,]+\s*[)）]/g,"").trim();
+  const i=Math.max(s.indexOf("："),s.indexOf(":"));
+  if(i>=0)s=s.slice(i+1);
+  return s.replace(/^[!！\s]+/,"").trim();
+}
+function cstat(t){document.getElementById("csvstat").textContent=t;}
+
+document.getElementById("csvpick").onclick=()=>document.getElementById("csvfile").click();
+document.getElementById("csvfile").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";
+  if(!f)return;
+  cstat("CSVを読んでいます…");
+  try{
+    const buf=await f.arrayBuffer();
+    let txt=new TextDecoder("utf-8").decode(buf);
+    if(txt.indexOf("\uFFFD")>=0){
+      try{txt=new TextDecoder("shift_jis").decode(buf);}catch(err){}
+    }
+    txt=txt.replace(/^\uFEFF/,"");
+    const rows=parseCSV(txt);
+    if(rows.length<2){cstat("このCSVには注文データが見当たりません。");return;}
+    const head=rows[0].map(h=>String(h).replace(/^\uFEFF/,"").trim());
+    const iItem=colOf(head,["商品名","アイテム名","商品"]);
+    const iName=colOf(head,["購入者","注文者","お届け先名","氏名","お名前","本名","宛名","名前"],["商品","会社","カナ"]);
+    const iSei =colOf(head,["姓"],["商品"]);
+    const iMei =colOf(head,["名"],["商品","氏名","お名前","名前","本名","ニックネーム","会社","カナ","品名"]);
+    const iNick=colOf(head,["ニックネーム","ニックネーム名"]);
+    const iJoin=colOf(head,["入会日","登録日"]);
+    const iUpd =colOf(head,["更新日"]);
+    const iNo  =colOf(head,["会員番号"]);
+    const iTic =colOf(head,["チケット"]);
+    const iSale=colOf(head,["売り上げ","売上"]);
+    const iMail=colOf(head,["メール","mail","Mail","E-mail"]);
+    const iTel =colOf(head,["電話","TEL","tel"]);
+    const iZip =colOf(head,["郵便"]);
+    const iAdd1=colOf(head,["都道府県"]);
+    const iAdd2=colOf(head,["住所1","住所１","市区町村","住所"],["都道府県"]);
+    const iAdd3=colOf(head,["住所2","住所２","番地","建物"]);
+    const iDate=colOf(head,["注文日","購入日","受注日","日時","注文received","作成日"]);
+    const iQty =colOf(head,["数量","個数"]);
+    const iSub =colOf(head,["小計"]);
+    const iTot =colOf(head,["合計","総額"]);
+    const iUnit=colOf(head,["単価","価格"]);
+    const iOrd =colOf(head,["注文ID","注文番号","受注番号","オーダー"]);
+    const iOpt =colOf(head,["オプション","バリエーション","備考","要望"]);
+    if(iName<0&&iSei<0){cstat("氏名の列が見つかりませんでした。BASEの「注文データダウンロード」で出したCSVか確認してください。");return;}
+
+    const key=document.getElementById("csvkey").value.trim();
+    const seen={},recs=[];
+    rows.slice(1).forEach(r=>{
+      const item=iItem>=0?String(r[iItem]||""):"";
+      if(key&&iItem>=0&&item.indexOf(key)<0)return;
+      let name=iName>=0?String(r[iName]||"").trim():"";
+      if(!name&&iSei>=0)name=(String(r[iSei]||"")+" "+String(iMei>=0?r[iMei]||"":"")).trim();
+      name=name.replace(/\s*様\s*$/,"").trim();
+      if(!name)return;
+      const join=iJoin>=0?csvDate(r[iJoin]):"";
+      let date=iUpd>=0?csvDate(r[iUpd]):"";
+      if(!date&&iDate>=0)date=csvDate(r[iDate]);
+      if(!date)date=join;
+      const ord=iOrd>=0?String(r[iOrd]||"").trim():"";
+      const k=norm(name)+"/"+date+"/"+ord;
+      if(seen[k])return;seen[k]=1;
+      const qty=iTic>=0?csvNum(r[iTic]):(iQty>=0?csvNum(r[iQty]):0);
+      let amt=iSub>=0?csvNum(r[iSub]):0;
+      if(!amt&&iTot>=0)amt=csvNum(r[iTot]);
+      if(!amt&&iUnit>=0)amt=csvNum(r[iUnit])*(qty||1);
+      const addr=[iZip>=0?"〒"+String(r[iZip]||"").trim():"",
+                  iAdd1>=0?r[iAdd1]:"",iAdd2>=0?r[iAdd2]:"",iAdd3>=0?r[iAdd3]:""]
+                 .map(v=>String(v||"").trim()).filter(v=>v&&v!=="〒").join(" ");
+      recs.push({
+        name:name,
+        no:iNo>=0?csvNum(r[iNo]):0,
+        join:join,
+        sales:iSale>=0?csvNum(r[iSale]):0,
+        nick:(iNick>=0&&String(r[iNick]||"").trim())?String(r[iNick]).trim()
+             :(iOpt>=0?csvNick(r[iOpt]):""),
+        email:iMail>=0?String(r[iMail]||"").trim():"",
+        tel:iTel>=0?String(r[iTel]||"").trim():"",
+        addr:addr,orderId:ord,
+        date:date||iso(new Date()),
+        amount:amt,
+        kuchi:Math.max(1,qty||Math.round(amt/PRICE)||1)
+      });
+    });
+    if(!recs.length){
+      cstat(key?("「"+key+"」を含む商品の注文が見つかりませんでした。しぼりこみの言葉を変えてみてください。")
+               :"注文が見つかりませんでした。");
+      review=[];drawReview();document.getElementById("bulk").hidden=true;return;
+    }
+    review=recs.map(r=>Object.assign({on:!orderSeen(findMember(r.name)||orderOwner(r),r)},r));
+    drawReview();
+    const up=recs.filter(r=>findMember(r.name)).length;
+    cstat(recs.length+"件を取り出しました（新規 "+(recs.length-up)+"人・更新 "+up+"人）。登録する人を選んでください。");
+  }catch(err){
+    cstat("CSVを読み込めませんでした。"+(err.message||""));
+  }
+};
+
+/* ---------- GitHubに記録 ---------- */
+const GHKEY="miyu_gh_cfg";
+let GH={owner:"",repo:"",path:"data/fanclub.json",branch:"main",token:"",auto:false,sha:"",last:""};
+try{GH=Object.assign(GH,JSON.parse(localStorage.getItem(GHKEY)||"{}"));}catch(e){}
+let ghLoaded=false, ghTimer=null;
+
+function ghSaveCfg(){try{localStorage.setItem(GHKEY,JSON.stringify(GH));}catch(e){}}
+function ghReady(){return !!(GH.owner&&GH.repo&&GH.path&&GH.token);}
+function ghURL(){
+  return "https://api.github.com/repos/"+GH.owner+"/"+GH.repo+"/contents/"+
+    GH.path.split("/").map(encodeURIComponent).join("/");
+}
+function ghHead(){
+  return {Authorization:"Bearer "+GH.token,Accept:"application/vnd.github+json",
+    "X-GitHub-Api-Version":"2022-11-28"};
+}
+function u2b(str){
+  const by=new TextEncoder().encode(str);
+  let bin="";const N=0x8000;
+  for(let i=0;i<by.length;i+=N)bin+=String.fromCharCode.apply(null,by.subarray(i,i+N));
+  return btoa(bin);
+}
+function b2u(b64){
+  const bin=atob(String(b64).replace(/\s/g,""));
+  const by=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(by);
+}
+function gstat(t){document.getElementById("g-stat").textContent=t;}
+function ghShowLast(){
+  document.getElementById("g-last").textContent=GH.last?("最後に保存したのは "+GH.last):"まだ保存していません";
+}
+
+async function ghFetchFile(){
+  const r=await fetch(ghURL()+"?ref="+encodeURIComponent(GH.branch||"main"),{headers:ghHead()});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error("HTTP "+r.status+(r.status===401?"（トークンが違うようです）":r.status===403?"（権限が足りないようです）":""));
+  const j=await r.json();
+  GH.sha=j.sha;ghSaveCfg();
+  return JSON.parse(b2u(j.content));
+}
+async function ghPush(quiet){
+  if(!ghReady()){if(!quiet)gstat("先に設定を保存してください");return false;}
+  try{
+    if(!quiet)gstat("保存しています…");
+    try{await ghFetchFile();}catch(e){}
+    const payload={app:"miyu-fanclub",savedAt:new Date().toISOString(),count:DB.length,members:DB};
+    const body={message:"会員データ更新 "+new Date().toLocaleString("ja-JP"),
+      content:u2b(JSON.stringify(payload,null,1)),branch:GH.branch||"main"};
+    if(GH.sha)body.sha=GH.sha;
+    const r=await fetch(ghURL(),{method:"PUT",headers:ghHead(),body:JSON.stringify(body)});
+    if(!r.ok){
+      const tx=await r.text();
+      throw new Error("HTTP "+r.status+" "+tx.slice(0,120));
+    }
+    const j=await r.json();
+    GH.sha=(j.content&&j.content.sha)||GH.sha;
+    GH.last=new Date().toLocaleString("ja-JP");
+    ghSaveCfg();ghShowLast();
+    if(!quiet)gstat("保存しました（"+DB.length+"名）");
+    else toast("GitHubに保存しました");
+    return true;
+  }catch(e){
+    if(!quiet)gstat("保存できませんでした："+e.message);
+    else toast("GitHubに保存できませんでした");
+    return false;
+  }
+}
+async function ghPull(){
+  if(!ghReady()){gstat("先に設定を保存してください");return;}
+  try{
+    gstat("読み込んでいます…");
+    const d=await ghFetchFile();
+    if(!d||!Array.isArray(d.members)){gstat("まだファイルがありません。先に「GitHubに保存する」を押してください");return;}
+    if(!confirm("GitHubにある "+d.members.length+"名 のデータで、この端末の "+DB.length+"名 を置きかえます。よろしいですか？"))
+      {gstat("やめました");return;}
+    DB.length=0;d.members.forEach(m=>DB.push(m));
+    save();render();ghLoaded=true;
+    gstat("読み込みました（"+DB.length+"名）");
+  }catch(e){gstat("読み込めませんでした："+e.message);}
+}
+function ghAutoPush(){
+  if(!GH.auto||!ghReady()||!ghLoaded)return;
+  clearTimeout(ghTimer);
+  ghTimer=setTimeout(()=>ghPush(true),2500);
+}
+
+document.getElementById("setgh").onclick=()=>{
+  document.getElementById("g-owner").value=GH.owner;
+  document.getElementById("g-repo").value=GH.repo;
+  document.getElementById("g-path").value=GH.path;
+  document.getElementById("g-branch").value=GH.branch;
+  document.getElementById("g-token").value=GH.token;
+  document.getElementById("g-auto").classList.toggle("on",!!GH.auto);
+  ghShowLast();gstat("");
+  document.getElementById("ghsheet").hidden=false;
+};
+document.getElementById("g-close").onclick=()=>document.getElementById("ghsheet").hidden=true;
+document.getElementById("g-save").onclick=()=>{
+  GH.owner=document.getElementById("g-owner").value.trim();
+  GH.repo=document.getElementById("g-repo").value.trim();
+  GH.path=document.getElementById("g-path").value.trim()||"data/fanclub.json";
+  GH.branch=document.getElementById("g-branch").value.trim()||"main";
+  GH.token=document.getElementById("g-token").value.trim();
+  GH.sha="";ghSaveCfg();
+  gstat("設定を保存しました");
+};
+document.getElementById("g-test").onclick=async()=>{
+  if(!ghReady()){gstat("すべての欄をうめて「設定を保存」を押してください");return;}
+  gstat("たしかめています…");
+  try{
+    const r=await fetch("https://api.github.com/repos/"+GH.owner+"/"+GH.repo,{headers:ghHead()});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    const f=await ghFetchFile();
+    ghLoaded=true;
+    gstat("つながりました："+j.full_name+(j.private?"（非公開）":"（⚠️公開リポジトリです）")+
+      (f?"／保存ずみ "+(f.members?f.members.length:0)+"名":"／ファイルはまだありません"));
+  }catch(e){gstat("つながりませんでした："+e.message);}
+};
+document.getElementById("g-push").onclick=()=>ghPush(false);
+document.getElementById("g-pull").onclick=ghPull;
+document.getElementById("g-auto").onclick=()=>{
+  GH.auto=!GH.auto;ghSaveCfg();
+  document.getElementById("g-auto").classList.toggle("on",!!GH.auto);
+  toast(GH.auto?"自動で保存します":"自動保存をやめました");
+};
+document.getElementById("g-clear").onclick=()=>{
+  if(!confirm("GitHubの設定とトークンをこの端末から消します。よろしいですか？"))return;
+  GH={owner:"",repo:"",path:"data/fanclub.json",branch:"main",token:"",auto:false,sha:"",last:""};
+  ghSaveCfg();document.getElementById("ghsheet").hidden=true;
+  toast("設定を消しました");
+};
+
+/* ---------- APIキー ---------- */
+function openKey(){
+  document.getElementById("k-input").value=getKey();
+  document.getElementById("keysheet").hidden=false;
+}
+document.getElementById("setkey").onclick=openKey;
+document.getElementById("k-close").onclick=()=>document.getElementById("keysheet").hidden=true;
+document.getElementById("k-save").onclick=()=>{
+  const v=document.getElementById("k-input").value.trim();
+  try{localStorage.setItem(KEYKEY,v);}catch(e){}
+  document.getElementById("keysheet").hidden=true;
+  toast(v?"APIキーを保存しました":"APIキーを空にしました");
+};
+document.getElementById("k-test").onclick=async()=>{
+  const v=document.getElementById("k-input").value.trim();
+  if(v){try{localStorage.setItem(KEYKEY,v);}catch(e){}}
+  const st=document.getElementById("k-stat");
+  st.innerHTML='<span class="spin"></span>接続を確認しています…';
+  try{
+    const t=await callClaude([{type:"text",text:"OK とだけ返してください。"}]);
+    st.textContent="接続できました（応答："+t.trim().slice(0,20)+"）。読み取りが使えます。";
+  }catch(e){
+    const m=e.message||"";
+    st.textContent=
+      m==="NOKEY"?"APIキーが未入力です。":
+      m==="NETWORK"?"APIに接続できませんでした。通信環境と、キーが正しく貼れているか確認してください。":
+      m==="TIMEOUT"?"応答がありませんでした。時間をおいて再度お試しください。":
+      "接続できませんでした。詳細："+m;
+  }
+};
+document.getElementById("k-clear").onclick=()=>{
+  try{localStorage.removeItem(KEYKEY);}catch(e){}
+  document.getElementById("k-input").value="";
+  toast("APIキーを削除しました");
+};
+drawShots();
+
+/* ---------- detail ---------- */
+let cur=null;
+const $=id=>document.getElementById(id);
+function openDetail(id){
+  cur=DB.find(m=>m.id===id);if(!cur)return;
+  const d=daysLeft(cur),st=statusOf(cur);
+  $("d-title").textContent=cur.name+(cur.nick?"（"+cur.nick+"）":"");
+  const hero=$("d-hero");hero.className="hero "+st;
+  if(st==="out"){
+    $("d-days").textContent=Math.abs(d);$("d-unit").textContent="日すぎ";
+    $("d-lab").textContent="期限がすぎています";
+  }else{
+    $("d-days").textContent=d;$("d-unit").textContent="日";
+    $("d-lab").textContent=st==="warn"?"もうすぐ期限です":"のこり";
+  }
+  $("d-exp").textContent="有効期限 "+jp(expiryOf(cur))+"（起点 "+jp(cur.renewDate||cur.joinDate)+"）";
+  const C=2*Math.PI*52,pct=Math.max(0,Math.min(1,d/365));
+  const arc=$("d-arc");
+  arc.style.strokeDasharray=C.toFixed(1);
+  arc.style.strokeDashoffset=(C*(1-pct)).toFixed(1);
+
+  $("d-kv").innerHTML=
+    kvRow("番号",cur.no)+kvRow("本名",cur.name)+kvRow("ニックネーム",cur.nick||"—")+
+    kvRow("メアド",cur.email||"—")+kvRow("電話",cur.tel||"—")+
+    (cur.addr?kvRow("住所",cur.addr):"")+(cur.orderId?kvRow("注文ID",cur.orderId):"")+
+    kvRow("入会日",jp(cur.joinDate))+kvRow("更新日",jp(cur.renewDate))+
+    kvRow("LINEグループ",cur.line?"入っている":"入っていない")+
+    (cur.lineName?kvRow("LINE表示名",cur.lineName):"")+
+    kvRow("チケット個数",(cur.kuchi||0)+"口")+kvRow("売り上げ個数",(cur.sales||0)+"個")+
+    kvRow("小計金額",yen(cur.amount))+(cur.memo?kvRow("メモ",cur.memo):"");
+
+  $("d-cash").classList.toggle("on",!!cur.cash);
+  $("d-hist").innerHTML=(cur.history||[]).slice().reverse().map(h=>
+    '<div><span>'+jp(h.date)+"　"+(h.type||"更新")+(h.orderId?"<br><small>"+h.orderId+"</small>":"")+
+    '</span><b>'+h.kuchi+"口 "+yen(h.amount)+'</b></div>').join("")
+    ||'<div class="empty">履歴がありません。</div>';
+
+  drawDetailPhotos();drawReceipts();
+  $("d-line").textContent=cur.line?"LINEから外す":"LINEに追加";
+  $("detail").hidden=false;
+  document.body.style.overflow="hidden";
+}
+function kvRow(k,v){const e=document.createElement("b");e.textContent=v;return '<div><span>'+k+"</span>"+e.outerHTML+"</div>";}
+function drawDetailPhotos(){
+  const box=$("d-photos");box.innerHTML="";
+  (cur.photos||[]).forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.className="ph";
+    d.innerHTML='<img src="'+p+'" alt=""><button class="del" type="button">×</button>';
+    d.querySelector(".del").onclick=()=>{
+      if(!confirm("この写真を削除しますか？"))return;
+      cur.photos.splice(i,1);save();drawDetailPhotos();render();
+    };
+    box.appendChild(d);
+  });
+  const b=document.createElement("button");
+  b.type="button";b.className="addph";
+  b.innerHTML='<span class="plus">＋</span>画像を追加';
+  b.onclick=()=>$("d-file").click();
+  box.appendChild(b);
+}
+$("d-file").onchange=async e=>{
+  const add=await pick(e.target.files);e.target.value="";
+  cur.photos=(cur.photos||[]).concat(add);
+  if(!save()){cur.photos.splice(cur.photos.length-add.length,add.length);}
+  else toast(add.length+"枚追加しました");
+  drawDetailPhotos();render();
+};
+function drawReceipts(){
+  const box=$("d-receipts");box.innerHTML="";
+  (cur.receipts||[]).forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.className="ph";
+    d.innerHTML='<img src="'+p+'" alt=""><button class="del" type="button">×</button>';
+    d.querySelector("img").onclick=()=>window.open(p,"_blank");
+    d.querySelector(".del").onclick=()=>{
+      if(!confirm("この納品書画像を削除しますか？"))return;
+      cur.receipts.splice(i,1);save();drawReceipts();
+    };
+    box.appendChild(d);
+  });
+  const b=document.createElement("button");
+  b.type="button";b.className="addph";
+  b.innerHTML='<span class="plus">＋</span>納品書を追加';
+  b.onclick=()=>$("d-rfile").click();
+  box.appendChild(b);
+}
+$("d-rfile").onchange=async e=>{
+  const add=await pick(e.target.files);e.target.value="";
+  cur.receipts=(cur.receipts||[]).concat(add);
+  if(!save())cur.receipts.splice(cur.receipts.length-add.length,add.length);
+  else toast("納品書を追加しました");
+  drawReceipts();
+};
+$("d-close").onclick=()=>{$("detail").hidden=true;document.body.style.overflow="";};
+$("d-del").onclick=()=>{
+  if(!confirm(cur.name+"さんの情報をすべて削除します。よろしいですか？"))return;
+  DB=DB.filter(m=>m.id!==cur.id);save();
+  $("detail").hidden=true;document.body.style.overflow="";render();toast("削除しました");
+};
+
+/* ---------- edit ---------- */
+$("d-edit").onclick=()=>{
+  $("e-name").value=cur.name||"";$("e-nick").value=cur.nick||"";
+  $("e-tel").value=cur.tel||"";$("e-mail").value=cur.email||"";
+  $("e-addr").value=cur.addr||"";$("e-order").value=cur.orderId||"";
+  $("e-lname").value=cur.lineName||"";
+  $("e-join").value=cur.joinDate||"";$("e-renew").value=cur.renewDate||"";
+  $("e-kuchi").value=cur.kuchi||0;$("e-sales").value=cur.sales||0;
+  $("e-amount").value=cur.amount||0;$("e-memo").value=cur.memo||"";
+  $("edit").hidden=false;
+};
+$("e-close").onclick=()=>$("edit").hidden=true;
+$("e-save").onclick=()=>{
+  const nm=$("e-name").value.trim();
+  if(!nm){toast("本名を入力してください");return;}
+  cur.name=nm;cur.nick=$("e-nick").value.trim();cur.tel=$("e-tel").value.trim();
+  cur.email=$("e-mail").value.trim();
+  cur.addr=$("e-addr").value.trim();cur.orderId=$("e-order").value.trim();
+  cur.lineName=$("e-lname").value.trim();
+  cur.joinDate=$("e-join").value||cur.joinDate;
+  cur.renewDate=$("e-renew").value||cur.renewDate;
+  cur.kuchi=parseInt($("e-kuchi").value||"0",10);
+  cur.sales=parseInt($("e-sales").value||"0",10);
+  cur.amount=parseInt($("e-amount").value||"0",10);
+  cur.memo=$("e-memo").value.trim();
+  save();$("edit").hidden=true;openDetail(cur.id);render();toast("保存しました");
+};
+
+/* ---------- renew ---------- */
+const rDate=$("r-date"),rKuchi=$("r-kuchi");
+function calcRenew(){
+  const k=Math.max(1,parseInt(rKuchi.value||"1",10));rKuchi.value=k;
+  $("r-amount").textContent=yen(k*PRICE);
+  $("r-newexp").textContent=rDate.value?jp(addYear(rDate.value,1)):"—";
+}
+$("r-minus").onclick=()=>{rKuchi.value=Math.max(1,(parseInt(rKuchi.value,10)||1)-1);calcRenew();};
+$("r-plus").onclick=()=>{rKuchi.value=(parseInt(rKuchi.value,10)||1)+1;calcRenew();};
+rKuchi.oninput=calcRenew;rDate.onchange=calcRenew;
+$("d-renew").onclick=()=>{
+  $("r-who").textContent=cur.name+"さん　現在の期限 "+jp(expiryOf(cur));
+  rDate.value=iso(new Date());rKuchi.value=1;calcRenew();
+  $("renew").hidden=false;
+};
+$("r-close").onclick=()=>$("renew").hidden=true;
+$("r-save").onclick=()=>{
+  if(!rDate.value){toast("更新日を選んでください");return;}
+  const k=Math.max(1,parseInt(rKuchi.value||"1",10)),amt=k*PRICE;
+  cur.renewDate=rDate.value;
+  cur.kuchi=(cur.kuchi||0)+k;
+  cur.amount=(cur.amount||0)+amt;
+  (cur.history=cur.history||[]).push({date:rDate.value,kuchi:k,amount:amt,type:"更新"});
+  save();$("renew").hidden=true;openDetail(cur.id);render();
+  toast("更新しました（期限 "+jp(expiryOf(cur))+"）");
+};
+
+/* ---------- export / import ---------- */
+function dl(name,content,type){
+  const b=new Blob([content],{type:type});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement("a");a.href=u;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+function renumber(){
+  DB.slice().sort((a,b)=>{
+    const da=a.joinDate||"9999-99-99", db=b.joinDate||"9999-99-99";
+    if(da!==db)return da<db?-1:1;
+    const ra=a.renewDate||"", rb=b.renewDate||"";
+    if(ra!==rb)return ra<rb?-1:1;
+    return String(a.name||"").localeCompare(String(b.name||""),"ja");
+  }).forEach((m,i)=>{m.no=i+1;});
+  save();
+}
+$("renum").onclick=()=>{
+  if(!confirm("⚠️ 台帳の会員番号がすべて上書きされます。\n入会日のはやい人から順に1からふり直しますが、スプレッドシートの番号とは合わなくなります。\n\n本当に実行しますか？"))return;
+  renumber();render();
+  toast("入会日順にふり直しました");
+};
+$("exp-csv").onclick=()=>{
+  const head=["番号","メアド","更新日","入会日","本名","ニックネーム","チケット個数","売り上げ個数","小計金額","有効期限","状態","電話","住所","注文ID","LINE","LINE表示名","現金対応"];
+  const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const rows=DB.slice().sort((a,b)=>(a.no||0)-(b.no||0)).map(m=>[
+    m.no,m.email,m.renewDate,m.joinDate,m.name,m.nick,m.kuchi,m.sales,m.amount,expiryOf(m),
+    {ok:"有効",warn:"もうすぐ",out:"期限切れ"}[statusOf(m)],m.tel,m.addr,m.orderId,m.line?"在籍":"未参加",m.lineName,m.cash?"現金対応済み":""
+  ].map(esc).join(","));
+  dl("fanclub_"+iso(new Date())+".csv","\ufeff"+head.join(",")+"\n"+rows.join("\n"),"text/csv");
+  toast("CSVを書き出しました");
+};
+$("exp-json").onclick=()=>{
+  dl("fanclub_backup_"+iso(new Date())+".json",JSON.stringify(DB),"application/json");
+  toast("バックアップを保存しました");
+};
+$("imp-json").onclick=()=>$("impfile").click();
+$("impfile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const d=JSON.parse(fr.result);
+      if(!Array.isArray(d))throw 0;
+      if(!confirm("現在の"+DB.length+"件を、ファイルの"+d.length+"件で置き換えます。よろしいですか？"))return;
+      DB=d;save();render();toast(d.length+"件を復元しました");
+    }catch(err){toast("このファイルは読み込めません");}
+  };
+  fr.readAsText(f);e.target.value="";
+};
+
+/* ---------- 期限お知らせメール ---------- */
+const TPLKEY="miyu_mail_tpl_v4",URLKEY="miyu_renew_url",LINEKEY="miyu_line_url";
+const URL_DEF="https://rpgshop.kawaiishop.jp/items/94789707";
+const LINE_DEF="https://line.me/ti/g/w4uVSntm_4";
+let LINE_URL=(function(){
+  try{return localStorage.getItem(LINEKEY)||LINE_DEF;}catch(e){return LINE_DEF;}
+})();
+let RENEW_URL=(function(){
+  try{return localStorage.getItem(URLKEY)||URL_DEF;}catch(e){return URL_DEF;}
+})();
+const TPL_DEF={
+  warn:{
+    sub:"【miyu♪ファンクラブ】まもなく有効期限です",
+    body:"{name} 様\n\nいつもmiyu♪を応援していただき、ありがとうございます。\nファンクラブ会員の有効期限が {expiry}（あと{days}日）となりました。\n\n引き続きご一緒できましたら嬉しいです。\n更新をご希望の方は、下記よりお手続きをお願いいたします。\n\n▼更新はこちら\n{url}\n\nこれからもよろしくお願いいたします。\nmiyu♪ファンクラブ"
+  },
+  out:{
+    sub:"【miyu♪ファンクラブ】有効期限が切れています",
+    body:"{name} 様\n\nいつもmiyu♪を応援していただき、ありがとうございます。\nファンクラブ会員の有効期限（{expiry}）を過ぎております。\n\nまたご一緒できるのを楽しみにお待ちしています。\n継続をご希望の方は、下記よりお手続きをお願いいたします。\n\n▼更新はこちら\n{url}\n\nmiyu♪ファンクラブ"
+  },
+  invite:{
+    sub:"【miyu♪ファンクラブ】LINEグループへのご招待",
+    body:"{name} 様\n\nいつもmiyu♪を応援していただき、ありがとうございます。\n\nファンクラブ会員のみなさまに、LINEグループをご用意しています。\nライブやイベントのお知らせ、miyu♪からのメッセージはこちらでお届けしていますので、まだご参加でない方はぜひご登録ください。\n\n▼LINEグループはこちら\n{lineurl}\n\nみなさまとお話しできるのを楽しみにしています。\nこれからもよろしくお願いいたします。\n\nmiyu♪ファンクラブ"
+  },
+  bcc:{
+    sub:"【miyu♪ファンクラブ】更新のご案内",
+    body:"みなさま\n\nいつもmiyu♪を応援していただき、ありがとうございます。\nファンクラブ会員の有効期限が近づいている方へ、更新のご案内です。\n\n引き続きご一緒できましたら嬉しいです。\n下記よりお手続きをお願いいたします。\n\n▼更新はこちら\n{url}\n\nmiyu♪ファンクラブ"
+  }
+};
+let TPL=(function(){
+  try{return Object.assign({},TPL_DEF,JSON.parse(localStorage.getItem(TPLKEY)||"{}"));}
+  catch(e){return Object.assign({},TPL_DEF);}
+})();
+let mTarget="warn",mTpl="warn",mPick={},mQueue=[],mIdx=0;
+
+function saveTpl(){try{localStorage.setItem(TPLKEY,JSON.stringify(TPL));}catch(e){}}
+function withUrl(s){return String(s).replace(/\{url\}/g,RENEW_URL).replace(/\{lineurl\}/g,LINE_URL);}
+function fillTpl(t,m){
+  return withUrl(t)
+    .replace(/\{name\}/g,m.name||"")
+    .replace(/\{nick\}/g,m.nick||m.name||"")
+    .replace(/\{expiry\}/g,jp(expiryOf(m)))
+    .replace(/\{days\}/g,Math.abs(daysLeft(m)))
+    .replace(/\{join\}/g,jp(m.joinDate));
+}
+function mTargets(){
+  if(mTarget==="all")
+    return DB.slice().sort((a,b)=>daysLeft(a)-daysLeft(b));
+  if(mTarget==="noline")
+    return DB.filter(m=>!m.line).sort((a,b)=>daysLeft(a)-daysLeft(b));
+  return DB.filter(m=>{
+    const s=statusOf(m);
+    return mTarget==="both"?(s==="warn"||s==="out"):s===mTarget;
+  }).sort((a,b)=>daysLeft(a)-daysLeft(b));
+}
+function drawMail(){
+  const box=$("m-list");box.innerHTML="";
+  const list=mTargets();
+  list.forEach(m=>{
+    if(!(m.id in mPick))mPick[m.id]=!!m.email;
+    const on=mPick[m.id]&&!!m.email;
+    const el=document.createElement("div");
+    el.className="rev"+(on?"":" off");
+    el.innerHTML=
+      '<button class="ck '+(on?"on":"")+'" type="button">'+(on?"✓":"")+'</button>'+
+      '<div class="bd"><div class="nm"></div><div class="mt"></div></div>';
+    const nm=el.querySelector(".nm");
+    nm.textContent=m.name;
+    const tag=document.createElement("span");
+    const st=statusOf(m);
+    tag.className="tagx "+(st==="out"?"up":"new");
+    tag.textContent=st==="out"?"期限ぎれ":(st==="warn"?"あと"+daysLeft(m)+"日":"有効");
+    nm.appendChild(tag);
+    el.querySelector(".mt").textContent=m.email||"メアド未登録";
+    el.querySelector(".ck").onclick=()=>{
+      if(!m.email){toast("メアドが登録されていません");return;}
+      mPick[m.id]=!mPick[m.id];drawMail();
+    };
+    box.appendChild(el);
+  });
+  if(!list.length)box.innerHTML='<div class="empty">対象の会員がいません。</div>';
+  const n=list.filter(m=>mPick[m.id]&&m.email).length;
+  $("m-count").textContent=n;
+  $("m-one").textContent="1人ずつ送る（"+n+"人・宛名入り）";
+}
+function loadTpl(){
+  $("m-sub").value=TPL[mTpl].sub;
+  $("m-body").value=TPL[mTpl].body;
+  $("m-url").value=RENEW_URL;
+  $("m-lineurl").value=LINE_URL;
+}
+$("m-url").oninput=()=>{
+  RENEW_URL=$("m-url").value.trim();
+  try{localStorage.setItem(URLKEY,RENEW_URL);}catch(e){}
+};
+$("m-lineurl").oninput=()=>{
+  LINE_URL=$("m-lineurl").value.trim();
+  try{localStorage.setItem(LINEKEY,LINE_URL);}catch(e){}
+};
+$("m-sub").oninput=()=>{TPL[mTpl].sub=$("m-sub").value;saveTpl();};
+$("m-body").oninput=()=>{TPL[mTpl].body=$("m-body").value;saveTpl();};
+
+document.querySelectorAll("#mail .chip[data-t]").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll("#mail .chip[data-t]").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");mTarget=c.dataset.t;
+    if(mTarget==="noline"){
+      mTpl="invite";
+      document.querySelectorAll("#mail .chip[data-tpl]").forEach(x=>
+        x.classList.toggle("on",x.dataset.tpl==="invite"));
+      loadTpl();
+    }
+    drawMail();
+  };
+});
+document.querySelectorAll("#mail .chip[data-tpl]").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll("#mail .chip[data-tpl]").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");mTpl=c.dataset.tpl;loadTpl();
+  };
+});
+
+function openMail(){
+  mPick={};mQueue=[];mIdx=0;
+  $("m-queue").hidden=true;$("m-actions").hidden=false;
+  drawMail();loadTpl();
+  $("mail").hidden=false;
+}
+document.getElementById("mailbtn").onclick=openMail;
+document.getElementById("invitebtn").onclick=()=>{
+  mTarget="noline";mTpl="invite";mPick={};
+  document.querySelectorAll('.chip[data-t]').forEach(c=>c.classList.toggle("on",c.dataset.t==="noline"));
+  document.querySelectorAll('.chip[data-tpl]').forEach(c=>c.classList.toggle("on",c.dataset.tpl==="invite"));
+  loadTpl();drawMail();
+  document.getElementById("mail").hidden=false;
+};
+$("m-close").onclick=()=>$("mail").hidden=true;
+
+function mailto(to,sub,body){
+  return "mailto:"+(to||"")+
+    "?subject="+encodeURIComponent(sub)+"&body="+encodeURIComponent(body);
+}
+function openURL(url,onFail){
+  let gone=false;
+  const mark=()=>{gone=true;};
+  window.addEventListener("blur",mark,{once:true});
+  window.addEventListener("pagehide",mark,{once:true});
+  document.addEventListener("visibilitychange",mark,{once:true});
+  try{
+    const a=document.createElement("a");
+    a.href=url;a.target="_top";a.rel="noopener";a.style.display="none";
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>a.remove(),1500);
+  }catch(e){}
+  try{window.open(url,"_blank");}catch(e){}
+  try{window.top.location.href=url;}catch(e){
+    try{location.href=url;}catch(e2){}
+  }
+  if(onFail)setTimeout(()=>{
+    if(!gone&&document.visibilityState==="visible")onFail();
+  },1400);
+}
+function showFallback(to,sub,body){
+  $("f-to").value=to||"";
+  $("f-sub").value=sub||"";
+  $("f-body").value=body||"";
+  $("fallback").hidden=false;
+}
+$("f-close").onclick=()=>$("fallback").hidden=true;
+$("f-cto").onclick=()=>copyText($("f-to").value,"宛先をコピーしました");
+$("f-csub").onclick=()=>copyText($("f-sub").value,"件名をコピーしました");
+$("f-cbody").onclick=()=>copyText($("f-body").value,"本文をコピーしました");
+function openLine(m){
+  const txt=msgFor(m);
+  copyText(txt,m.name+"さんの文面をコピーしました");
+  openURL("https://line.me/R/msg/text/?"+encodeURIComponent(txt),
+    ()=>showFallback(m.lineName||m.nick||m.name,"LINEで送る文面",txt));
+}
+function openMailApp(m){
+  if(!m.email){toast(m.name+"さんのメアドが未登録です");return false;}
+  const t=TPL[statusOf(m)==="out"?"out":"warn"];
+  const sub=fillTpl(t.sub,m),body=fillTpl(t.body,m);
+  openURL(mailto(m.email,sub,body),()=>showFallback(m.email,sub,body));
+  return true;
+}
+function drawQueue(){
+  if(mIdx>=mQueue.length){
+    $("m-queue").hidden=true;$("m-actions").hidden=false;
+    toast("送信を終えました");return;
+  }
+  const m=mQueue[mIdx];
+  $("m-prog").textContent="全"+mQueue.length+"人中　"+(mIdx+1)+"人目";
+  $("m-who").textContent=m.name+(m.nick?"（"+m.nick+"）":"");
+  $("m-addr").textContent=m.email+"　／　期限 "+jp(expiryOf(m));
+}
+$("m-one").onclick=()=>{
+  mQueue=mTargets().filter(m=>mPick[m.id]&&m.email);
+  if(!mQueue.length){toast("送る相手を選んでください");return;}
+  mIdx=0;$("m-actions").hidden=true;$("m-queue").hidden=false;drawQueue();
+};
+$("m-open").onclick=()=>{
+  const m=mQueue[mIdx];if(!m)return;
+  if(mTpl==="invite")openInviteMail(m); else openMailApp(m);
+  mIdx++;setTimeout(drawQueue,600);
+};
+$("m-skip").onclick=()=>{mIdx++;drawQueue();};
+$("m-stop").onclick=()=>{$("m-queue").hidden=true;$("m-actions").hidden=false;};
+
+$("m-bcc").onclick=()=>{
+  const list=mTargets().filter(m=>mPick[m.id]&&m.email);
+  if(!list.length){toast("送る相手を選んでください");return;}
+  const addrs=list.map(m=>m.email).join(",");
+  const url="mailto:?bcc="+encodeURIComponent(addrs)+
+    "&subject="+encodeURIComponent(withUrl(TPL.bcc.sub))+
+    "&body="+encodeURIComponent(withUrl(TPL.bcc.body));
+  if(url.length>1800){
+    toast("人数が多すぎます。「メアドをコピー」を使ってください");return;
+  }
+  openURL(url,()=>showFallback(addrs,withUrl(TPL.bcc.sub),withUrl(TPL.bcc.body)));
+};
+async function copyText(txt,okMsg){
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast(okMsg||"コピーしました");
+  }catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=txt;ta.style.position="fixed";ta.style.top="-1000px";
+    document.body.appendChild(ta);ta.focus();ta.select();
+    ta.setSelectionRange(0,ta.value.length);
+    try{document.execCommand("copy");toast(okMsg||"コピーしました");}
+    catch(err){toast("コピーできませんでした");}
+    ta.remove();
+  }
+}
+function msgFor(m){
+  const t=TPL[statusOf(m)==="out"?"out":"warn"];
+  return fillTpl(t.body,m);
+}
+function inviteFor(m){return fillTpl(TPL.invite.body,m);}
+function openInviteMail(m){
+  if(!m.email){
+    copyText(inviteFor(m),m.name+"さんの招待文をコピーしました");
+    return false;
+  }
+  const sub=fillTpl(TPL.invite.sub,m),body=inviteFor(m);
+  openURL(mailto(m.email,sub,body),()=>showFallback(m.email,sub,body));
+  return true;
+}
+$("m-copy").onclick=()=>{
+  const list=mTargets().filter(m=>mPick[m.id]&&m.email);
+  if(!list.length){toast("送る相手を選んでください");return;}
+  copyText(list.map(m=>m.email).join(", "),list.length+"件のメアドをコピーしました");
+};
+$("m-copyone").onclick=()=>{
+  const m=mQueue[mIdx];if(!m)return;
+  copyText(mTpl==="invite"?inviteFor(m):msgFor(m),m.name+"さんの文面をコピーしました");
+};
+$("d-cash").onclick=()=>{
+  cur.cash=!cur.cash;save();
+  $("d-cash").classList.toggle("on",!!cur.cash);
+  toast(cur.cash?"現金対応済みにしました":"現金対応済みを外しました");
+  render();
+};
+$("d-invite").onclick=()=>{
+  if(!openInviteMail(cur))toast(cur.name+"さんはメアド未登録です。招待文をコピーしました");
+};
+$("d-sendline").onclick=()=>openLine(cur);
+$("d-copy").onclick=()=>{
+  copyText(msgFor(cur),cur.name+"さんの文面をコピーしました");
+};
+$("d-line").onclick=()=>{
+  cur.line=!cur.line;save();render();
+  $("d-line").textContent=cur.line?"LINEから外す":"LINEに追加";
+  openDetail(cur.id);
+  toast(cur.line?"LINEグループに入っている、にしました":"LINEグループから外しました");
+};
+$("d-mail").onclick=()=>{
+  if(!cur.email){toast("この会員のメアドが未登録です");return;}
+  const t=TPL[statusOf(cur)==="out"?"out":"warn"];
+  openMailApp(cur);
+};
+
+/* ---------- 納品書から登録ずみの会員 ---------- */
+(function(){
+  const SEED="miyu_seed_v5";
+  let done=false;
+  try{done=!!localStorage.getItem(SEED);}catch(e){done=false;}
+  if(done)return;
+  const SEEDS=[
+    {name:"武田 直人",nick:"うさのNaoto",email:"naoto.1992-12-29@ezweb.ne.jp",
+     tel:"080-5561-3254",
+     addr:"\u3012985-0086 宮城県塩竈市千賀の台2丁目14-8 千賀の台spinach2号棟 101号",
+     line:true,lineName:"うさのNaoto",pay:"コンビニ決済・Pay-easy",
+     orders:[{id:"281EEB355ED8F8C1",date:"2025-07-30"}]},
+    {name:"小関 信夫",nick:"のびた",email:"mami-natsu-aya-shou-misora@docomo.ne.jp",
+     tel:"090-1031-7204",
+     addr:"\u3012259-1306 神奈川県秦野市戸川167-7",
+     line:false,lineName:"",pay:"クレジットカード決済",
+     orders:[{id:"6B02B25CBD937810",date:"2026-06-21"}]},
+    {name:"近藤 優樹",nick:"ゆうき",email:"eisajudo115@yahoo.co.jp",
+     tel:"050-8250-8121",
+     addr:"\u3012470-0206 愛知県みよし市莇生町65",
+     line:false,lineName:"",pay:"PayPay",
+     orders:[{id:"D2EB34AE977B66AB",date:"2026-06-12"}]},
+    {name:"竹ノ内 直樹",nick:"naotake",email:"naoki-tono-1010@ezweb.ne.jp",
+     tel:"080-5472-8963",
+     addr:"\u3012226-0028 神奈川県横浜市緑区いぶき野27-1 ライオンズマンション長津田第二103",
+     line:false,lineName:"",pay:"コンビニ決済・Pay-easy",
+     orders:[{id:"A001177145D030E6",date:"2026-06-07"}]},
+    {name:"西塚 正一",nick:"ニッシ〜",email:"gshowk11@ezweb.ne.jp",
+     tel:"090-2059-3788",
+     addr:"\u3012002-8081 北海道札幌市北区百合が原7丁目1-7-508",
+     line:false,lineName:"",pay:"クレジットカード決済",
+     memo:"2日連続で2件の注文あり（5/23・5/24）。1口ぶんの返金や取り消しが必要なら要確認",
+     orders:[{id:"D6E0A78D7AAEC387",date:"2026-05-23"},{id:"6509799A8FF0D875",date:"2026-05-24"}]},
+    {name:"DEGUCHI HIROYUKI",nick:"でぐっち",email:"hiroyuki3995@rakumail.jp",
+     tel:"070-9094-8892",
+     addr:"\u3012273-0028 千葉県船橋市海神町東1-1382-11 イングルサイド301",
+     line:false,lineName:"",pay:"PayPal",
+     orders:[{id:"3E91DC5F659C9279",date:"2026-05-15"}]},
+    {name:"神谷 英明",nick:"HIDEAKI_KAMIYA",email:"electrical_parade_dream_lights@hotmail.com",
+     tel:"080-3516-6247",
+     addr:"\u3012350-0041 埼玉県川越市六軒町2-4-3 右奥母屋",
+     line:false,lineName:"",pay:"クレジットカード決済",
+     memo:"SNS名の記入は X のURL：https://x.com/HIDEAKI_KAMIYA",
+     orders:[{id:"62992328911AF285",date:"2026-05-18"}]},
+    {name:"坂本 祐樹",nick:"あみば",email:"nezuko-shinobu@au.com",
+     tel:"090-6185-2091",
+     addr:"\u3012336-0015 埼玉県さいたま市南区太田窪1284-4 ぼうすいマンション304",
+     line:false,lineName:"",pay:"コンビニ決済・Pay-easy",
+     orders:[{id:"33F5471893694172",date:"2026-05-19"}]},
+    {name:"久保田 一輝",nick:"久保田 一輝(KAZUKI)",email:"kazukiku1007@gmail.com",
+     tel:"080-3490-1476",
+     addr:"\u3012235-0035 神奈川県横浜市磯子区田中1-17-31-1",
+     line:false,lineName:"",pay:"Amazon Pay",
+     orders:[{id:"6AA2764ADDD6F019",date:"2026-05-22"}]},
+    {name:"橋本 幸介",nick:"ドンちゃん",email:"kousuke.581740@gmail.com",
+     tel:"090-7675-9183",
+     addr:"\u3012455-0078 愛知県名古屋市港区丸池町1丁目1-1 丸池荘4-805",
+     line:false,lineName:"",pay:"クレジットカード決済",
+     orders:[{id:"328AE50EF2CD7B27",date:"2026-05-31"}]}
+  ];
+  let added=0;
+  SEEDS.forEach(r=>{
+    if(DB.some(m=>norm(m.name)===norm(r.name)))return;
+    const os=r.orders;
+    DB.push({
+      id:"seed-"+os[os.length-1].id,
+      no:(DB.reduce((a,x)=>Math.max(a,x.no||0),0))+1,
+      name:r.name,nick:r.nick,email:r.email,tel:r.tel,addr:r.addr,
+      orderId:os[os.length-1].id,
+      joinDate:os[0].date,renewDate:os[os.length-1].date,
+      kuchi:os.length,amount:10000*os.length,sales:0,
+      memo:"【miyuファンクラブ】みゆらー1年分！／"+r.pay+(r.memo?"\n"+r.memo:""),
+      line:r.line,lineName:r.lineName,
+      photos:[],receipts:[],
+      history:os.map((o,i)=>({date:o.date,kuchi:1,amount:10000,
+        type:i===0?"新規":"更新",orderId:o.id}))
+    });
+    added++;
+  });
+  if(added)save();
+  try{localStorage.setItem(SEED,"1");}catch(e){}
+})();
+
+
+/* ---------- 台帳（スプレッドシート）から取り込み ---------- */
+(function(){
+  const KEY="miyu_ledger_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+
+  // 既存会員に台帳の会員番号などを反映（アプリが作った行だけ）
+  const FIX=[
+    {name:"武田 直人",no:12,addMemo:"台帳のニックネーム：なおとさん"},
+    {name:"橋本 幸介",no:10,join:"2025-05-24",extra:[{date:"2025-05-24",type:"新規"}]},
+    {name:"小関 信夫",no:11,join:"2024-06-28",
+      extra:[{date:"2024-06-28",type:"新規"},{date:"2025-06-25",type:"更新"}]},
+    {name:"竹ノ内 直樹",no:25},
+    {name:"西塚 正一",no:26},
+    {name:"近藤 優樹",no:28,addMemo:"台帳メモ：なぜかLINE退出"},
+    {name:"DEGUCHI HIROYUKI",no:29},
+    {name:"神谷 英明",no:30},
+    {name:"坂本 祐樹",no:31},
+    {name:"久保田 一輝",no:32}
+  ];
+  FIX.forEach(f=>{
+    const m=DB.find(x=>norm(x.name)===norm(f.name));
+    if(!m||String(m.id).indexOf("seed-")!==0)return;
+    m.no=f.no;
+    if(f.join)m.joinDate=f.join;
+    if(f.addMemo)m.memo=(m.memo?m.memo+"\n":"")+f.addMemo;
+    if(f.extra){
+      const add=f.extra.map(e=>({date:e.date,kuchi:1,amount:10000,type:e.type,orderId:""}));
+      m.history=add.concat(m.history||[]);
+      m.history[m.history.length-1].type="更新";
+      m.kuchi=m.history.length;
+      m.amount=10000*m.history.length;
+    }
+  });
+
+  // 台帳にしかいない会員
+  const L=[
+    [0,"りんちゃん","りんちゃん","","2025-05-07","2025-05-07",""],
+    [1,"児玉 亮","らんちば","kikuzo.rb3@docomo.ne.jp","2025-04-23","2025-04-23",""],
+    [2,"佐藤 貴","ごませんべえ","tofuchan.o.1002@gmail.com","2024-04-24","2025-05-05",""],
+    [3,"田中 勝","まさるんるん","mt0508@yahoo.ne.jp","2024-04-25","2025-04-24",""],
+    [4,"鶴田 尚平","しんぴょん","turuta.ha.defense.dayo.0916@ezweb.ne.jp","2025-04-26","2025-04-26",""],
+    [5,"田熊 知己","さゆ","kumachan-t.51@ezweb.ne.jp","2024-04-27","2025-04-24",""],
+    [6,"浅見 充","あさみ","v3m9bxkcsdcd6icr7sig@docomo.ne.jp","2024-04-27","2025-04-24",""],
+    [7,"池田 稔樹","ちゃい","sirokuma8931@gmail.com","2025-05-01","2025-05-01",""],
+    [8,"永田 和好","かずっち","djscx554@icloud.com","2024-05-01","2025-04-24",""],
+    [9,"肥川 和生","こい","koi40-257422118@docm.ne.jp","2025-05-18","2025-05-18","メールは docomo.ne.jp の打ちもれかもしれません"],
+    [13,"篠宮 あすか","あすかちゃん","asumaro0225@gmail.com","2025-08-01","2025-08-01",""],
+    [14,"大谷岳人","","","2025-06-07","2025-06-07",""],
+    [15,"村木貴志","","","2025-06-05","2025-06-05",""],
+    [16,"阿部将大","","","2025-06-26","2025-06-26",""],
+    [17,"原幸宏","トップガン","","2025-07-03","2025-07-03",""],
+    [19,"福田哲也","","","2025-11-23","2025-11-23",""],
+    [20,"北山光輝","","","2025-12-02","2025-12-02",""],
+    [23,"二瓶 功","","","2026-02-02","2026-02-02","台帳メモ：LINEはいってない"],
+    [24,"佐藤 秀明","","","2026-03-31","2026-03-31",""]
+  ];
+  let added=0;
+  L.forEach(r=>{
+    const nm=r[1];
+    if(DB.some(m=>norm(m.name)===norm(nm)))return;
+    const join=r[4],renew=r[5];
+    const hist=[{date:join,kuchi:1,amount:10000,type:"新規",orderId:""}];
+    if(renew!==join)hist.push({date:renew,kuchi:1,amount:10000,type:"更新",orderId:""});
+    DB.push({
+      id:"seed-ledger-"+r[0],
+      no:r[0],
+      name:nm,nick:r[2],email:r[3],tel:"",addr:"",orderId:"",
+      joinDate:join,renewDate:renew,
+      kuchi:hist.length,amount:10000*hist.length,sales:0,
+      memo:"スプレッドシートの台帳から取り込み"+(r[6]?"\n"+r[6]:""),
+      line:false,lineName:"",
+      photos:[],receipts:[],
+      history:hist
+    });
+    added++;
+  });
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- BASE注文一覧（対応済のみ）で日付を正す ---------- */
+(function(){
+  const KEY="miyu_orders_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const ORDERS=[
+    ["小関 信夫","2026-06-21",10000],["近藤 優樹","2026-06-12",10000],
+    ["竹ノ内 直樹","2026-06-07",10000],["大谷岳人","2026-06-05",10000],
+    ["竹ノ内 直樹","2026-06-05",10000],["橋本 幸介","2026-05-31",10000],
+    ["西塚 正一","2026-05-24",10000],["西塚 正一","2026-05-23",10000],
+    ["久保田 一輝","2026-05-22",10000],["坂本 祐樹","2026-05-19",10000],
+    ["神谷 英明","2026-05-18",10000],["DEGUCHI HIROYUKI","2026-05-15",10000],
+    ["今西 凛","2026-05-05",10000],["森 純","2026-05-05",10000],
+    ["佐藤 貴","2026-05-01",10000],["木村 雄二","2026-04-27",10000],
+    ["浅見 充","2026-04-24",10000],["永田 和好","2026-04-24",10000],
+    ["田熊 知己","2026-04-24",10000],["田中 勝","2026-04-24",10000],
+    ["小河原 俊之","2026-04-21",10500],["佐藤 秀明","2026-03-31",10000],
+    ["二瓶 功","2026-02-01",10000],["北山 光輝","2025-12-02",10000],
+    ["福田 哲也","2025-11-29",10000],["篠宮 あすか","2025-08-01",10000]
+  ];
+  const byName={};
+  ORDERS.forEach(o=>{(byName[o[0]]=byName[o[0]]||[]).push({date:o[1],amount:o[2]});});
+  let fixed=0,made=0;
+  Object.keys(byName).forEach(nm=>{
+    const os=byName[nm].slice().sort((a,b)=>a.date<b.date?-1:1);
+    const first=os[0].date,last=os[os.length-1].date;
+    const newHist=os.map((o,i)=>({date:o.date,kuchi:1,amount:o.amount,
+      type:i===0?"新規":"更新",orderId:""}));
+    let m=DB.find(x=>norm(x.name)===norm(nm));
+    if(m){
+      const keep=(m.history||[]).filter(h=>h.date<first);
+      m.history=keep.concat(newHist);
+      m.history.forEach((h,i)=>{h.type=i===0?"新規":"更新";});
+      m.joinDate=m.history[0].date;
+      m.renewDate=last;
+      m.kuchi=m.history.length;
+      m.amount=m.history.reduce((a,h)=>a+Number(h.amount||0),0);
+      fixed++;
+    }else{
+      DB.push({
+        id:"seed-order-"+norm(nm),
+        no:(DB.reduce((a,x)=>Math.max(a,x.no||0),0))+1,
+        name:nm,nick:"",email:"",tel:"",addr:"",orderId:"",
+        joinDate:first,renewDate:last,
+        kuchi:newHist.length,
+        amount:newHist.reduce((a,h)=>a+Number(h.amount||0),0),
+        sales:0,memo:"BASEの注文一覧から取り込み（連絡先は未登録）",
+        line:false,lineName:"",photos:[],receipts:[],history:newHist
+      });
+      made++;
+    }
+  });
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- LINEグループの在籍を反映 ---------- */
+(function(){
+  const KEY="miyu_line_v2";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const IN=[
+    ["篠宮 あすか","あすか"],["坂本 祐樹","あみば"],["今西 凛","今西 凛"],
+    ["大谷岳人","大谷 岳人"],["永田 和好","かずっち"],["木村 雄二","キムランド (6/8) 大阪"],
+    ["橋本 幸介","こうすけドンちゃん　26.5/31"],["森 純","じゅん"],
+    ["神谷 英明","水田 英明（神谷 英明）"],["浅見 充","浅見"],
+    ["佐藤 貴","たかし　ごませんべい"],["田熊 知己","田熊知己"],
+    ["竹ノ内 直樹","竹ノ内 naotake"],["DEGUCHI HIROYUKI","出口博之"],
+    ["西塚 正一","にっし〜"],["小関 信夫","のぶお (のびた)25.6/28"],
+    ["福田 哲也","福田哲也"],["田中 勝","マサルンルン"],["肥川 和生","koi"],
+    ["小河原 俊之","おひさまとっち"],["久保田 一輝","K"]
+  ];
+  IN.forEach(r=>{
+    const m=DB.find(x=>norm(x.name)===norm(r[0]));
+    if(!m)return;
+    m.line=true;m.lineName=r[1];
+  });
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- LINEのプロフィール画像 ---------- */
+(function(){
+  const KEY="miyu_avatar_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const PIC=[
+    ["篠宮 あすか","data:image/jpeg;base64,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"],
+    ["坂本 祐樹","data:image/jpeg;base64,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"],
+    ["今西 凛","data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBUODAsLDBkSEw8VHhsgHx4bHR0hJTApISMtJB0dKjkqLTEzNjY2ICg7Pzo0PjA1NjP/2wBDAQkJCQwLDBgODhgzIh0iMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzP/wAARCABgAGADASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAABAUCAwYABwH/xAA1EAACAQMDAwIFAwMCBwAAAAABAgMABBEFEiExQVETYQYicYGRFDKhFULBByMzUpLR4fDx/8QAGAEBAAMBAAAAAAAAAAAAAAAAAwACBAH/xAAjEQACAgICAgMAAwAAAAAAAAABAgADESESMRNBBDJRInGB/9oADAMBAAIRAxEAPwD3+urqrmmSCMu5+g81JCcSbMFUsxAA7mgZtSVciJdx8npQFxdvcN83A7L4qrJ8VoWoDZmV78/WXveTueZSB4HFVbyx5JNQILV9VcUmAOoWSe5PcR0JH0qxLy4QjbISPDc1QTivoapgGTkR1GcOpK2BMu0+R0o5WV1DKQQehFZ7JNWwXT27ZU5Xup6GjaoHqKlxH2j2uquCdJ4w6H6jxVlZyMTSDnYnwkKCT0FK5y9xJuPCjoPFG3L8BB35NDYpE1uHZvUDaHAqGCO1G7Qw4II9qgYiaUNBKfkF6dSAPc1nr34qtLPUzAJFKx7kkDfL83HQ9eMEU51yLZp+452hufbg1m5tLtL+e31S/s0kuBGFywyhOeCR3PbJqouVWPIZh3/GsdB42wcx5a61Z3MEUqh8Pngdh5+lNhBuUEEEHpWck0VUAukYwkKCQhyPuvT8U3udTSzsoYo1MtzJhEhU/Me32oltJJJmnxKEAPfuFekCQB0Pep/p81O1gkSPdNt9Q/2ryF9veryMUgY+5U1iVW+beTI6dx5pmCCAR0NAGiLV8goe3Iqr73LprUzWt3Mw13MbyqYY12LuwjZznP4x9qNlv/V0GS6iO1ym0c/tY8UH8RQSF7W6VgEVikgx1zyD+c/mlK3Lj+o2pOEdopI/H7uR/NV3ualUMqmOfh6fdFLDn5YgOPFHS30cbkNng4wDS/QRsju2kI9PHPsMc1kUvNQ1W/ZbWchIweWADLzRvaFwPculAdmJOAJqta1MDRrgrCzk/KABuB/+daSQ6klw1si3MXoLGUmiK/8AEOBtIbtWmtD6VqBu5A+cjgE96yd/pltNr0fpRxpFHl3MeV3KQMAYwDzjk9s1mstZSD+wuAwd9RoLtH1FAlywe4hEYtWcFFIySV+o68+Kd2OnQWt09wYkM7kn1eSeeoGen2pLZ2tjGyCG2hVhkb9oLfk5P807sAqXJVi+8r8oLfLj2Hmkqt5HcHRjRfmOK+slfFODXPcwoH3SKNgy3PStJOJ0DMiVxUojtlX8ULa6lbX0YaB9wPkYNX8giuhgZwjBlJEV/ZugchWG0leqkf8AY1gtUeWzupDPtWaCTa56BgejD26VLUdev9B+O5rGSYQ6eSZiWGQ4bBAH3JH2orU9PTXL5bu4Yqvp7AiqDnnIJPkf5rlRVjky3J1BCdyMmsxx6IYbcBpbzliP7F9x1B/xmhdPLRw3HLwpIwRZ1AGHx2J7jNMbXRImjuFkd3nllaT1gACCen1wOKlLNBpqRWxj9VIcY3puyx/cSOmSaxfJrIt5g69TTSxaviw2e4KkztZQ6Ve41C0nhMd3cNlJHP0XhfyKHmnaLWLtY0MUP6ZY7cyjjK57dcft68mrxotm7Bp7f1HkfcqPuVeuRgZxwaPL38V7PHKI1jmjHpkLvBPRt2OfH5owr2YDSzVLjCwbS5Y1iikuhFJMUUvJHn92OcDPA60dplz+khjE9290ICQbiXCluc8gDGccUtsdLsLm5FzMrK6E4gjnOxvBYA9R4PinSadbSwMsdvDEnOQgxz1zSV1sOzB8QU/yhP8AWY7nTLiWA7J9jCMN3OODXm6/ENxp8ctvbk3EkuVMf7+Twc9xR2r20jXsaD5YyTG3Gfm6g+3WmNrZxW0axp6TNnBJQYyf8VGLOf6mrx1p/sT6Jr063ccUKO075ymwrkjqSfAr1S3njnUbWywAzWSu9Mglt2hWURTRrvOzCMB5GOcUv/0+TWpviK9mupDPYqSFn2gByOOCMBugz9KSslDxg2KjryEP/wBTNLm9Cz1y2IzayKtwCucpuyD9jn/qpatzeXElstu1uAZQJ/VJzt8rjv8AWvTri3iu7aS3nQSQyqVdD0IPUV59q2mppt7JHLHhWOUl6Bl+vTNMFUZJOJnBxLZpplubKW2u1jgV2F1E8eXkGONrduetK9TguZoH1kxhrP1xJhm52jABA8E/+813oadIpN7qFwwbK+mpIIHvjn+aXX2pF9FbSoMwWskwKy9lQf2ge7AGhvKcO9xK7QG7jaLVYoFuLvVL2CLTYGR4ZUY7jkY+b7njHtV+s6tbW9vBe/rjPaXrq0ACgBFKgcEckEkHnpmsgkN20Qt4zbyQuuJUmj37+3POKa39lZ3lujXM0008UY9NWQLGuB0Cjgf+KDykr1uXDoGznUZxvKmmGLTpLa3nVwf91CVxnkYHfHemEk1pMtvIZriN7OYyIEmwJuMYcf3AdcdjWQsre9t7qaSa/Z7dwTHH6eSvgbqYW0okLbFfdjJyAN3jnFILSJw2VHcfWVxZSHUJby4WNfQILMeAG4yB7cVnEungzqGmx24v5jGsz3CuVdF4yFHQ85zjzRE0cc7I77yE4IUAD6Gh5tNtrmaENHI7BhtZmwOO3HQVUuR1LNZWdxhq2s6PYXUt9Cq/1C6URyKmd0oC4XjsOeuOgPit58ORGPSYeAE2jbgY9yce5zWQ0aPUtS1I2whSOFMGSR1yUHcA+/avRERY0VFGFUYApqiW2YbOpXAElQWqaXaavZta3cQdDyD3U+RRtdSkZ0Yc801HRH0eb/djHok/K46P4+n0oAIs3BwobkZ9+9eryxRzxNHKiujcFWGQazWo/CEcrtNYyhHxxHKSV+x6j+aztTjqVImUCxBTujCnBICjt9aixSNA0gG3bwe1MbjQL+1DB7SSRWHJT58fTFJZLVgZUf1EB6qwxj6UJBE5uWkwsSjqm3jC+TVixABkwu8n5WXnA8V0VozSR7FLgj/lzimNloeqSzEi1kUA/ucbR/NQAmQCAH5XKbcKvDccGrrDRLzVQsdsyiLdiSQ9FGc/n2rV2PwuiANeyCRu6R8D7nqf4p/FDHBEsUMaxovRVGAKZaSftLYlGn2EOnWqwRZPdnbqx8miq6urQBjQnZ//2Q=="],
+    ["大谷岳人","data:image/jpeg;base64,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"],
+    ["小河原 俊之","data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBUODAsLDBkSEw8VHhsgHx4bHR0hJTApISMtJB0dKjkqLTEzNjY2ICg7Pzo0PjA1NjP/2wBDAQkJCQwLDBgODhgzIh0iMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzP/wAARCABgAGADASIAAhEBAxEB/8QAHAAAAgMBAQEBAAAAAAAAAAAABQYDBAcAAgEI/8QAOhAAAgEDAwEGBAQEBAcAAAAAAQIDAAQRBRIhMQYTIkFRYTJxgZEHI1KxFGKh8BUk0fElM0JDgpLh/8QAGAEAAwEBAAAAAAAAAAAAAAAAAQIDAAT/xAAfEQACAgIDAQEBAAAAAAAAAAAAAQIRAxITIVExQTL/2gAMAwEAAhEDEQA/AN/rq6q97ew2FuZpm48lHVj6CsYmeRIkLyMFUdSTgCgl72kiiytsneH9TcD7UC1DV5r+TxNhc+FB0FCZLgbmYHwxZJPrxSOXgyQYn1y8uAczsvsvhx9qoPdPKwJctkefPNB477vraOZT8Qz/AFqWOYc88jxD3FKMgklzLGMo5AHoelXINevoeUuGYDyfxfvQGW7Ef5i8ofiFR9/+YERvEeU9GrWYfLLtVC5CXcfdn9acj7f70filjmjEkTq6N0ZTkGsnScvkrw6/Epojpmt3Omz7omzGx8UbHhv9D70yl6BxNKrqqadqMGp2ongbjoynqp9DVunEPE00dvA80rBY41LMx8gKzfWNdk1DNyylUwTGhPRfL6njNHe3t/JDpQs4WwZeXP8ALngff9qQb2bFoqg/9sY+9LIKLpuSg5b4UH3PWqMl6i2lzHv8Rz/WqKm7v5hFErDd5+VG7Ts9ALf/ADXjlLZyD/SpuSRRRbBE/wDw2C2iwfFGG+/WoW1Jl2nOCp8/SnCa3t51jWSNW7v4cjpVa70yzupVleJSw6nHWk3H1F1tRiwV3eFhkiq8crzmO1fejlgY36Ef/KYU0SxjZvygQTkZ5xVtoIWCeBd0fQ+lbY2ovnUZYX2XS7LuHgsOjirEt2kmyaJuvUVf1LTYdQUMeJAMbhS9JYXWm7iV3x+ooqQHHwaNE119KvlnDEwniVP1D1+danDKk8KTRMGjdQysPMGsCFz/AJcn35rWexupx3WnrbKSdiB0z6Hr/fvVIMnJAvtXA+pTyrGRlTjk+lKsOjS3qpLJIFtkLK+DyMdabJ5XluH2KOfM0G1CZdN0G6McpYrI2X9CeT+9DI6Rsatgi+7QWGkW8cEJEpQYBUjn61S0/tZFPsjuGaOU+bDAPNJdwsptFuFOyW4lCI36Ack4+g+5qG7s4f4aCW0guu5ZcSXMoGd/GCMEnac4554oKFo6LinSNYjvUlj3o4YdMjpXk3Jz1pb7LXkl3pCKw8UR7s49RTGum3LjdhVz03GoyaX0ajybmqV5q0NopaSULgZx51NdWs1uPGvyI6Uh9oLoNcNGWdZye7gIUEA5G4t9OnvRilIz6VhebtgyXUbRxOYQDuz59MGjtl2istQhQH43IUJ1LZ9KzSO2t3QESSCToJueTVmzme3aG9U7XWQxybRxnOMin1FtN00aDfaUlusksZJV2HhHpTh2eYW+oWpjGyMAIQfPIx/fypdt5jd2MMh53ck0dsZgI1ZQBtPGKOMhk6IZhteQOxBBIofHaHUNCvLdcFmmbGfPgUwazB3Gp3CbfiO4Y9DzQoWxs7adiQ0Upyy56U2VdWDE6kIy9nJp7Y2Dv3TxnvLe42koWXp8x1Bob/g2rLckW+hDvC5ZWDqYlcqFLZznGFB6Z5NP8uuBPDwAOMVBbaskYK7gcsT9zmp8vR2LF3Z3ZnQ49I0iOFn33AJaZiMZcnJ49PT2olNqQgOJHGf5BiqsuqoVO0jJpfvZ5pZQ0ZQjzDZqTqTtjKK/RnDteY3MpQdMDBPzpL7Vdk7mZxc2JHeK+9N3TJ4Kn50d0+8aJQHIJ88UTN9A4UsfhOQM+dNF6/BWvwzCPTL8SFRoUkd2R4nmCoin13+f0okuhO8UFpAkk6QnfdXCodpOcn+/SnS61GB0IOM8EH0rwNd3HbGPsKbdJdAWPu2TQW4jtoERgw9U5B+VX4RIrqq/CxAC1BYOChfaBjoBRfRYVu9YhUjOG3n2xzT410cuT+g/2jtA8KXarlo/Cx9v9/3pVmkWRnQZx5jHFaLJGksTRuNyMMEeopJ1W0GlSOsozGeUb9Q/1qzJide6e3iIUceVCpUS2fDxuPlzTVIZbgeBA8XkDXiXTYJotyAqcfCxziovGmWjlaFcXkHT8z/0Nd/G2m4gycjqCp4onc6Y0MZcvtU+pxUdraRQgPt3BxhjjNLxD8pSW8tz8Lk49Aa5r2BfiLD/AMTV9YIlfAiJT24NfY7WO5mESIQh4Oea3GblBb3ERG5IpJPkKJWthcS7X2hIs87Rkmi0GnpHuRoQ0Y8/MVdijjeZUjJVAPFjiisaQssraIFTuowiJ88019j9OaKGW+kGGk8Efso6/wBf2oVpmmNqV4Y0yIlPjb0FPcUaQxJHGoVEACgeQqsURPVUdX0q31nT5LO43KrjwuhwyH1FXq6nAZN2m7/sfas9w4WEf8uQDIf29j7UpD8SdLlRBvlR8eIFMgfOt/vLK11G0ktL23iuLeUYeKVAysPcGsi7T/gLY3cj3PZy9/g3PP8AC3BLR/RviX67qFBQuXuui9sDdwTRmJACea8af2zfVr+GxxFGGwqlemfelnV/w77a6NG0UujXU0P/AFNajvkbHGfBkj6gUpNb3Vgx72CaGUMMb1KlT1+9Cgn6Ht4Vjty0m3B53VJaRwx2PfRsm4isNte0naKZe5heW4zgYWMs2fp507aJpPb/AFO3jjttBmiz1nu/yQAfPxYJ+gNCjDtFJLNGzbyFBAznirmk2smrStb2REm0gTSqfBGPc+Z/lHPyHNT6L+G940ULdo9VMwQAmzscxxlvVn+I/TbT/aWlvY2sdtaQRwQRjCRxqFVR8hW19BZHYWEGnWqwQDgcsx6sfU1arq6nAf/Z"],
+    ["木村 雄二","data:image/jpeg;base64,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"],
+    ["神谷 英明","data:image/jpeg;base64,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"],
+    ["浅見 充","data:image/jpeg;base64,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"],
+    ["佐藤 貴","data:image/jpeg;base64,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"],
+    ["田熊 知己","data:image/jpeg;base64,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"],
+    ["竹ノ内 直樹","data:image/jpeg;base64,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"],
+    ["DEGUCHI HIROYUKI","data:image/jpeg;base64,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"],
+    ["西塚 正一","data:image/jpeg;base64,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"],
+    ["福田 哲也","data:image/jpeg;base64,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"],
+    ["田中 勝","data:image/jpeg;base64,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"]
+  ];
+  PIC.forEach(r=>{
+    const m=DB.find(x=>norm(x.name)===norm(r[0]));
+    if(!m)return;
+    m.photos=m.photos||[];
+    if(!m.photos.length)m.photos.push(r[1]);
+  });
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- メアドの打ちもれを修正 ---------- */
+(function(){
+  const KEY="miyu_fixmail_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const m=DB.find(x=>norm(x.name)===norm("肥川 和生"));
+  if(m&&/@docm\.ne\.jp$/i.test(m.email||"")){
+    const before=m.email;
+    m.email=m.email.replace(/@docm\.ne\.jp$/i,"@docomo.ne.jp");
+    m.memo=(m.memo?m.memo+"\n":"")+"メアドを "+before+" から修正（台帳の打ちもれ）。届かない場合は本人に確認";
+    save();
+  }
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- 会員番号を入会日順に ---------- */
+(function(){
+  const KEY="miyu_renum_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  renumber();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- りんちゃん＝今西凛 を1人にまとめる ---------- */
+(function(){
+  const KEY="miyu_merge_rin_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const rin=DB.find(x=>norm(x.name)==="りんちゃん");
+  const ima=DB.find(x=>norm(x.name)===norm("今西 凛"));
+  if(rin&&ima){
+    ima.nick=ima.nick||"りんちゃん";
+    ima.no=0;
+    ima.memo=(ima.memo?ima.memo+"\n":"")+"台帳の会員番号0「りんちゃん」と同一人物のためまとめました";
+    if(!ima.photos||!ima.photos.length)ima.photos=rin.photos||[];
+    if(!ima.email)ima.email=rin.email||"";
+    DB.splice(DB.indexOf(rin),1);
+    renumber();
+    save();
+  }
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- 会員番号は台帳のものを使う ---------- */
+(function(){
+  const KEY="miyu_ledgerno_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const NO=[
+    ["今西 凛",0],["児玉 亮",1],["佐藤 貴",2],["田中 勝",3],["鶴田 尚平",4],
+    ["田熊 知己",5],["浅見 充",6],["池田 稔樹",7],["永田 和好",8],["肥川 和生",9],
+    ["橋本 幸介",10],["小関 信夫",11],["武田 直人",12],["篠宮 あすか",13],["大谷岳人",14],
+    ["村木貴志",15],["阿部将大",16],["原幸宏",17],["福田 哲也",19],["北山 光輝",20],
+    ["二瓶 功",23],["佐藤 秀明",24],["竹ノ内 直樹",25],["西塚 正一",26],["近藤 優樹",28],
+    ["小河原 俊之",29],["木村 雄二",30],["森 純",31],["DEGUCHI HIROYUKI",32],
+    ["神谷 英明",33],["坂本 祐樹",34],["久保田 一輝",35]
+  ];
+  NO.forEach(r=>{
+    const m=DB.find(x=>norm(x.name)===norm(r[0]));
+    if(m)m.no=r[1];
+  });
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- 原幸宏（トップガン／浅井さん）---------- */
+(function(){
+  const KEY="miyu_topgun_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  const m=DB.find(x=>norm(x.name)===norm("原幸宏"));
+  if(m){
+    m.nick=m.nick||"トップガン";
+    m.line=true;
+    m.lineName="あさい";
+    m.cash=true;
+    m.memo=(m.memo?m.memo+"\n":"")+"浅井さん。LINE表示名は「あさい」。現場で現金をいただき継続";
+    save();
+  }
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- 原幸宏と浅井稔彦は別人だった ---------- */
+(function(){
+  const KEY="miyu_asai_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+
+  // 原幸宏さんに付けてしまった情報を戻す
+  const h=DB.find(x=>norm(x.name)===norm("原幸宏"));
+  if(h){
+    h.no=17;h.nick="";h.line=false;h.lineName="";h.cash=false;
+    h.memo=String(h.memo||"").split("\n")
+      .filter(l=>l.indexOf("浅井")<0&&l.indexOf("現金")<0).join("\n");
+  }
+
+  // 浅井稔彦さんを追加
+  if(!DB.some(x=>norm(x.name)===norm("浅井稔彦"))){
+    DB.push({
+      id:"seed-asai-18",
+      no:18,
+      name:"浅井稔彦",nick:"トップガン",email:"",tel:"",addr:"",orderId:"",
+      joinDate:"2025-11-23",renewDate:"2025-11-23",
+      kuchi:1,amount:10000,sales:0,
+      memo:"台帳の会員番号18。現場で現金をいただいて入会（BASEに注文なし）",
+      line:true,lineName:"あさい",cash:true,
+      photos:[],receipts:[],
+      history:[{date:"2025-11-23",kuchi:1,amount:10000,type:"新規",orderId:""}]
+    });
+  }
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- 2026/7/31 のBASE注文を反映 ---------- */
+(function(){
+  const KEY="miyu_csv0731_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+
+  // 田中 勝さん：更新
+  const t=DB.find(x=>norm(x.name)===norm("田中 勝"));
+  if(t&&!(t.history||[]).some(h=>h.orderId==="48E596E51FF9D5CB")){
+    t.history=(t.history||[]).concat([{date:"2026-07-31",kuchi:1,amount:10000,
+      type:"更新",orderId:"48E596E51FF9D5CB"}]);
+    t.renewDate="2026-07-31";
+    t.orderId="48E596E51FF9D5CB";
+    t.kuchi=t.history.length;
+    t.amount=t.history.reduce((a,h)=>a+Number(h.amount||0),0);
+    if(!t.tel)t.tel="090-4369-4968";
+    if(!t.addr)t.addr="\u3012243-0432 神奈川県海老名市中央3-3-23-1105";
+    t.memo=(t.memo?t.memo+"\n":"")+"2026/7/31の注文のニックネーム欄は「Asuka」と記入されていました（要確認）";
+  }
+
+  // 大石 盛暉さん：新規
+  if(!DB.some(x=>norm(x.name)===norm("大石 盛暉"))){
+    DB.push({
+      id:"seed-01BFCD990E5D3C23",
+      no:(DB.reduce((a,x)=>Math.max(a,x.no||0),0))+1,
+      name:"大石 盛暉",nick:"せいき",
+      email:"techanseiki9421@gmail.com",tel:"080-8879-3687",
+      addr:"\u3012330-0044 埼玉県さいたま市浦和区瀬ヶ崎4-15-17-2",
+      orderId:"01BFCD990E5D3C23",
+      joinDate:"2026-07-31",renewDate:"2026-07-31",
+      kuchi:1,amount:10000,sales:0,
+      memo:"【miyuファンクラブ】みゆらー1年分！／Amazon Pay",
+      line:false,lineName:"",cash:false,
+      photos:[],receipts:[],
+      history:[{date:"2026-07-31",kuchi:1,amount:10000,type:"新規",orderId:"01BFCD990E5D3C23"}]
+    });
+  }
+
+  // 浅井稔彦さん・児玉亮さんの連絡先を補う
+  const fix=[
+    ["浅井稔彦","gachanam_10-30_gachaxiv.75@docomo.ne.jp","090-7678-2047"],
+    ["児玉 亮","kikuzo.rb3@docomo.ne.jp","090-2637-1086"]
+  ];
+  fix.forEach(f=>{
+    const m=DB.find(x=>norm(x.name)===norm(f[0]));
+    if(!m)return;
+    if(!m.email)m.email=f[1];
+    if(!m.tel)m.tel=f[2];
+  });
+
+  save();
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+
+/* ---------- 2026/8/13 の注文：小林 純也さん ---------- */
+(function(){
+  const KEY="miyu_kobayashi_v1";
+  let done=false;
+  try{done=!!localStorage.getItem(KEY);}catch(e){done=false;}
+  if(done)return;
+  if(!DB.some(x=>norm(x.name)===norm("小林 純也"))){
+    DB.push({
+      id:"seed-4FB38A04EC5017FE",
+      no:(DB.reduce((a,x)=>Math.max(a,x.no||0),0))+1,
+      name:"小林 純也",nick:"jun-yakun",
+      email:"sumiya5884@softbank.ne.jp",tel:"080-4233-5884",
+      addr:"\u3012709-0624 岡山県岡山市東区城東台西3-8-2",
+      orderId:"4FB38A04EC5017FE",
+      joinDate:"2026-08-13",renewDate:"2026-08-13",
+      kuchi:1,amount:10000,sales:0,
+      memo:"【miyuファンクラブ】みゆらー1年分！／PayPay／会場受け取り（手数料あり）",
+      line:true,lineName:"純也",cash:false,
+      photos:["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBUODAsLDBkSEw8VHhsgHx4bHR0hJTApISMtJB0dKjkqLTEzNjY2ICg7Pzo0PjA1NjP/2wBDAQkJCQwLDBgODhgzIh0iMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzP/wAARCABgAGADASIAAhEBAxEB/8QAHAAAAwEBAQEBAQAAAAAAAAAABQYHBAMACAIB/8QAORAAAgEDAgQDBwIEBQUAAAAAAQIDBAURACEGEjFBE1FhBxQiMnGBkRWhM0JSsSM0wdHhQ1NjgvD/xAAZAQACAwEAAAAAAAAAAAAAAAADBAACBQH/xAAiEQACAgIDAAIDAQAAAAAAAAABAgARAyEEEjFBURQiYbH/2gAMAwEAAhEDEQA/AL/r2vaF3+/UfDtsetrGJA2SNfmkbyH/ANtqToF6E21dZTUFLJU1c8cEEYy8kjBVX6k6Vz7QbTNUSJSO00UcJmeWNefC522G4z6/jUP46vnEXGI97kjnjp4MstINkQb74zljjuf20NtltlThulv8F2rokqOeCqjpl3jwxCnp8Snv5HXEZWNXLPjZBZjpx5xxd6e5UsNDxMXpZYfHeFEETR74Cl13PfsOmuNmq+IKGaC63CgqaZJlIoqibDZbHXJORnpuNxpco6tv1+kvIloaxqBlVRc5QGn8ugwOXOR6+eiF14ra7V8orbnCVjPwQBuaGN+pIyN/Lp560MasKXVfMTfqbaN9yqJuI6VeW11i1a4drvbI/Dbm6eGxA3/ft0114cuPFEEFSY7rVzpDzcqVCB+mdvi+In8aw8M+0GntFvoaCqqbe6hmmcxiRWHMSdz079vLQOr49o5bnLKJ5wlROHZolKqoLZ6kEk476qqCz2AqRmah1Jl1t10qZByVtLLG6oGaQRFV/G/99FIpo50DxSK6H+ZTkai9X7Wkagr/AHQ1rymIiKSaFQqnHmB030q2C88S8ET0FbBIZaW5ASvTzc3JNnfrj4Wxjf8AOemksjBWr/I1iRnUmfSuvaHWS9U19t0dZT5XI+ONvmjbyOiOpOEVOc00dPA80rhI0UszHoANSviC5UFw4gWoulSPdBGRChyVUfQd9sk63+1jiZrZRQWuGPnaceLMQ2CFDAKPufwF1L466GqnWQVssJTbwy/L+P8AjQMpPke4iqB2PseKC22ejaqmgp4RNKpHOYxzMCNjnvkaY7L7hw5YaG1RFkSmiCZZcczdz9Sc6n9rmjqrq5SskqI4AJJJZHLfF2GT2204fqQrFMEkPPA/VXJ39fT00mb7Q+ZlagIZe52x92hic+sak/21+VuVrUbU8IB/8af7aSa6E0bB4ZDLTv8AI7dR3wft376wtUnOeY/nRlQEaMX1KGb7bo12jjAHkoGuEvFVFEPlTOp7LWEd/wAnWCSodwzHHIvUZ3OiDEJUmFPafxgK7hV6KnyoedA5HTG/+usts4ppKqzW2QwJJHBAkeCCd1XBUkdN9TviO4vWZi25FkwoHfWK33W4WXDU74jdd1IyOurDDrUtjzBDvyW3h6/wWSve6IxWIgrPGucMv+47f86stNUR1dLFUQkmOVA6EggkEZGx3Gviuo4iqqu4xS3A1VRSK2Wgjn8LmPbBA2/Grv7DONf1mlrbFUSu0tOTPTiSQu3hk4ZeY7nDEHJ/q9NFUEewWd0c2sE8d1sFz4jr2aQgxyeFHgbfDt1+oOk1oUIAY5I0SWtWSrlac/OxYk98nRuks1HOq1qTxyxnoqA7H10AuF9lgt6E/FgoY6KkMs+Q8pDCPHYdNtMkczxksg+bc8wy2gtXcqG1MFbmqKt/lRd2OuBuE5xW1amEAHlRj0+ugNZ3DKN1CcMc1zt9ZRx+DE0DMnxy8ihgSU3PmCCcaU5jdIZniahYSKxGTIuNvI53HrrPUXd6geJJOOU5w+fhP01oguKPCsNVPiKQMqug6d9j2OgLyWU1Ua/FUi7mWUXdx/lo1+sy6EzXaWjZaWpdR4hPNjojdsHuO2vWilvl84pgsx5kV3zJKJWPLGNy346epGu3tNtVto7mP0wGOYnlkhDFgcfzeh0+jN2pom6jqWX4i94Yq7jT0tOoaeomEaPIwVVLHAP79Tpzh9n9NBb57hdL4I6eljnadaKAyOvhSLGwBYgHdvxpEpnZhTzbrIpyCOxB6/kaeJuP7wHiWnhio/4mRSQ84qGlYM7Nz83xFgO2M6ZipgjiLhGhp6KOWxfq1c5qJlb3il8NUjRQSxGAQfi746HXX2eCfhb2kWSrkUwQzyrTOkh5WPiLjJU78vxKQem2q5f7BX1PDFSlnrLmtZNIsogqK1y8qnd8qcANk9N9h21Ea73mC803jiYz00q8/i551KnYHm3GPLUsTlSkcSWX3jxqiJUFVFkOiEYYD07HQKy19ZKi26kK+PUSmNCRkIAMk+umPiTgC90nFN5u9tqBFTifxt3I5w4LEAHYlTjbvnSfFVyWWMs5q2mMhZmFE0eG/pLdh6YGlQpoj2F7gm4eglis87RxwSPUyfxJqsYZj6Ab49Bpb4h4jFbUNAC/JEMyAIVy3Yb9hpht9RxNch7yTKyBcqHTr6kf7/jSFxA85udTUyKHdwed1AH320MgeH2GTZsTtaIKCsVJKyRWIARQckL5Ab6010dJQqJIZH5Zip8NCWUnpkZ6d/tpXR2WMqpDRO3ytopRmoq2Vp5MxoAEHZQNtDdCDZMZXICKAlV4ZqrPbLW1WhlhuDwAEtlhgY2A+p6aBcQx8OtNNUuZ7hXuSxWKUgZ9T2Ge2hlpbxbgztUtGkGCQvUn/T7aarTb6C7VsnNTF5THzlSCASDuSP31Xj5AHppOQhZLWThbfNUNKKamLIDukTZdD6Z66/tkv1bw7faeshpoKuWmk5vClUggjbdeoI/Y6rFDZqaS4yOhWKXmX4UXAXGwPrkf20S4n4XoK+lMk1NGsoX+NHsynzB661wo1cxjlNkCLUvtd94sjK9hqo6plIZvDJQnOfm2Pl66S7VR3DiK8SVNUtR4s0gZ5iPmJPr1665wV11t17Nt98JbPwGVtmGrLwd4lVU0cVVDSu5cMJIj5DJyp9BojKqiVGRjGvjCiTwI7j4HitF8Lb9FP7ddvvqQ3esp6G5x1kMaopIjkXdXjyeuR1U+uca+gp4I6mnkgmUNHIpVlPcHUC494WmtElQk0xFOVLRTlWbbtnHl30JCAaMjqTsQfer/ADSoKaKVn5hjBYseXv5Z0Dgs9RfqpaeFERY4y07EfKp6D6nfGsk1SKqjt08RDB/8I+HkkSZwfzt+dOvC8Fxt1tMNRSQUweRneWRviY9sg+Q0J8RbOCRoRlMwTBQOzE258EVBTxKODw5ACeXOAftoDb6mqbxQkSlweV8nlx6avc9tpK+hWot0od1wH5G5gT3GD01IKnh+W03memYAU00haIttgHcj7HbXOYo69qk4eQ9+tz1DJ7rO0jsQ7Lk/0g9Mfto1w9xW1p4gWpCK0UalHBB3J8vLQSloWuF4hp6cRgyOF+KUqDvjOrbJwDaKu3QxS03hyKFBkjwrvgdCdZlXuabuFFGIr333fiec0zkxTf4sCsf5TjI9QDplHEYqaKSOYcrBTgeZ0zUvCNtgsi22ojjnjjJKvKMlSep0r3Hgmz2qn8aOruJlQnwxFOZGVh1OD2Ge/bWjj5H603sysmEFrWK0vBVSfGvFaFmqEyYIywKsnl02OOh9NUj2X26SSklvMquscg8GlWTqEByzfcgD/wBfXS7SvW8aV8FmoS8dBHGvv1UVwWA648s9h3+g1X6WmhoqSKmp4xHDEgREHQADAGrh3f3ycKqvns7awXe0Ut6oWpapdjurj5kPmNb9e1aVkH4g4GmsLyGOKKPMgkin5cxsw6HH8remuNmt9TV0Ma1JE8sK4MPjcvMSSc58vpq9T08NVC0M8SSxOMMjjIOkm8ezmCZmmtU/u79opMlfseo/fUDMvm5Cqt/IgV1mvlTyRGsipYF2WnpMKqj1Ock+p0AutqukFJLQVs5l5wWppWXOHHQZ9RkffTdW8JXm3EyyWySR13EsI58/j/XQqruFwnXwp41XH/ciwRq5zqwphBridWDKYO9mtiS51Md6qZI/BpGGAvw5Yb757Drq6RSRSJGyHxRy84I7g9/vqLR19fyRUdHAkcCNzeFTw4DHzOOp+ujn6NxlxF/FFcIj2mbwk/G39tZwx/UeyZO0Y+IL9TUkISW7slQvzRUihi2/Qk7DbbSrRUV245q0ipKeOmoYmxJMVzgZ/mY7s3oNNtk9l9PAEkvFQKhh/wBCHKp9z1P7afqalgo6dKemhSGFBhURQAPto6YvuBL/AFMNisVFw9bVo6NNuryN80jeZ0T17XtH8g5//9k="],receipts:[],
+      history:[{date:"2026-08-13",kuchi:1,amount:10000,type:"新規",orderId:"4FB38A04EC5017FE"}]
+    });
+    save();
+  }
+  try{localStorage.setItem(KEY,"1");}catch(e){}
+})();
+
+render();
+</script>
+</body>
+</html>
