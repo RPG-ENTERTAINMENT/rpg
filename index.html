@@ -299,7 +299,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.14 12:55</span>
+    <span id="verChip">ver 2026.08.14 13:20</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -366,9 +366,9 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 12:55</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.14 13:20</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 12:55</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/14 13:20</div>
     </div>
 
     <div class="card admin-only">
@@ -496,6 +496,7 @@ body.staff .admin-only{display:none!important}
     <div class="eyebrow" style="color:#C9B6DE">RPG GOODS &amp; TICKETS</div>
     <h2>タレント経理総合アプリ</h2>
     <p>ログインしてください</p>
+    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.14 13:20</p>
     <input type="password" id="lg-code" inputmode="numeric" placeholder="パスコード" autocomplete="off">
     <button class="wide" onclick="login('admin')">責任者としてログイン</button>
     <button class="wide ghost" onclick="login('staff')">スタッフとしてログイン</button>
@@ -922,8 +923,9 @@ function renderGoods(){
   const _gqFocus=document.activeElement&&document.activeElement.id==='gq';
   const _gqPos=_gqFocus?document.activeElement.selectionStart:0;
   const tf=window.goodsTeam||'';
-  const tal=tf?(window.goodsTal||''):'';
-  if(!tf)window.goodsTal='';
+  const cfps=!!window.goodsCF||!!window.goodsPS;
+  const tal=(tf||cfps)?(window.goodsTal||''):'';
+  if(!tf&&!cfps)window.goodsTal='';
   const inTeam=n=>!tf||teamOf(tf).members.includes(n);
   const cf=!!window.goodsCF, ps=!!window.goodsPS;
   let base;
@@ -933,7 +935,17 @@ function renderGoods(){
   if(window.goodsLimit===undefined)window.goodsLimit=200;
   const gq=qNorm(String(window.goodsQ||'').trim());
   const hitQ=g=>!gq||qNorm([g.name,g.sns,g.talent,g.item,g.option,g.order,g.tel,g.mail,g.addr,g.pay,g.note].filter(Boolean).join(' ')).includes(gq);
-  const a=base.filter(g=>(cf?isCF(g):ps?isPS(g):(inTeam(g.talent)&&(!tal||g.talent===tal)))&&hitQ(g))
+  const pick=g=>cf?isCF(g):ps?isPS(g):inTeam(g.talent);
+  const talOf=g=>g.talent||'未指定';
+  /* クラファン・個撮のときのタレント別合計 */
+  const byTal=(cf||ps)?(()=>{
+    const m={};
+    base.filter(g=>pick(g)&&hitQ(g)&&!g.cancel).forEach(g=>{
+      const k=talOf(g);m[k]=m[k]||{n:0,amt:0};m[k].n++;m[k].amt+=Number(g.amount)||0;
+    });
+    return Object.entries(m).sort((x,y)=>y[1].amt-x[1].amt);
+  })():[];
+  const a=base.filter(g=>pick(g)&&(!tal||talOf(g)===tal)&&hitQ(g))
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.no-x.no));
   const live=a.filter(g=>!g.cancel);
   const item=live.reduce((s,g)=>s+(Number(g.amount)||0),0);
@@ -961,9 +973,16 @@ function renderGoods(){
       ${(teamOf(tf).members||[]).map(m=>`<button class="chip mem ${tal===m?'on':''}"
         onclick="window.goodsTal='${esc(m).replace(/'/g,"\\'")}';renderGoods()">${esc(talShort(m))}</button>`).join('')}
     </div>`:''}
-    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${cf?"　クラファン":ps?"　個撮":tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v">${live.length}</div></div></div>`
+    ${(cf||ps)&&byTal.length?`<div class="chips" style="margin:-2px 0 10px">
+      <button class="chip mem ${!tal?'on':''}" onclick="window.goodsTal='';renderGoods()">全体 ${yen(byTal.reduce((s,x)=>s+x[1].amt,0))}</button>
+      ${byTal.map(([n,v])=>`<button class="chip mem ${tal===n?'on':''}"
+        onclick="window.goodsTal='${esc(n).replace(/'/g,"\\'")}';renderGoods()">${esc(talShort(n))}
+        <b style="font-family:var(--mono);font-weight:700">${yen(v.amt)}</b>
+        <span style="opacity:.55">${v.n}件</span></button>`).join('')}
+    </div>`:''}
+    ${isTalent()?`<div class="grid"><div class="kpi"><div class="k">ORDERS${cf?"　クラファン"+(tal?" "+esc(talShort(tal)):""):ps?"　個撮"+(tal?" "+esc(talShort(tal)):""):tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v">${live.length}</div></div></div>`
     :`<div class="grid">
-      <div class="kpi hi"><div class="k">GOODS SALES${cf?"　クラファン":ps?"　個撮":tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
+      <div class="kpi hi"><div class="k">GOODS SALES${cf?"　クラファン"+(tal?" "+esc(talShort(tal)):""):ps?"　個撮"+(tal?" "+esc(talShort(tal)):""):tf?"　"+esc(tal?talShort(tal):teamOf(tf).name):""}</div><div class="v" style="font-size:21px">${yen(item)}</div></div>
       <div class="kpi"><div class="k">ORDERS</div><div class="v">${live.length}${a.length>live.length?`<span style="font-size:11px;color:var(--mute)">　＋キャンセル${a.length-live.length}</span>`:''}</div></div>
     </div>`}
     <button class="wide admin-only" style="margin:0 0 4px;background:var(--mango);color:var(--grape);font-size:15px;padding:14px"
