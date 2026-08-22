@@ -228,6 +228,7 @@ body.staff .admin-only{display:none!important}
 .cols2>.stub{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-flex;align-items:stretch;
   width:100%;margin-bottom:3px;border-radius:7px;box-shadow:none;border:1px solid var(--line)}
 .stub .no.mealno{background:var(--berry)!important;color:#fff!important}
+.tick.ent.arm{background:var(--mango)!important;border-color:var(--mango)!important;color:var(--grape)!important;font-weight:800}
 .sub .v.gold{background:linear-gradient(180deg,#E3C15B,#B8901F);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
 .cols2 .no{width:19px;flex:none;font-size:9.5px;padding:0;border-radius:6px 0 0 6px;
   display:flex;align-items:center;justify-content:center}
@@ -301,7 +302,7 @@ body.staff .admin-only{display:none!important}
 <header>
   <div class="hrow1">
     <h1>タレント経理総合アプリ</h1>
-    <span id="verChip">ver 2026.08.22 15:10</span>
+    <span id="verChip">ver 2026.08.22 18:05</span>
     <button id="setBtn" onclick="go('set')">設定</button>
     <button id="roleChip" onclick="logout()">スタッフ</button>
   </div>
@@ -333,6 +334,7 @@ body.staff .admin-only{display:none!important}
       <button data-f="meal">ご飯会</button>
     </div>
     <div id="dupBox" class="admin-only" style="display:none;margin:-4px 0 10px"></div>
+    <div id="rosterBox" style="display:none;margin:-4px 0 10px"></div>
     <div id="memberList"></div>
     <div id="list"></div>
     <div id="buyList"></div>
@@ -369,9 +371,9 @@ body.staff .admin-only{display:none!important}
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div class="bar" style="border:0;padding:0">
         <span style="font-family:var(--mincho);font-size:15px;font-weight:600">タレント経理総合アプリ</span>
-        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.22 15:10</b>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--grape)">ver 2026.08.22 18:05</b>
       </div>
-      <div class="hint" style="margin:4px 0 0">更新 2026/08/22 15:10</div>
+      <div class="hint" style="margin:4px 0 0">更新 2026/08/22 18:05</div>
     </div>
 
     <div class="card admin-only">
@@ -499,7 +501,7 @@ body.staff .admin-only{display:none!important}
     <div class="eyebrow" style="color:#C9B6DE">RPG GOODS &amp; TICKETS</div>
     <h2>タレント経理総合アプリ</h2>
     <p>ログインしてください</p>
-    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.22 15:10</p>
+    <p style="font-family:var(--mono);font-size:11.5px;color:#C9B6DE;opacity:.75;margin:-6px 0 14px">ver 2026.08.22 18:05</p>
     <input type="password" id="lg-code" inputmode="numeric" placeholder="パスコード" autocomplete="off">
     <button class="wide" onclick="login('admin')">責任者としてログイン</button>
     <button class="wide ghost" onclick="login('staff')">スタッフとしてログイン</button>
@@ -630,7 +632,7 @@ const tRank=t=>{const v=String(t||'');
 const tLabel=t=>['VIP','S','通常'][tRank(t)];
 function renderList(){
   if(!document.getElementById('list'))return;
-  renderMembers();renderDupBox();
+  renderMembers();renderDupBox();renderRosterBox();
   const q=qNorm($('#q').value.trim());
   /* 現場を選んでいない・検索もしていないときは、来場者リストを出さない */
   if(!evFilter&&!q){
@@ -681,7 +683,7 @@ function card(p){
         <div class="sub">${bits.join('<span style="opacity:.4">/</span>')}</div>
       </div>
       <span class="a amt">${yen(p.amount)}</span>
-      <button class="tick ent" onclick="toggle('${p.id}')" aria-label="${p.in?'入場前に戻す':'入場済にする'}">${p.in?'入場済':'入場前'}</button>
+      <button class="tick ent${window.tapArm===p.id?' arm':''}" onclick="toggle('${p.id}')" aria-label="${p.in?'入場前に戻す':'入場済にする'}">${window.tapArm===p.id?'もう一度':(p.in?'入場済':'入場前')}</button>
     </div>
   </div>`;
 }
@@ -746,6 +748,16 @@ function renderAll(){renderEvents();renderList();renderSum();if($('#talBody'))re
 /* ---------- actions ---------- */
 window.toggle=async id=>{if(isTalent()){toast('タレントは閲覧のみです');return}
   const p=DB.people.find(x=>x.id===id);if(!p)return;
+  /* 誤タップ防止：2回押して確定 */
+  const now=Date.now();
+  if(window.tapArm!==id||now-(window.tapAt||0)>4000){
+    window.tapArm=id;window.tapAt=now;
+    renderList();
+    toast(p.in?'もう一度押すと受付を取り消します':`${p.name} さん もう一度押すと受付します`);
+    setTimeout(()=>{if(window.tapArm===id&&Date.now()-window.tapAt>=4000){window.tapArm='';renderList()}},4100);
+    return;
+  }
+  window.tapArm='';
   p.in=!p.in;p.inAt=p.in?new Date().toISOString():'';
   await save();renderList();renderSum();
   toast(p.in?`${p.name} さん 受付しました`:'受付を取り消しました');
@@ -838,6 +850,91 @@ async function autoMergeDup(silent){
   if(n){await save();renderAll();if(!silent)toast(`同じお客様 ${n}件をまとめました`)}
   return n;
 }
+/* 名簿を表形式で表示（紙のリストと同じ並び） */
+function renderRosterBox(){
+  const box=document.getElementById('rosterBox');if(!box)return;
+  if(!evFilter){box.style.display='none';return}
+  box.style.display='';
+  box.innerHTML=`<button class="wide ghost" style="margin:0;padding:10px;font-size:12.5px" onclick="rosterOpen()">📋 名簿を表で見る・印刷する</button>`;
+}
+window.rosterOpen=()=>{
+  const ev=DB.events.find(e=>e.id===evFilter);if(!ev)return;
+  const a=DB.people.filter(p=>p.ev===evFilter)
+    .sort((x,y)=>(x.no||0)-(y.no||0));
+  /* 単価は実データから推定（同じ金額で一番多いもの） */
+  const mode=arr=>{const m={};arr.forEach(v=>m[v]=(m[v]||0)+1);
+    const e=Object.entries(m).sort((x,y)=>y[1]-x[1])[0];return e?Number(e[0]):0};
+  const gen=mode(a.filter(p=>!isVipP(p)&&!p.meal).map(p=>p.amount).filter(Boolean));
+  const meal=mode(a.filter(p=>p.meal&&!isVipP(p)).map(p=>(Number(p.amount)||0)-gen).filter(v=>v>0));
+  const vip=mode(a.filter(p=>isVipP(p)&&!p.meal).map(p=>p.amount).filter(Boolean))
+        ||mode(a.filter(p=>isVipP(p)).map(p=>(Number(p.amount)||0)-meal).filter(v=>v>0));
+  const cnt={g:0,v:0,m:0};
+  const rows=a.map(p=>{
+    const isV=isVipP(p);
+    if(isV)cnt.v++;else cnt.g++;
+    if(p.meal)cnt.m++;
+    return `<tr>
+      <td class="c">${p.no||''}</td>
+      <td class="nm">${esc(p.name||'')}${p.sns?`<span class="sns">（${esc(p.sns)}）</span>`:''}</td>
+      <td class="c s">様</td>
+      <td class="c">${isV?'':'1'}</td>
+      <td class="c v">${isV?'1':''}</td>
+      <td class="c m">${p.meal?'1':''}</td>
+      <td class="c d">${esc(p.drink||'')}</td>
+    </tr>`;
+  }).join('');
+  const ov=document.createElement('div');
+  ov.id='rosterOv';
+  ov.innerHTML=`
+    <style>
+      #rosterOv{position:fixed;inset:0;z-index:130;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px 10px 90px}
+      #rosterOv table{width:100%;border-collapse:collapse;font-family:var(--gothic);font-size:12px}
+      #rosterOv th,#rosterOv td{border:1px solid #333;padding:4px 5px;line-height:1.35}
+      #rosterOv th{background:#F2F2F2;font-size:11px;text-align:center}
+      #rosterOv th.v{background:#F6D9DF}#rosterOv th.m{background:#D9EFD5}#rosterOv th.d{color:#2E6FD8}
+      #rosterOv td.c{text-align:center}
+      #rosterOv td.s{width:26px;color:#555}
+      #rosterOv td.nm{font-size:12.5px}
+      #rosterOv td.d{color:#C2185B;font-weight:700}
+      #rosterOv .sns{font-size:10.5px;color:#666}
+      #rosterOv .ttl{font-family:var(--mincho);font-size:16px;font-weight:700;margin:0 0 8px}
+      #rosterOv .bar2{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #ddd;
+        padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px}
+      #rosterOv .bar2 button{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:11px;font-size:13px;font-weight:700;font-family:var(--gothic)}
+      @media print{#rosterOv .bar2{display:none}#rosterOv{position:static;padding:0}}
+    </style>
+    <div class="ttl">${esc(ev.title)}${ev.date?`　${ev.date.slice(5).replace('-','/')}`:''}</div>
+    <table>
+      <thead><tr>
+        <th style="width:26px">No</th><th>お名前</th><th style="width:26px"></th>
+        <th style="width:52px">一般<br>${gen?yen(gen):''}</th>
+        <th class="v" style="width:52px">VIP<br>${vip?yen(vip):''}</th>
+        <th class="m" style="width:52px">ご飯会<br>${meal?yen(meal):''}</th>
+        <th class="d" style="width:62px">ドリンク</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <th colspan="3">合計 ${a.length}名</th>
+        <th>${cnt.g}</th><th class="v">${cnt.v}</th><th class="m">${cnt.m}</th><th></th>
+      </tr></tfoot>
+    </table>
+    <div class="bar2">
+      <button onclick="window.print()">🖨 印刷</button>
+      <button onclick="rosterCsv()">CSVで書き出す</button>
+      <button onclick="document.getElementById('rosterOv').remove()">✕ 閉じる</button>
+    </div>`;
+  document.body.appendChild(ov);
+};
+window.rosterCsv=()=>{
+  const ev=DB.events.find(e=>e.id===evFilter);if(!ev)return;
+  const a=DB.people.filter(p=>p.ev===evFilter).sort((x,y)=>(x.no||0)-(y.no||0));
+  const rows=[['No','お名前','SNS','一般','VIP','ご飯会','ドリンク','金額']];
+  a.forEach(p=>rows.push([p.no||'',p.name||'',p.sns||'',isVipP(p)?'':'1',isVipP(p)?'1':'',p.meal?'1':'',p.drink||'',p.amount||0]));
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a2=document.createElement('a');a2.href=url;a2.download=`${ev.title}_名簿.csv`;a2.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 window.setMergeAuto=async v=>{
   if(!needAdmin())return;
   DB.mergeAuto=!!v;
@@ -2454,7 +2551,7 @@ function renderSiteCards(){
     </div>${on?'<div id="evSlot"></div>':''}`};
   const groups=m3.map(m=>({m,evs:evsOf(m)})).filter(g=>g.evs.length);
   /* 差し込んでいた要素を一旦セクション直下に戻す（innerHTML入れ替えで消えるのを防ぐ） */
-  const INLINE_IDS=['btnPos','posHint','filters','dupBox','memberList','list','buyList'];
+  const INLINE_IDS=['btnPos','posHint','filters','dupBox','rosterBox','memberList','list','buyList'];
   const sec=document.getElementById('v-rec');
   if(sec)INLINE_IDS.forEach(id=>{const el=document.getElementById(id);if(el)sec.appendChild(el)});
   box.innerHTML=groups.length?groups.map((g,i)=>`
